@@ -1,0 +1,49 @@
+services:
+  
+  game-engine:
+    build: ./game-engine
+    ports:
+      - 5001:5000
+    depends_on:
+      - db-games
+
+  game-history:
+    build: ./game-history
+    ports:
+      - 5002:5000
+    depends_on:
+      - db-games
+
+  collection:
+    build: ./collection
+    ports:
+      - 5003:5000
+    depends_on:
+      - db-decks
+
+  user-manager:
+    build: ./user-manager
+    ports:
+      - 5004:5000
+    depends_on:
+      - db-users
+  
+  db-games:
+    image: mongo:latest
+    volumes:
+      - games-data:/data/db
+
+  db-decks:
+    image: mongo:latest
+    volumes:
+      - decks-data:/data/db
+
+  db-users:
+    image: mongo:latest
+    volumes:
+      - users-data:/data/db
+
+volumes:
+  games-data:
+  decks-data:
+  users-data:
