@@ -24,10 +24,10 @@ Each player builds a **personal deck** consisting of:
 
 | Card | Value / Cost | Special Rules |
 |-------|---------------|---------------|
-| 2–10 | Face value | Number cards **beat Aces** |
-| J | 11 | Beaten only by Q, K, higher numbers, or Joker |
-| Q | 12 | Beaten only by K, higher numbers, or Joker |
-| K | 13 | Beaten only by higher numbers or Joker |
+| 2–10 | Face value | Number cards **beat Aces** and are beaten by cards with a higher value |
+| J | 11 | Beaten only by Q, K, Ace, or Joker |
+| Q | 12 | Beaten only by K, Ace, or Joker |
+| K | 13 | Beaten only by Ace or Joker |
 | A | 7 | **Beats all face cards (J, Q, K)** but **loses to all number cards (2–10)** and to the **Joker** |
 | 🃏 Joker | — | **Beats every card without exception** |
 
@@ -43,8 +43,8 @@ In case of equal value (e.g., two 9s), the higher suit wins:
 
 ## 🕹️ Gameplay
 
-1. Each player **starts with 3 cards in hand**.  
-2. At the start of each turn, **draw one card**.  
+1. Before starting the game, each player **selects his pre-created deck**.
+2. At the start of each turn, **draw one card** from his deck. The first turn he draws three cards.
 3. Both players **play one card face down**, then reveal them.  
 4. Compare the cards:
    - The **higher value** card wins.  
