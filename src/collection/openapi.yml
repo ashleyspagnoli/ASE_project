@@ -1,0 +1,234 @@
+openapi: 3.0.3
+info:
+  title: Card Collection and Decks API
+  version: 1.0.0
+  description: API per gestire una collezione di carte e creare mazzi personalizzati.
+
+servers:
+  - url: http://localhost:5000
+
+paths:
+  /collection/cards:
+    get:
+      summary: Get all available cards
+      description: Returns all available cards with their id and image.
+      responses:
+        '200':
+          description: Collection retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          example: "hA"
+                        image:
+                          type: string
+                          example: "images/hearts/A.png"
+                  total:
+                    type: integer
+                    example: 52
+        '500':
+          description: Server error
+
+  /collection/cards/{cardId}:
+    get:
+      summary: Get a single card
+      description: Returns full details for a specific card.
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "hA"
+      responses:
+        '200':
+          description: Card found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Card'
+        '404':
+          description: Card not found
+        '500':
+          description: Server error
+
+  /collection/decks:
+    get:
+      summary: Get all decks for a user
+      description: Returns all decks created by a given user.
+      parameters:
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "user123"
+      responses:
+        '200':
+          description: Decks retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Deck'
+                  total:
+                    type: integer
+                    example: 2
+        '500':
+          description: Server error
+
+    post:
+      summary: Create or replace a deck
+      description: >
+        Creates and validates a new deck for a user.  
+        - Must contain exactly 8 cards.  
+        - Exactly 2 cards per suit.  
+        - Each suit must not exceed 15 total points.  
+        - Replaces any existing deck in the same slot.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+                - deckSlot
+                - deckName
+                - cards
+              properties:
+                userId:
+                  type: string
+                  example: "user123"
+                deckSlot:
+                  type: integer
+                  example: 1
+                deckName:
+                  type: string
+                  example: "Cards deck 1"
+                cards:
+                  type: array
+                  items:
+                    type: string
+                  example: ["hA", "h5", "d5", "dK", "c7", "c8", "sA", "s5"]
+      responses:
+        '201':
+          description: Deck created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Deck created successfully
+                  data:
+                    $ref: '#/components/schemas/Deck'
+        '400':
+          description: Invalid input data
+        '500':
+          description: Server error
+
+  /collection/decks/{deckId}:
+    delete:
+      summary: Delete a deck
+      description: Deletes a deck for the specified user.
+      parameters:
+        - name: deckId
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "64f3b2d8e0d3f1b78c92e3f0"
+        - name: userId
+          in: query
+          required: true
+          schema:
+            type: string
+            example: "user123"
+      responses:
+        '200':
+          description: Deck deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: Deck deleted successfully
+        '404':
+          description: Deck not found
+        '500':
+          description: Server error
+
+components:
+  schemas:
+    Card:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "hA"
+        suit:
+          type: string
+          enum: [hearts, diamonds, clubs, spades]
+        value:
+          type: string
+          example: "A"
+        points:
+          type: integer
+          example: 10
+        image:
+          type: string
+          example: "images/hearts_A.png"
+
+    Deck:
+      type: object
+      properties:
+        _id:
+          type: string
+          example: "64f3b2d8e0d3f1b78c92e3f0"
+        userId:
+          type: string
+          example: "user123"
+        slot:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "My Deck"
+        cards:
+          type: array
+          items:
+            type: string
+            example: "hA"

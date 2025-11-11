@@ -27,7 +27,7 @@ def serialize_deck(deck):
     return deck
 
 # GET /collection - Get all cards (id and image)
-@app.route('/collection', methods=['GET'])
+@app.route('/collection/cards', methods=['GET'])
 def get_collection():
     try:
         cards = load_cards()
@@ -45,7 +45,7 @@ def get_collection():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # GET /collection/{cardId} - Get details of a single card
-@app.route('/collection/<card_id>', methods=['GET'])
+@app.route('/collection/cards/<card_id>', methods=['GET'])
 def get_card(card_id):
     try:
         cards = load_cards()
@@ -59,7 +59,7 @@ def get_card(card_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # GET /decks - Get all user's decks
-@app.route('/decks', methods=['GET'])
+@app.route('/collection/decks', methods=['GET'])
 def get_decks():
     try:
         user_id = request.args.get('userId')
@@ -76,7 +76,7 @@ def get_decks():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # POST /collection/create - Create a new deck
-@app.route('/collection/create', methods=['POST'])
+@app.route('/collection/decks', methods=['POST'])
 def create_deck():
     try:
         data = request.json
@@ -131,7 +131,7 @@ def create_deck():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 # DELETE /collection/{deckId} - Delete a deck
-@app.route('/collection/<deck_id>', methods=['DELETE'])
+@app.route('/collection/decks/<deck_id>', methods=['DELETE'])
 def delete_deck(deck_id):
     try:
         user_id = request.args.get('userId')
