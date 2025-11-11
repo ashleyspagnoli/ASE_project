@@ -1,11 +1,5 @@
 # 🂡 Card Game Rules
 
-## 🎯 Objective
-Win the match by achieving a **5-point lead** over your opponent.  
-As soon as a player reaches **+5 points**, the game **ends immediately**.
-
----
-
 ## 🃏 Deck Building
 
 Each player builds a **personal deck** consisting of:
@@ -22,12 +16,12 @@ Each player builds a **personal deck** consisting of:
 
 ## 🪄 Card Values and Rules
 
-| Card | Value / Cost | Special Rules |
+| Card | Value / Cost | Rules |
 |-------|---------------|---------------|
-| 2–10 | Face value | Number cards **beat Aces** and are beaten by cards with a higher value |
-| J | 11 | Beaten only by Q, K, Ace, or Joker |
-| Q | 12 | Beaten only by K, Ace, or Joker |
-| K | 13 | Beaten only by Ace or Joker |
+| 2–10 | Face value | beat **Aces**, are beaten by **face cards** and **Joker** |
+| J | 11 | Beaten only by Q, K, Ace, and Joker |
+| Q | 12 | Beaten only by K, Ace, and Joker |
+| K | 13 | Beaten only by Ace and Joker |
 | A | 7 | **Beats all face cards (J, Q, K)** but **loses to all number cards (2–10)** and to the **Joker** |
 | 🃏 Joker | — | **Beats every card without exception** |
 
@@ -43,15 +37,14 @@ In case of equal value (e.g., two 9s), the higher suit wins:
 
 ## 🕹️ Gameplay
 
-1. Before starting the game, each player **selects his pre-created deck**.
-2. At the start of each turn, **draw one card** from his deck. The first turn he draws three cards.
+1. Before starting the game, each player **selects one of his pre-created decks**.
+2. In the first turn, each player **draws three cards** from his deck, then, in the following turns, each player **draws one card**.
 3. Both players **play one card face down**, then reveal them.  
 4. Compare the cards:
-   - The **higher value** card wins.  
-   - In case of a tie, apply the **suit priority**.  
-   - The **Joker always wins**.  
-5. The winner of the turn **earns 1 point**.  
-6. The game **ends immediately** when a player reaches **+5 points** ahead.
+   - In case of a tie, apply the **suit priority**
+   - In case of both player chosing the same card, both players win the turn (tie)
+6. The winner(s) of the turn **earns 1 point**
+7. The first player reaching **5 points** wins and the game **ends immediately**
 
 ---
 
@@ -71,4 +64,4 @@ In case of equal value (e.g., two 9s), the higher suit wins:
 - Ace = 7 (special rule: beats face cards, loses to numbers)  
 - Joker beats everything  
 - Hearts > Diamonds > Clubs > Spades  
-- Win condition: +5 points
+- Win condition: 5 points
