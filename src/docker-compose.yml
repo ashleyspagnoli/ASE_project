@@ -15,7 +15,8 @@ services:
       - db-games
 
   collection:
-    build: ./collection
+    build:
+      dockerfile: collection/Dockerfile
     ports:
       - 5003:5000
     depends_on:
