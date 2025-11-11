@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+pymongo
+pydantic
+python-jose[cryptography] # Libreria per JWT
+passlib[bcrypt] # Libreria per l'hashing delle password
