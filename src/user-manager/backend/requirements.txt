@@ -3,4 +3,13 @@ uvicorn
 pymongo
 pydantic
 python-jose[cryptography] # Libreria per JWT
-passlib[bcrypt] # Libreria per l'hashing delle password
+passlib[argon2] # NUOVA DIPENDENZA: Argon2 per l'hashing
+argon2-cffi # Argomento richiesto da passlib[argon2]
+python-multipart
+dnspython
+email-validator
+python-dotenv
+pytest
+pytest-asyncio
+httpx
+pytest-mock
