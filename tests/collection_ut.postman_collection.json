@@ -1,0 +1,544 @@
+{
+	"info": {
+		"_postman_id": "a509480b-6952-41b2-a5b2-d8006f5dce53",
+		"name": "collection",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "49991342",
+		"_collection_link": "https://ashleyspagnoli03-1774477.postman.co/workspace/ASE_project~f369a5ad-77d1-42af-a02c-c21e64ae421d/collection/49991342-a509480b-6952-41b2-a5b2-d8006f5dce53?action=share&source=collection_link&creator=49991342"
+	},
+	"item": [
+		{
+			"name": "cards",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is correct\", function () {\r",
+							"  pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Response contains all 52 cards\", function () {\r",
+							"  var jsonData = pm.response.json();\r",
+							"  pm.expect(jsonData.success).to.eql(true);\r",
+							"  pm.expect(jsonData.total).to.eql(52);\r",
+							"  pm.expect(jsonData.data).to.be.an('array').that.has.lengthOf(52);\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Each card has id and image\", function () {\r",
+							"  var cards = pm.response.json().data;\r",
+							"  cards.forEach(function(card) {\r",
+							"    pm.expect(card).to.have.property(\"id\");\r",
+							"    pm.expect(card).to.have.property(\"image\");\r",
+							"  });\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5003/collection/cards",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5003",
+					"path": [
+						"collection",
+						"cards"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "one_card",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is correct\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"pm.test(\"The JSON is valid\", function () {\r",
+							"    const jsonData = pm.response.json();\r",
+							"    pm.expect(jsonData).to.have.property(\"success\", true);\r",
+							"    pm.expect(jsonData.data).to.have.property(\"id\", \"hA\");\r",
+							"    pm.expect(jsonData.data).to.have.property(\"image\", \"/images/hearts/A.png\");\r",
+							"    pm.expect(jsonData.data).to.have.property(\"points\");\r",
+							"    pm.expect(jsonData.data).to.have.property(\"suit\", \"hearts\");\r",
+							"    pm.expect(jsonData.data).to.have.property(\"value\", \"A\");\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5003/collection/cards/hA",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5003",
+					"path": [
+						"collection",
+						"cards",
+						"hA"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "one_card_bad",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is correct\", function () {\r",
+							"    pm.response.to.have.status(404);\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Card not found\", function () {\r",
+							"    const jsonData = pm.response.json();\r",
+							"    pm.expect(jsonData).to.have.property(\"success\", false);\r",
+							"    pm.expect(jsonData).to.have.property(\"error\", \"Card not found\");\r",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5003/collection/cards/hX",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5003",
+					"path": [
+						"collection",
+						"cards",
+						"hX"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "empty_decks",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is correct\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"pm.test(\"The JSON is valid\", function () {\r",
+							"    pm.response.to.be.json;\r",
+							"    const json = pm.response.json();\r",
+							"    pm.expect(json).to.have.property(\"success\", true);\r",
+							"    pm.expect(json).to.have.property(\"data\").that.is.an(\"array\");\r",
+							"    pm.expect(json).to.have.property(\"total\").that.is.a(\"number\");\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Nessun mazzo presente\", function () {\r",
+							"    const json = pm.response.json();\r",
+							"    pm.expect(json.total).to.eql(0);\r",
+							"    pm.expect(json.data.length).to.eql(0);\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5003/collection/decks?userId=testUser123",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5003",
+					"path": [
+						"collection",
+						"decks"
+					],
+					"query": [
+						{
+							"key": "userId",
+							"value": "testUser123"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "new_bad_deck",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is correct\", function () {\r",
+							"    pm.response.to.have.status(400);\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Max points exceeded\", function () {\r",
+							"    const jsonData = pm.response.json();\r",
+							"    pm.expect(jsonData).to.have.property(\"success\", false);\r",
+							"    pm.expect(jsonData).to.have.property(\"error\", \"Suit diamonds has 16 points (max 15)\");\r",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"userId\": \"testUser123\", \"deckSlot\": 1, \"deckName\": \"Cards deck 1\", \"cards\": [\"hA\", \"h5\", \"dA\", \"d9\", \"c7\", \"c8\", \"sA\", \"s5\"]}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5003/collection/decks",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5003",
+					"path": [
+						"collection",
+						"decks"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "new_bad_deck_2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is correct\", function () {\r",
+							"    pm.response.to.have.status(400);\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Three hearts cards\", function () {\r",
+							"    const jsonData = pm.response.json();\r",
+							"    pm.expect(jsonData).to.have.property(\"success\", false);\r",
+							"    pm.expect(jsonData).to.have.property(\"error\", \"Must select exactly 2 cards per suit (suit hearts: 3 cards)\");\r",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"userId\": \"testUser123\", \"deckSlot\": 1, \"deckName\": \"Cards deck 1\", \"cards\": [\"hA\", \"h5\", \"hA\", \"d9\", \"c7\", \"c8\", \"sA\", \"s5\"]}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5003/collection/decks",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5003",
+					"path": [
+						"collection",
+						"decks"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "new_deck",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// Ensure the new deck is saved before fetching\r",
+							"setTimeout(() => postman.setNextRequest(\"Get Decks\"), 500);\r",
+							"\r",
+							"pm.test(\"Status code is correct\", function () {\r",
+							"    pm.response.to.have.status(201);\r",
+							"});\r",
+							"\r",
+							"pm.test(\"The JSON is valid\", function () {\r",
+							"    const json = pm.response.json();\r",
+							"    pm.expect(json.success).to.eql(true);\r",
+							"    pm.expect(json).to.have.property(\"data\");\r",
+							"    pm.expect(json.data).to.have.property(\"_id\");\r",
+							"    pm.expect(json.data.userId).to.eql(\"testUser123\");\r",
+							"    pm.expect(json.data.cards).to.be.an(\"array\").that.has.lengthOf(8);\r",
+							"\r",
+							"    // Deck Id saved for future requests\r",
+							"    pm.collectionVariables.set(\"deckId\", json.data._id);\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"userId\": \"testUser123\", \"deckSlot\": 1, \"deckName\": \"Cards deck 1\", \"cards\": [\"hA\", \"h5\", \"dA\", \"d8\", \"c7\", \"c8\", \"sA\", \"s5\"]}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5003/collection/decks",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5003",
+					"path": [
+						"collection",
+						"decks"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "decks",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is correct\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"pm.test(\"The JSON is valid\", function () {\r",
+							"    const json = pm.response.json();\r",
+							"\r",
+							"    pm.expect(json.success).to.eql(true);\r",
+							"    pm.expect(json.data).to.be.an(\"array\").that.is.not.empty;\r",
+							"    pm.expect(json.total).to.be.above(0);\r",
+							"\r",
+							"    const deckIds = json.data.map(d => d._id);\r",
+							"    pm.expect(deckIds).to.include(pm.collectionVariables.get(\"deckId\"));\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5003/collection/decks?userId=testUser123",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5003",
+					"path": [
+						"collection",
+						"decks"
+					],
+					"query": [
+						{
+							"key": "userId",
+							"value": "testUser123"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "delete",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is correct\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"pm.test(\"The JSON is valid\", function () {\r",
+							"    const json = pm.response.json();\r",
+							"\r",
+							"    pm.expect(json.success).to.eql(true);\r",
+							"    pm.expect(json.message).to.be.eql(\"Deck deleted successfully\");\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "DELETE",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5003/collection/decks/{{deckId}}?userId=testUser123",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5003",
+					"path": [
+						"collection",
+						"decks",
+						"{{deckId}}"
+					],
+					"query": [
+						{
+							"key": "userId",
+							"value": "testUser123"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "empty_decks_2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is correct\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"pm.test(\"The JSON is valid\", function () {\r",
+							"    pm.response.to.be.json;\r",
+							"    const json = pm.response.json();\r",
+							"    pm.expect(json).to.have.property(\"success\", true);\r",
+							"    pm.expect(json).to.have.property(\"data\").that.is.an(\"array\");\r",
+							"    pm.expect(json).to.have.property(\"total\").that.is.a(\"number\");\r",
+							"});\r",
+							"\r",
+							"pm.test(\"Nessun mazzo presente\", function () {\r",
+							"    const json = pm.response.json();\r",
+							"    pm.expect(json.total).to.eql(0);\r",
+							"    pm.expect(json.data.length).to.eql(0);\r",
+							"});\r",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5003/collection/decks?userId=testUser123",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5003",
+					"path": [
+						"collection",
+						"decks"
+					],
+					"query": [
+						{
+							"key": "userId",
+							"value": "testUser123"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "deckId",
+			"value": ""
+		}
+	]
+}
