@@ -1,0 +1,324 @@
+openapi: 3.0.3
+info:
+  title: Card Game API
+  description: API per il Game Engine del gioco di carte.
+  version: 1.0.0
+servers:
+  - url: /game
+    description: Percorso base del Game Engine (Blueprint prefix)
+
+# =============================================================
+#  DEFINIZIONE DEI PERCORSI (ENDPOINTS)
+# =============================================================
+paths:
+  /connect:
+    post:
+      summary: Connette un giocatore al matchmaking
+      description: Aggiunge un giocatore alla lista 'online_players' in attesa di una partita.
+      tags:
+        - Matchmaking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  description: Il nome utente del giocatore da connettere.
+                  example: "PlayerOne"
+              required:
+                - username
+      responses:
+        '200':
+          description: Giocatore connesso o già online.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: "PlayerOne connected."
+                  players_online:
+                    type: array
+                    items:
+                      type: string
+                    example: ["PlayerOne", "AnotherPlayer"]
+
+  /matchmake:
+    post:
+      summary: Cerca una partita
+      description: Se ci sono almeno 2 giocatori online, li accoppia, crea una partita e li rimuove dalla coda.
+      tags:
+        - Matchmaking
+      responses:
+        '200':
+          description: Risultato del matchmaking.
+          content:
+            application/json:
+              schema:
+                oneOf: # Può restituire uno di questi due oggetti
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        example: "Waiting for more players..."
+                      players_online:
+                        type: array
+                        items:
+                          type: string
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        example: "Match created between PlayerOne and PlayerTwo"
+                      game_id:
+                        type: string
+                        format: uuid
+                      players:
+                        type: array
+                        items:
+                          type: string
+
+  /start:
+    post:
+      summary: Avvia una nuova partita (alternativa a matchmake)
+      description: Crea manualmente una nuova istanza di gioco per due giocatori specifici.
+      tags:
+        - Game Management
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                player1:
+                  type: string
+                  example: "Alice"
+                player2:
+                  type: string
+                  example: "Bob"
+              required:
+                - player1
+                - player2
+      responses:
+        '201':
+          description: Partita creata con successo.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  game_id:
+                    type: string
+                    format: uuid
+                  status:
+                    type: string
+                    example: "started"
+
+  /deck/{game_id}:
+    post:
+      summary: Seleziona il mazzo per un giocatore
+      description: Un giocatore invia il suo mazzo. Il server lo valida. Se entrambi i giocatori hanno scelto, la partita inizia (pesca 3 carte).
+      tags:
+        - Game Flow
+      parameters:
+        - name: game_id
+          in: path
+          required: true
+          description: L'ID della partita.
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                player:
+                  type: string
+                  description: Il nome del giocatore che sceglie il mazzo.
+                  example: "Alice"
+                deck:
+                  type: array
+                  description: La lista delle 9 carte (8 + 1 Joker).
+                  items:
+                    $ref: '#/components/schemas/Card'
+                  minItems: 9
+                  maxItems: 9
+              required:
+                - player
+                - deck
+      responses:
+        '200':
+          description: Mazzo selezionato. La risposta indica se si attende l'avversario o se la partita è iniziata.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        example: "Alice deck selected. In attesa dell'avversario."
+                  - type: object
+                    properties:
+                      message:
+                        type: string
+                        example: "Alice deck selected. Entrambi pronti! Partita iniziata, 3 carte pescate."
+        '400':
+          description: Errore di validazione del mazzo (es. >15 punti, mazzo non da 9 carte, ecc.)
+          
+  /play/{game_id}:
+    post:
+      summary: Gioca una carta
+      description: Un giocatore gioca una carta dalla sua mano. Se è il primo a giocare, attende; se è il secondo, il round si risolve.
+      tags:
+        - Game Flow
+      parameters:
+        - name: game_id
+          in: path
+          required: true
+          description: L'ID della partita.
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                player:
+                  type: string
+                  description: Il nome del giocatore che gioca la carta.
+                  example: "Alice"
+                card:
+                  $ref: '#/components/schemas/Card'
+              required:
+                - player
+                - card
+      responses:
+        '200':
+          description: Mossa eseguita. La risposta indica lo stato (in attesa o risolto).
+          content:
+            application/json:
+              schema:
+                oneOf: # La risposta sarà uno di questi due schemi
+                  - $ref: '#/components/schemas/WaitingResponse'
+                  - $ref: '#/components/schemas/ResolvedResponse'
+        '400':
+          description: Mossa non valida (es. partita non trovata, carta non in mano).
+
+  /state/{game_id}:
+    get:
+      summary: Recupera lo stato della partita
+      description: Ottiene lo stato attuale del gioco, inclusi punteggi, turni e vincitore.
+      tags:
+        - Game Management
+      parameters:
+        - name: game_id
+          in: path
+          required: true
+          description: L'ID della partita.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Stato attuale della partita.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameState'
+        '404':
+          description: Partita non trovata.
+
+# =============================================================
+#  COMPONENTI RIUTILIZZABILI
+# =============================================================
+components:
+  schemas:
+    Card:
+      type: object
+      properties:
+        rank:
+          type: string
+          example: "K"
+        suit:
+          type: string
+          example: "clubs"
+      required:
+        - rank
+        - suit
+
+    WaitingResponse:
+      description: La risposta inviata quando il primo giocatore ha giocato e si attende il secondo.
+      type: object
+      properties:
+        status:
+          type: string
+          example: "waiting"
+
+    ResolvedResponse:
+      description: La risposta inviata dopo che entrambi hanno giocato e il round è stato risolto.
+      type: object
+      properties:
+        status:
+          type: string
+          example: "resolved"
+        message:
+          type: string
+          example: "Alice wins round 1!"
+        scores:
+          type: object
+          additionalProperties:
+            type: integer
+          example: {"Alice": 1, "Bob": 0}
+        turn_number:
+          type: integer
+          example: 1
+        match_winner:
+          type: string
+          nullable: true
+          example: null
+          
+    GameState:
+      description: Lo stato completo di una partita.
+      type: object
+      properties:
+        turn_number:
+          type: integer
+          example: 3
+        scores:
+          type: object
+          additionalProperties:
+            type: integer
+          example: {"Alice": 2, "Bob": 1}
+        winner:
+          type: string
+          nullable: true
+          example: null
+        turns:
+          type: array
+          description: Storico dei turni giocati.
+          items:
+            type: object
+            properties:
+              turn:
+                type: integer
+              cards:
+                type: object
+                additionalProperties:
+                  type: string
+                example: {"Alice": "K of clubs", "Bob": "A of spades"}
+              winner:
+                type: string
+                nullable: true
+                example: "Alice"

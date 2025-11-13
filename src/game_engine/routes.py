@@ -4,7 +4,6 @@ from logic import (
     submit_card,
     get_game_state,
     select_deck,
-    draw_card_from_deck,
     matchmaking_connect,
     matchmaking_match,
 )
@@ -29,12 +28,6 @@ class GameController:
         player = data.get("player")
         deck = data.get("deck")
         result = select_deck(game_id, player, deck, self.games)
-        return jsonify(result), 200
-
-    def draw_card(self, game_id):
-        data = request.get_json()
-        player = data.get("player")
-        result = draw_card_from_deck(game_id, player, self.games)
         return jsonify(result), 200
 
     def play_turn(self, game_id):
@@ -63,7 +56,6 @@ controller = GameController()
 
 game_blueprint.add_url_rule("/start", view_func=controller.start_game, methods=["POST"])
 game_blueprint.add_url_rule("/deck/<game_id>", view_func=controller.choose_deck, methods=["POST"])
-game_blueprint.add_url_rule("/draw/<game_id>", view_func=controller.draw_card, methods=["POST"])
 game_blueprint.add_url_rule("/play/<game_id>", view_func=controller.play_turn, methods=["POST"])
 game_blueprint.add_url_rule("/state/<game_id>", view_func=controller.get_state, methods=["GET"])
 game_blueprint.add_url_rule("/connect", view_func=controller.connect_player, methods=["POST"])

@@ -33,7 +33,10 @@ def validate_deck(deck_cards):
 
         value_map = {"J": 11, "Q": 12, "K": 13, "A": 7}
         try:
-            val = value_map.get(rank, int(rank))
+            if rank in value_map:
+                val = value_map[rank]
+            else:
+                val = int(rank)
         except ValueError:
             raise ValueError(f"Invalid rank {rank}")
 
@@ -67,18 +70,18 @@ def select_deck(game_id, player_name, deck_cards, games):
     player = game.player1 if game.player1.name == player_name else game.player2
     player.deck.cards = [Card(c["rank"], c["suit"]) for c in deck_cards]
     player.deck.shuffle()
-
-    return {"message": f"{player_name} deck selected", "deck_size": len(player.deck.cards)}
-
-
-def draw_card_from_deck(game_id, player_name, games):
-    game = games.get(game_id)
-    player = game.player1 if game.player1.name == player_name else game.player2
-    card = player.draw_card()
-    if card:
-        return {"card": {"rank": card.rank, "suit": card.suit}}
+    
+    opponent = game.player2 if game.player1.name == player_name else game.player1
+    
+    if opponent.deck.cards:  # If the opponent has already selected the deck
+        # Both players draw 3 cards to start
+        for _ in range(3):
+            game.player1.draw_card()
+            game.player2.draw_card()
+        
+        return {"message": f"{player_name} deck selected. Both ready! Game started, 3 cards drawn."}
     else:
-        return {"message": "No cards left in deck"}
+        return {"message": f"{player_name} deck selected. Waiting for opponent."}
 
 
 # ------------------------------------------------------------
@@ -93,22 +96,19 @@ def compare_cards(card1: Card, card2: Card):
         "J": 11, "Q": 12, "K": 13, "A": 7, "JOKER": 99
     }
 
-    # --- Joker beats everything ---
+    # Joker beats everything
     if card1.rank == "JOKER" and card2.rank == "JOKER":
-        return "draw"
+        return "double_win"
     elif card1.rank == "JOKER":
         return "player1"
     elif card2.rank == "JOKER":
         return "player2"
 
     # --- Ace special interactions ---
-    # Ace beats face cards (J/Q/K)
     if card1.rank == "A" and card2.rank in ["J", "Q", "K"]:
         return "player1"
     if card2.rank == "A" and card1.rank in ["J", "Q", "K"]:
         return "player2"
-
-    # Ace loses to numbers (2–10)
     if card1.rank == "A" and card2.rank.isdigit():
         return "player2"
     if card2.rank == "A" and card1.rank.isdigit():
@@ -169,7 +169,12 @@ def submit_card(game_id, player_name, card_data, games):
         game.player2.score += 1
         winner_name = game.player2.name
         message = f"{winner_name} wins round {game.turn_number + 1}!"
-    else:
+    elif result == "double_win":
+        game.player1.score += 1
+        game.player2.score += 1
+        winner_name = "both"
+        message = f"Round {game.turn_number + 1} è un Double Win (Joker vs Joker)! 1 punto a entrambi."
+    else: # "draw"
         winner_name = None
         message = f"Round {game.turn_number + 1} is a draw."
 
@@ -184,6 +189,10 @@ def submit_card(game_id, player_name, card_data, games):
 
     if match_winner:
         game.winner = match_winner
+    else:
+        # If the game is not over, each player draws 1 card
+        game.player1.draw_card()
+        game.player2.draw_card()
 
     return {
         "status": "resolved",
@@ -192,7 +201,6 @@ def submit_card(game_id, player_name, card_data, games):
         "turn_number": game.turn_number,
         "match_winner": game.winner,
     }
-
 
 # ------------------------------------------------------------
 # 📊 Game State
@@ -208,7 +216,6 @@ def get_game_state(game_id, games):
         "turns": game.turns,
     }
 
-
 # ------------------------------------------------------------
 # 🔗 Matchmaking
 # ------------------------------------------------------------
@@ -217,7 +224,6 @@ def matchmaking_connect(username, online_players):
         return {"message": f"{username} is already online."}
     online_players.append(username)
     return {"message": f"{username} connected.", "players_online": online_players}
-
 
 def matchmaking_match(online_players, games):
     if len(online_players) < 2:
