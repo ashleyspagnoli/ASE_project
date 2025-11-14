@@ -14,37 +14,70 @@ game_blueprint = Blueprint("game_engine", __name__)
 class GameController:
     def __init__(self):
         self.games = {}
-        self.online_players = []
+        # online_players ora è un dizionario {uuid: nome}
+        self.online_players = {}
 
     def start_game(self):
+        """ Avvio manuale (per testing?) """
         data = request.get_json()
-        player1 = data.get("player1")
-        player2 = data.get("player2")
-        game_id = start_new_game(player1, player2, self.games)
+        p1_uuid = data.get("player1_uuid")
+        p1_name = data.get("player1_name")
+        p2_uuid = data.get("player2_uuid")
+        p2_name = data.get("player2_name")
+        
+        if not all([p1_uuid, p1_name, p2_uuid, p2_name]):
+            return jsonify({"error": "Missing player data (uuid and name)"}), 400
+
+        game_id = start_new_game(p1_uuid, p1_name, p2_uuid, p2_name, self.games)
         return jsonify({"game_id": game_id, "status": "started"}), 201
 
     def choose_deck(self, game_id):
         data = request.get_json()
-        player = data.get("player")
+        # Il client deve inviare 'player_uuid'
+        player_uuid = data.get("player_uuid") 
         deck = data.get("deck")
-        result = select_deck(game_id, player, deck, self.games)
-        return jsonify(result), 200
+        
+        if not player_uuid or not deck:
+            return jsonify({"error": "player_uuid and deck are required"}), 400
+
+        try:
+            result = select_deck(game_id, player_uuid, deck, self.games)
+            return jsonify(result), 200
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 400
 
     def play_turn(self, game_id):
         data = request.get_json()
-        player = data.get("player")
+        # Il client deve inviare 'player_uuid'
+        player_uuid = data.get("player_uuid") 
         card = data.get("card")
-        result = submit_card(game_id, player, card, self.games)
-        return jsonify(result), 200
+        
+        if not player_uuid or not card:
+            return jsonify({"error": "player_uuid and card are required"}), 400
+
+        try:
+            result = submit_card(game_id, player_uuid, card, self.games)
+            return jsonify(result), 200
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 404 # 404 se game_id non valido, 400 per altro
 
     def get_state(self, game_id):
-        state = get_game_state(game_id, self.games)
-        return jsonify(state)
+        try:
+            state = get_game_state(game_id, self.games)
+            return jsonify(state)
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 404
 
     def connect_player(self):
         data = request.get_json()
+        # Il client deve inviare 'uuid' e 'username'
         username = data.get("username")
-        result = matchmaking_connect(username, self.online_players)
+        user_uuid = data.get("uuid") 
+        
+        if not username or not user_uuid:
+            return jsonify({"error": "uuid and username are required"}), 400
+            
+        result = matchmaking_connect(user_uuid, username, self.online_players)
         return jsonify(result), 200
 
     def find_match(self):

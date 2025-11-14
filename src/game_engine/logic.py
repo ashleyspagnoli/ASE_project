@@ -1,6 +1,11 @@
 from models import Game, Player, Card, Deck
 import random
+import requests
+import uuid
 
+# GAME_HISTORY_URL = "http://game-history:5001/match" # Per ambiente di produzione
+
+GAME_HISTORY_URL = "http://localhost:5001/match" # Per test locale
 
 # ------------------------------------------------------------
 # 🂡 Utility: Create a full deck (for testing or reference)
@@ -52,36 +57,41 @@ def validate_deck(deck_cards):
 # ------------------------------------------------------------
 # ⚙️ Game Management
 # ------------------------------------------------------------
-def start_new_game(player1_name, player2_name, games):
-    p1 = Player(player1_name)
-    p2 = Player(player2_name)
-    game = Game(p1, p2)
+def start_new_game(player1_uuid, player1_name, player2_uuid, player2_name, games):
+    # Crea Players usando il modello aggiornato
+    p1 = Player(uuid=player1_uuid, name=player1_name)
+    p2 = Player(uuid=player2_uuid, name=player2_name)
+    
+    game = Game(p1, p2) # Game ora usa i nuovi Player
     games[game.game_id] = game
     return game.game_id
 
-
-def select_deck(game_id, player_name, deck_cards, games):
+def select_deck(game_id, player_uuid, deck_cards, games):
     game = games.get(game_id)
     if not game:
         raise ValueError("Invalid game ID")
 
     validate_deck(deck_cards)
 
-    player = game.player1 if game.player1.name == player_name else game.player2
+    # Identifica il giocatore tramite UUID
+    player = game.player1 if game.player1.uuid == player_uuid else game.player2
+    if player.uuid != player_uuid:
+        raise ValueError("Player UUID not found in this game")
+
     player.deck.cards = [Card(c["rank"], c["suit"]) for c in deck_cards]
     player.deck.shuffle()
     
-    opponent = game.player2 if game.player1.name == player_name else game.player1
+    opponent = game.player2 if game.player1.uuid == player_uuid else game.player1
     
-    if opponent.deck.cards:  # If the opponent has already selected the deck
-        # Both players draw 3 cards to start
+    # Regola: 3 carte al primo turno
+    if opponent.deck.cards:  
         for _ in range(3):
             game.player1.draw_card()
             game.player2.draw_card()
         
-        return {"message": f"{player_name} deck selected. Both ready! Game started, 3 cards drawn."}
+        return {"message": f"{player.name} deck selected. Both ready! Game started, 3 cards drawn."}
     else:
-        return {"message": f"{player_name} deck selected. Waiting for opponent."}
+        return {"message": f"{player.name} deck selected. Waiting for opponent."}
 
 
 # ------------------------------------------------------------
@@ -133,14 +143,20 @@ def compare_cards(card1: Card, card2: Card):
 # ------------------------------------------------------------
 # 🎮 Turn Handling
 # ------------------------------------------------------------
-def submit_card(game_id, player_name, card_data, games):
+def submit_card(game_id, player_uuid, card_data, games):
     game = games.get(game_id)
     if not game:
         raise ValueError("Invalid game ID")
+    
+    # Se la partita è già finita, non fare nulla
+    if game.winner:
+        return {"status": "finished", "message": f"Game already won by {game.winner}"}
 
-    player = game.player1 if game.player1.name == player_name else game.player2
+    # Identifica il giocatore tramite UUID
+    player = game.player1 if game.player1.uuid == player_uuid else game.player2
+    if player.uuid != player_uuid:
+        raise ValueError("Player UUID not found in this game")
 
-    # Validate the card is in the player's hand
     matching_card = next(
         (c for c in player.hand if c.rank == card_data["rank"] and c.suit == card_data["suit"]),
         None
@@ -148,19 +164,20 @@ def submit_card(game_id, player_name, card_data, games):
     if not matching_card:
         raise ValueError(f"{player.name} tried to play a card not in hand.")
 
-    # Play the card
     player.hand.remove(matching_card)
-    game.current_round[player.name] = matching_card
+    
+    # Usa l'UUID del giocatore come chiave
+    game.current_round[player.uuid] = matching_card
 
-    # Wait for both players
     if len(game.current_round) < 2:
         return {"status": "waiting"}
 
-    # Compare cards and determine the round winner
-    c1 = game.current_round.get(game.player1.name)
-    c2 = game.current_round.get(game.player2.name)
+    # Entrambi i giocatori hanno giocato
+    c1 = game.current_round.get(game.player1.uuid)
+    c2 = game.current_round.get(game.player2.uuid)
     result = compare_cards(c1, c2)
 
+    winner_name = None
     if result == "player1":
         game.player1.score += 1
         winner_name = game.player1.name
@@ -169,18 +186,19 @@ def submit_card(game_id, player_name, card_data, games):
         game.player2.score += 1
         winner_name = game.player2.name
         message = f"{winner_name} wins round {game.turn_number + 1}!"
-    elif result == "double_win":
+    elif result == "double_win": # Joker vs Joker
         game.player1.score += 1
         game.player2.score += 1
         winner_name = "both"
-        message = f"Round {game.turn_number + 1} è un Double Win (Joker vs Joker)! 1 punto a entrambi."
-    else: # "draw"
-        winner_name = None
-        message = f"Round {game.turn_number + 1} is a draw."
+        message = f"Round {game.turn_number + 1} è un Double Win! 1 punto a entrambi."
+    else: # "draw" (stessa identica carta)
+        winner_name = "draw"
+        message = f"Round {game.turn_number + 1} is a draw (stessa carta)."
 
+    # Salva il log del turno (usa la funzione definita in models.py)
     game.resolve_round(winner_name)
 
-    # Check for end condition (first to 5 points)
+    # Controlla la condizione di fine partita (Regola 5 punti)
     match_winner = None
     if game.player1.score >= 5:
         match_winner = game.player1.name
@@ -189,8 +207,12 @@ def submit_card(game_id, player_name, card_data, games):
 
     if match_winner:
         game.winner = match_winner
+        
+        # <-- ⭐️ CHIAMATA SINCRONA AL GAME HISTORY ⭐️ -->
+        _save_match_to_history(game)
+        
     else:
-        # If the game is not over, each player draws 1 card
+        # Regola: 1 carta nei turni successivi
         game.player1.draw_card()
         game.player2.draw_card()
 
@@ -209,28 +231,94 @@ def get_game_state(game_id, games):
     game = games.get(game_id)
     if not game:
         raise ValueError("Invalid game ID")
-    return {
+    
+    state = {
+        "game_id": game.game_id,
         "turn_number": game.turn_number,
-        "scores": {game.player1.name: game.player1.score, game.player2.name: game.player2.score},
         "winner": game.winner,
-        "turns": game.turns,
+        "scores": {
+            game.player1.name: game.player1.score,
+            game.player2.name: game.player2.score
+        },
+        "players": [
+            {"uuid": game.player1.uuid, "name": game.player1.name, "hand_size": len(game.player1.hand)},
+            {"uuid": game.player2.uuid, "name": game.player2.name, "hand_size": len(game.player2.hand)}
+        ],
+        "turn_history": game.turns,
     }
+    return state
 
 # ------------------------------------------------------------
 # 🔗 Matchmaking
 # ------------------------------------------------------------
-def matchmaking_connect(username, online_players):
-    if username in online_players:
-        return {"message": f"{username} is already online."}
-    online_players.append(username)
-    return {"message": f"{username} connected.", "players_online": online_players}
+def matchmaking_connect(user_uuid, username, online_players):
+    if user_uuid in online_players:
+        return {"message": f"{username} ({user_uuid}) is already online."}
+    
+    # Memorizza {uuid: nome}
+    online_players[user_uuid] = username
+    
+    return {"message": f"{username} connected.", "players_online_count": len(online_players)}
 
 def matchmaking_match(online_players, games):
     if len(online_players) < 2:
-        return {"message": "Waiting for more players...", "players_online": online_players}
+        return {"message": "Waiting for more players...", "players_online_count": len(online_players)}
 
-    p1, p2 = random.sample(online_players, 2)
-    game_id = start_new_game(p1, p2, games)
-    online_players.remove(p1)
-    online_players.remove(p2)
-    return {"message": f"Match created between {p1} and {p2}", "game_id": game_id, "players": [p1, p2]}
+    player_uuids = list(online_players.keys())
+    p1_uuid, p2_uuid = random.sample(player_uuids, 2)
+    
+    p1_name = online_players[p1_uuid]
+    p2_name = online_players[p2_uuid]
+
+    # Avvia la partita con UUID e Nomi
+    game_id = start_new_game(p1_uuid, p1_name, p2_uuid, p2_name, games)
+    
+    del online_players[p1_uuid]
+    del online_players[p2_uuid]
+    
+    return {
+        "message": f"Match created between {p1_name} and {p2_name}",
+        "game_id": game_id,
+        "players": [
+            {"uuid": p1_uuid, "name": p1_name},
+            {"uuid": p2_uuid, "name": p2_name}
+        ]
+    }
+
+# ------------------------------------------------------------
+# 💾 History Saving
+# ------------------------------------------------------------
+def _save_match_to_history(game: Game):
+    """
+    Invia l'esito della partita al servizio Game History in modo Sincrono.
+    """
+    
+    winner_index = "draw" # Default
+    if game.winner == game.player1.name:
+        winner_index = "1"
+    elif game.winner == game.player2.name:
+        winner_index = "2"
+
+    # Il log (game.turns) è già stato serializzato 
+    # dalla funzione game.resolve_round()
+    
+    payload = {
+        "player1": game.player1.uuid,
+        "player2": game.player2.uuid,
+        "winner": winner_index,
+        "log": game.turns,             # <-- Usa il log serializzato
+        "points1": game.player1.score,
+        "points2": game.player2.score
+    }
+
+    try:
+        # CHIAMATA SINCRONA
+        response = requests.post(GAME_HISTORY_URL, json=payload, timeout=5)
+        response.raise_for_status() 
+        print(f"Match {game.game_id} salvato con successo su Game History.")
+    
+    except requests.RequestException as e:
+        # La partita è finita, ma il salvataggio è fallito.
+        # Il client riceverà comunque l'esito della partita.
+        # Logga questo errore!
+        print(f"ERRORE CRITICO: Impossibile salvare la partita {game.game_id} su Game History: {e}")

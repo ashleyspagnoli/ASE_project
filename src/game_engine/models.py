@@ -31,6 +31,7 @@ class Deck:
 
 @dataclass
 class Player:
+    uuid: str
     name: str
     deck: Deck = field(default_factory=Deck)
     hand: List[Card] = field(default_factory=list)
@@ -67,6 +68,3 @@ class Game:
             "winner": winner_name
         })
         self.current_round = {}
-
-    def is_finished(self, total_turns: int = 8) -> bool:
-        return self.turn_number >= total_turns
