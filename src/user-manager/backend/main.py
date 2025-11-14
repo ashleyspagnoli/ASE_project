@@ -96,6 +96,12 @@ class UserOut(UserBase):
     role: str = Field(..., description="Ruolo dell'utente (e.g., 'user', 'admin').")
     hashed_password: str = Field(..., description="L'hash della password (visibile solo agli admin).")
     
+class UserOutPublic(BaseModel):
+    """Schema per l'output pubblico delle informazioni utente."""
+    # Aggiunto id per completezza
+    id: str = Field(..., description="ID univoco dell'utente.") 
+    username: str = Field(..., description="Nome utente.")
+
 class Token(BaseModel):
     """Schema di risposta per il login e la generazione del token."""
     access_token: str = Field(..., description="Il token JWT di accesso.")
@@ -140,6 +146,7 @@ def get_user(username: str):
     user_doc = USERS_COLLECTION.find_one({"username": username})
     if user_doc:
         return UserInDB(
+            id=str(user_doc['_id']),
             username=user_doc['username'], 
             email=user_doc.get('email', f"{user_doc['username']}@fallback.com"), 
             hashed_password=user_doc['hashed_password'],
@@ -264,6 +271,8 @@ def register_user(user_in: UserCreate):
         "token_for_testing_only": verification_token 
     }
 
+
+
 @app.post(
     "/utenti/verifica-email", 
     status_code=status.HTTP_200_OK,
@@ -355,6 +364,60 @@ def simple_login(user_credentials: UserLogin):
         "token_type": "bearer"
     }
 
+
+
+
+
+# Nel backend/main.py del tuo user-manager:
+
+class UserInternalOut(BaseModel): # Nuovo schema per i servizi interni
+    id: str = Field(..., description="ID univoco dell'utente.")
+    username: str = Field(..., description="Nome utente.")
+    role: str = Field(..., description="Ruolo dell'utente.")
+
+@app.post(
+    "/utenti/internal-validate-token", 
+    response_model=UserInternalOut,
+    tags=["Servizi Interni"],
+    summary="[INTERNAL] Convalida un token JWT e restituisce i dati utente."
+)
+def validate_token_for_internal_service(token_data: Token):
+    """
+    Endpoint utilizzato da altri microservizi per inviare un token JWT 
+    e ottenere l'ID e il ruolo dell'utente se il token è valido.
+    """
+    token_str = token_data.access_token
+
+    try:
+        # 1. Decodifica e verifica del token con la SECRET_KEY
+        payload = jwt.decode(token_str, SECRET_KEY, algorithms=[ALGORITHM])
+        username: str = payload.get("sub")
+        
+        if username is None:
+            raise HTTPException(status_code=401, detail="Token non contiene un 'sub' valido.")
+        
+    except JWTError:
+        # Cattura JWTError (firma non valida, scadenza, ecc.)
+        raise HTTPException(status_code=401, detail="Token JWT non valido o scaduto.")
+        
+    # 2. Recupero utente dal DB per verifica aggiuntiva
+    user = get_user(username)
+    if user is None:
+        raise HTTPException(status_code=404, detail="Utente associato al token non trovato.")
+    
+    if not user.is_verified:
+        raise HTTPException(status_code=403, detail="Account non verificato.")
+        
+    # 3. Restituisce i dati richiesti al Client Service
+    return UserInternalOut(
+        id=user.id,
+        username=user.username,
+        role=user.role
+    )
+
+
+
+
 @app.post(
     "/utenti/richiesta-reset-password", 
     status_code=status.HTTP_200_OK,
@@ -383,6 +446,9 @@ def request_password_reset(request: PasswordResetRequest):
         "message": "Se l'utente esiste, una mail per il reset della password è stata inviata.",
         "token_for_testing_only": reset_token 
     }
+
+
+
 
 @app.post(
     "/utenti/reimposta-password", 
