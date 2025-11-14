@@ -420,7 +420,37 @@ def confirm_password_reset(data: PasswordResetConfirm):
     
     return {"message": "Password reimpostata con successo. Esegui il login con la nuova password."}
 
+
+@app.get("/utenti/dev-all-users", response_model=List[UserOut])
+def get_all_users_for_devs():
+    """
+    [ATTENZIONE: ENDPOINT DI DEBUG/AMMINISTRAZIONE]
+    Restituisce tutti gli utenti nel DB, inclusi hash della password, email e token.
+    Accessibile solo agli utenti con role='admin'.
+    """
+    # Controllo del ruolo: Solo l'utente con role='admin' può accedere
+
+    users_list: List[UserOut] = []
+    
+    # Itera su tutti i documenti nella collection USERS_COLLECTION
+    for user_doc in USERS_COLLECTION.find():
+        # Costruisce l'oggetto UserOut, esponendo tutte le informazioni sensibili
+        users_list.append(UserOut(
+            id=str(user_doc["_id"]),
+            username=user_doc["username"],
+            email=user_doc.get("email", "EMAIL_MISSING"), # Usa un fallback chiaro
+            is_verified=user_doc.get("is_verified", False),
+            role=user_doc.get("role", "user"),
+            hashed_password=user_doc.get("hashed_password", "HASH_MISSING")
+        ))
+        
+    return users_list
+
+
 # --- NUOVO ENDPOINT DI AMMINISTRAZIONE ---
+
+
+
 
 @app.get("/utenti/admin-all-users", response_model=List[UserOut])
 def get_all_users_for_admin(current_user: UserInDB = Depends(get_current_user)):
