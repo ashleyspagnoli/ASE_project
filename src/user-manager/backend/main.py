@@ -87,6 +87,7 @@ class UserInDB(UserBase):
     email: str 
     is_verified: Optional[bool] = False
     role: Optional[str] = "user"
+    id: Optional[str] = None
 
 class UserOut(UserBase):
     """Schema per l'output di informazioni utente, specialmente per gli amministratori."""
@@ -134,11 +135,6 @@ def get_password_hash(password):
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
@@ -197,32 +193,6 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         
     return user
 
-def generate_verification_token(username: str) -> str:
-    token = secrets.token_hex(32)
-    expiry = datetime.utcnow() + timedelta(minutes=VERIFICATION_TOKEN_EXPIRE_MINUTES)
-
-    USERS_COLLECTION.update_one(
-        {"username": username},
-        {"$set": {
-            "verification_token": token,
-            "verification_token_expiry": expiry
-        }}
-    )
-    return token
-
-def generate_reset_token(username: str) -> str:
-    token = secrets.token_hex(32)
-    expiry = datetime.utcnow() + timedelta(minutes=RESET_TOKEN_EXPIRE_MINUTES)
-
-    USERS_COLLECTION.update_one(
-        {"username": username},
-        {"$set": {
-            "reset_token": token,
-            "reset_token_expiry": expiry
-        }}
-    )
-    return token
-
 # --- ENDPOINT DI AUTENTICAZIONE E UTENTI (Raggruppati con Tags) ---
 
 @app.post(
@@ -254,81 +224,21 @@ def register_user(user_in: UserCreate):
         "username": user_in.username,
         "email": user_in.email, 
         "hashed_password": hashed_password,
-        "is_verified": False, 
+        "is_verified": True, 
         "role": "admin" if user_in.username == "admin" else "user" 
     }
     
     USERS_COLLECTION.insert_one(user_data)
+    userid= str(user_data.get("_id"))
     
-    verification_token = generate_verification_token(user_in.username)
-    
-    # SIMULAZIONE EMAIL:
-    print(f"Token di verifica generato per {user_in.email}: {verification_token}") 
     
     return {
         "message": "Registrazione avvenuta. Controlla la tua email per il link di verifica.", 
         "username": user_in.username,
-        "token_for_testing_only": verification_token 
+        "token_for_testing_only": create_access_token(data={"username": user_in.username, "id": userid})
     }
 
 
-
-@app.post(
-    "/utenti/verifica-email", 
-    status_code=status.HTTP_200_OK,
-    tags=["Autenticazione e Utenti"],
-    summary="Verifica l'account utente tramite token email"
-)
-def verify_email_confirmation(data: EmailVerification):
-    """
-    Completa il processo di verifica dell'email, attivando l'account utente.
-    
-    **Richiede**: Il token di verifica ricevuto via email.
-    """
-    user_doc = USERS_COLLECTION.find_one({
-        "verification_token": data.token,
-        "verification_token_expiry": {"$gt": datetime.utcnow()} 
-    })
-    
-    if not user_doc:
-        raise HTTPException(status_code=400, detail="Token di verifica non valido o scaduto.")
-
-    USERS_COLLECTION.update_one(
-        {"_id": user_doc["_id"]},
-        {"$set": {"is_verified": True},
-         "$unset": {"verification_token": "", "verification_token_expiry": ""}}
-    )
-    
-    return {"message": "Email verificata con successo. Il tuo account è ora attivo."}
-
-
-@app.post(
-    "/token", 
-    response_model=Token,
-    tags=["Autenticazione e Utenti"],
-    summary="Login standard (OAuth2) e generazione JWT"
-)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-    """
-    Endpoint standard OAuth2 per l'ottenimento del token. 
-    
-    **Nota**: Richiede `username` e `password` come `form-data`.
-    """
-    user = authenticate_user(form_data.username, form_data.password)
-
-    if not user:
-         raise HTTPException(
-             status_code=status.HTTP_401_UNAUTHORIZED,
-             detail="Nome utente o password non validi",
-             headers={"WWW-Authenticate": "Bearer"},
-         )
-    
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
-    )
-    
-    return {"access_token": access_token, "token_type": "bearer"}
 
 @app.post(
     "/login", 
@@ -353,9 +263,8 @@ def simple_login(user_credentials: UserLogin):
             detail="Nome utente o password non validi",
         )
     
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
+        data={"username": user.username, "id": user.id}
     )
 
     return {
@@ -373,15 +282,14 @@ def simple_login(user_credentials: UserLogin):
 class UserInternalOut(BaseModel): # Nuovo schema per i servizi interni
     id: str = Field(..., description="ID univoco dell'utente.")
     username: str = Field(..., description="Nome utente.")
-    role: str = Field(..., description="Ruolo dell'utente.")
 
 @app.post(
-    "/utenti/internal-validate-token", 
+    "/utenti/validate-token", 
     response_model=UserInternalOut,
     tags=["Servizi Interni"],
     summary="[INTERNAL] Convalida un token JWT e restituisce i dati utente."
 )
-def validate_token_for_internal_service(token_data: Token):
+def validate_token(token_data: Token):
     """
     Endpoint utilizzato da altri microservizi per inviare un token JWT 
     e ottenere l'ID e il ruolo dell'utente se il token è valido.
@@ -391,10 +299,10 @@ def validate_token_for_internal_service(token_data: Token):
     try:
         # 1. Decodifica e verifica del token con la SECRET_KEY
         payload = jwt.decode(token_str, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
+        username: str = payload.get("username")
         
         if username is None:
-            raise HTTPException(status_code=401, detail="Token non contiene un 'sub' valido.")
+            raise HTTPException(status_code=401, detail="Token non contiene un 'username' valido.")
         
     except JWTError:
         # Cattura JWTError (firma non valida, scadenza, ecc.)
@@ -410,75 +318,11 @@ def validate_token_for_internal_service(token_data: Token):
         
     # 3. Restituisce i dati richiesti al Client Service
     return UserInternalOut(
-        id=user.id,
+        id=payload.get("id"),
         username=user.username,
-        role=user.role
     )
 
 
-
-
-@app.post(
-    "/utenti/richiesta-reset-password", 
-    status_code=status.HTTP_200_OK,
-    tags=["Autenticazione e Utenti"],
-    summary="Richiedi token per il reset della password"
-)
-def request_password_reset(request: PasswordResetRequest):
-    """
-    Avvia la procedura di reset della password. 
-    
-    Genera un token di reset e, in un ambiente reale, lo invierebbe all'email 
-    associata all'username. L'endpoint non fallisce se l'utente non esiste per 
-    evitare l'enumerazione degli utenti.
-    """
-    user_doc = USERS_COLLECTION.find_one({"username": request.username})
-    
-    if not user_doc:
-        return {"message": "Se l'utente esiste, una mail per il reset della password è stata inviata."}
-    
-    reset_token = generate_reset_token(request.username)
-    
-    # SIMULAZIONE EMAIL: 
-    print(f"Token generato per {request.username}: {reset_token}") 
-    
-    return {
-        "message": "Se l'utente esiste, una mail per il reset della password è stata inviata.",
-        "token_for_testing_only": reset_token 
-    }
-
-
-
-
-@app.post(
-    "/utenti/reimposta-password", 
-    status_code=status.HTTP_200_OK,
-    tags=["Autenticazione e Utenti"],
-    summary="Conferma il reset della password"
-)
-def confirm_password_reset(data: PasswordResetConfirm):
-    """
-    Completa il reset della password usando il token fornito. 
-    
-    Se il token è valido e non scaduto, la password dell'utente viene aggiornata.
-    """
-    user_doc = USERS_COLLECTION.find_one({
-        "reset_token": data.token,
-        "reset_token_expiry": {"$gt": datetime.utcnow()} 
-    })
-    
-    if not user_doc:
-        raise HTTPException(status_code=400, detail="Token di reset non valido o scaduto.")
-
-    new_hashed_password = get_password_hash(data.new_password)
-    
-    USERS_COLLECTION.update_one(
-        {"_id": user_doc["_id"]},
-        {"$set": {"hashed_password": new_hashed_password},
-         "$unset": {"reset_token": "", "reset_token_expiry": ""}}
-    )
-    
-    return {"message": "Password reimpostata con successo. Esegui il login con la nuova password."}
 
 # --- ENDPOINT DI DEBUG E AMMINISTRAZIONE (Raggruppati con Tags) ---
 
