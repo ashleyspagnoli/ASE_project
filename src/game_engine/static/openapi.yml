@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: Card Game API
   description: API per il Game Engine del gioco di carte.
-  version: 1.0.0
+  version: 1.0.1
 servers:
   - url: /game
     description: Percorso base del Game Engine (Blueprint prefix)
@@ -14,7 +14,7 @@ paths:
   /connect:
     post:
       summary: Connette un giocatore al matchmaking
-      description: Aggiunge un giocatore alla lista 'online_players' in attesa di una partita.
+      description: Aggiunge un giocatore (tramite UUID e nome) alla lista 'online_players' in attesa di una partita.
       tags:
         - Matchmaking
       requestBody:
@@ -26,10 +26,15 @@ paths:
               properties:
                 username:
                   type: string
-                  description: Il nome utente del giocatore da connettere.
-                  example: "PlayerOne"
+                  description: Il nome utente del giocatore.
+                  example: "Alice"
+                uuid:
+                  type: string
+                  description: L'UUID univoco del giocatore.
+                  example: "user-alice-uuid"
               required:
                 - username
+                - uuid
       responses:
         '200':
           description: Giocatore connesso o già online.
@@ -40,12 +45,12 @@ paths:
                 properties:
                   message:
                     type: string
-                    example: "PlayerOne connected."
-                  players_online:
-                    type: array
-                    items:
-                      type: string
-                    example: ["PlayerOne", "AnotherPlayer"]
+                    example: "Alice connected."
+                  players_online_count:
+                    type: integer
+                    example: 1
+        '400':
+          $ref: '#/components/responses/BadRequest'
 
   /matchmake:
     post:
@@ -60,31 +65,12 @@ paths:
             application/json:
               schema:
                 oneOf: # Può restituire uno di questi due oggetti
-                  - type: object
-                    properties:
-                      message:
-                        type: string
-                        example: "Waiting for more players..."
-                      players_online:
-                        type: array
-                        items:
-                          type: string
-                  - type: object
-                    properties:
-                      message:
-                        type: string
-                        example: "Match created between PlayerOne and PlayerTwo"
-                      game_id:
-                        type: string
-                        format: uuid
-                      players:
-                        type: array
-                        items:
-                          type: string
-
+                  - $ref: '#/components/schemas/WaitingForMatch'
+                  - $ref: '#/components/schemas/MatchCreated'
+  
   /start:
     post:
-      summary: Avvia una nuova partita (alternativa a matchmake)
+      summary: Avvia una nuova partita (Manuale/Test)
       description: Crea manualmente una nuova istanza di gioco per due giocatori specifici.
       tags:
         - Game Management
@@ -95,15 +81,23 @@ paths:
             schema:
               type: object
               properties:
-                player1:
+                player1_uuid:
+                  type: string
+                  example: "user-alice-uuid"
+                player1_name:
                   type: string
                   example: "Alice"
-                player2:
+                player2_uuid:
+                  type: string
+                  example: "user-bob-uuid"
+                player2_name:
                   type: string
                   example: "Bob"
               required:
-                - player1
-                - player2
+                - player1_uuid
+                - player1_name
+                - player2_uuid
+                - player2_name
       responses:
         '201':
           description: Partita creata con successo.
@@ -118,11 +112,13 @@ paths:
                   status:
                     type: string
                     example: "started"
+        '400':
+          $ref: '#/components/responses/BadRequest'
 
   /deck/{game_id}:
     post:
-      summary: Seleziona il mazzo per un giocatore
-      description: Un giocatore invia il suo mazzo. Il server lo valida. Se entrambi i giocatori hanno scelto, la partita inizia (pesca 3 carte).
+      summary: Seleziona lo slot del mazzo
+      description: Un giocatore invia il suo UUID e lo slot del mazzo scelto (1-5). Il server contatterà il 'collection-service' per recuperare e validare il mazzo.
       tags:
         - Game Flow
       parameters:
@@ -140,20 +136,17 @@ paths:
             schema:
               type: object
               properties:
-                player:
+                player_uuid:
                   type: string
-                  description: Il nome del giocatore che sceglie il mazzo.
-                  example: "Alice"
-                deck:
-                  type: array
-                  description: La lista delle 9 carte (8 + 1 Joker).
-                  items:
-                    $ref: '#/components/schemas/Card'
-                  minItems: 9
-                  maxItems: 9
+                  description: L'UUID del giocatore che sceglie il mazzo.
+                  example: "user-alice-uuid"
+                deck_slot:
+                  type: integer
+                  description: Lo slot del mazzo (es. 1, 2, 3...).
+                  example: 1
               required:
-                - player
-                - deck
+                - player_uuid
+                - deck_slot
       responses:
         '200':
           description: Mazzo selezionato. La risposta indica se si attende l'avversario o se la partita è iniziata.
@@ -165,19 +158,21 @@ paths:
                     properties:
                       message:
                         type: string
-                        example: "Alice deck selected. In attesa dell'avversario."
+                        example: "Alice deck selected. Waiting for opponent."
                   - type: object
                     properties:
                       message:
                         type: string
-                        example: "Alice deck selected. Entrambi pronti! Partita iniziata, 3 carte pescate."
+                        example: "Alice deck selected. Both ready! Game started, 3 cards drawn."
         '400':
-          description: Errore di validazione del mazzo (es. >15 punti, mazzo non da 9 carte, ecc.)
-          
+          $ref: '#/components/responses/BadRequest' # Es. "player_uuid and deck_slot are required", "Deck not found", "Suit exceeds 15 points"
+        '500':
+          $ref: '#/components/responses/ServerError' # Es. "Could not reach collection service"
+
   /play/{game_id}:
     post:
       summary: Gioca una carta
-      description: Un giocatore gioca una carta dalla sua mano. Se è il primo a giocare, attende; se è il secondo, il round si risolve.
+      description: Un giocatore (identificato da UUID) gioca una carta dalla sua mano.
       tags:
         - Game Flow
       parameters:
@@ -195,14 +190,14 @@ paths:
             schema:
               type: object
               properties:
-                player:
+                player_uuid:
                   type: string
-                  description: Il nome del giocatore che gioca la carta.
-                  example: "Alice"
+                  description: L'UUID del giocatore che gioca la carta.
+                  example: "user-alice-uuid"
                 card:
                   $ref: '#/components/schemas/Card'
               required:
-                - player
+                - player_uuid
                 - card
       responses:
         '200':
@@ -214,7 +209,9 @@ paths:
                   - $ref: '#/components/schemas/WaitingResponse'
                   - $ref: '#/components/schemas/ResolvedResponse'
         '400':
-          description: Mossa non valida (es. partita non trovata, carta non in mano).
+          $ref: '#/components/responses/BadRequest' # Es. "card is required"
+        '404':
+          $ref: '#/components/responses/NotFound' # Es. "Invalid game ID", "card not in hand"
 
   /state/{game_id}:
     get:
@@ -238,7 +235,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/GameState'
         '404':
-          description: Partita non trovata.
+          $ref: '#/components/responses/NotFound' # Es. "Invalid game ID"
 
 # =============================================================
 #  COMPONENTI RIUTILIZZABILI
@@ -248,16 +245,62 @@ components:
     Card:
       type: object
       properties:
-        rank:
+        value:
           type: string
           example: "K"
         suit:
           type: string
           example: "clubs"
       required:
-        - rank
+        - value
         - suit
 
+    PlayerState:
+      type: object
+      properties:
+        uuid:
+          type: string
+          format: uuid
+        name:
+          type: string
+        hand_size:
+          type: integer
+          example: 3
+        # Aggiungi 'hand' se vuoi esporlo (come abbiamo fatto per il test)
+        # hand:
+        #   type: array
+        #   items:
+        #     $ref: '#/components/schemas/Card'
+            
+    GameState:
+      description: Lo stato completo di una partita.
+      type: object
+      properties:
+        game_id:
+          type: string
+          format: uuid
+        turn_number:
+          type: integer
+          example: 3
+        winner:
+          type: string
+          nullable: true
+          example: null
+        scores:
+          type: object
+          additionalProperties:
+            type: integer
+          example: {"Alice": 2, "Bob": 1}
+        players:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlayerState'
+        turn_history:
+          type: array
+          description: Storico dei turni giocati.
+          items:
+            type: object # Questo schema può essere dettagliato ulteriormente se necessario
+            
     WaitingResponse:
       description: La risposta inviata quando il primo giocatore ha giocato e si attende il secondo.
       type: object
@@ -288,37 +331,65 @@ components:
           type: string
           nullable: true
           example: null
-          
-    GameState:
-      description: Lo stato completo di una partita.
+
+    WaitingForMatch:
       type: object
       properties:
-        turn_number:
-          type: integer
-          example: 3
-        scores:
-          type: object
-          additionalProperties:
-            type: integer
-          example: {"Alice": 2, "Bob": 1}
-        winner:
+        message:
           type: string
-          nullable: true
-          example: null
-        turns:
+          example: "Waiting for more players..."
+        players_online_count:
+          type: integer
+          example: 1
+          
+    MatchCreated:
+      type: object
+      properties:
+        message:
+          type: string
+          example: "Match created between Alice and Bob"
+        game_id:
+          type: string
+          format: uuid
+        players:
           type: array
-          description: Storico dei turni giocati.
           items:
             type: object
             properties:
-              turn:
-                type: integer
-              cards:
-                type: object
-                additionalProperties:
-                  type: string
-                example: {"Alice": "K of clubs", "Bob": "A of spades"}
-              winner:
+              uuid:
                 type: string
-                nullable: true
-                example: "Alice"
+                format: uuid
+              name:
+                type: string
+            example: [{"uuid": "user-alice-uuid", "name": "Alice"}, {"uuid": "user-bob-uuid", "name": "Bob"}]
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+  responses:
+    BadRequest:
+      description: Richiesta non valida (es. dati mancanti, validazione fallita).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+            example: {"error": "player_uuid and deck_slot are required"}
+    NotFound:
+      description: Risorsa non trovata (es. game_id non valido).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+            example: {"error": "Invalid game ID"}
+    ServerError:
+      description: Errore interno del server (es. impossibile contattare un altro servizio).
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+            example: {"error": "Could not reach collection service"}

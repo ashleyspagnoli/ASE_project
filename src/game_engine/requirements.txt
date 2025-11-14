@@ -1,1 +1,4 @@
 Flask
+flask_swagger_ui
+requests
+uuid

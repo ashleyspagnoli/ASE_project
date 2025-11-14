@@ -1,0 +1,593 @@
+{
+    "info": {
+        "_postman_id": "a1b2c3d4-e5f6-4a5b-8c9d-0e1f2a3b4c5d",
+        "name": "[Simulazione] Game Workflow (Completo)",
+        "description": "Un workflow completo per testare il game-engine, dalla creazione dei mazzi fino alla vittoria.",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "Setup: Creare Mazzi (Servizio Collection)",
+            "description": "Passi preliminari per popolare il DB 'collection' con i mazzi.",
+            "item": [
+                {
+                    "name": "Crea Mazzo per Alice (Vincitore)",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"userId\": \"user-alice-uuid\",\n    \"deckSlot\": 1,\n    \"deckName\": \"Alice Deck (High Cards)\",\n    \"cards\": [\n        \"hA\", \"h7\", \n        \"dA\", \"d7\", \n        \"ck\", \"c2\", \n        \"sK\", \"s2\"\n    ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "http://localhost:5003/collection/decks",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5003",
+                            "path": [
+                                "collection",
+                                "decks"
+                            ]
+                        },
+                        "description": "Crea un mazzo con carte alte per Alice per facilitare la simulazione della vittoria."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Crea Mazzo per Bob (Perdente)",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"userId\": \"user-bob-uuid\",\n    \"deckSlot\": 1,\n    \"deckName\": \"Bob Deck (Low Cards)\",\n    \"cards\": [\n        \"h2\", \"h3\", \n        \"d2\", \"d3\", \n        \"c2\", \"c3\", \n        \"s2\", \"s3\"\n    ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "http://localhost:5003/collection/decks",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5003",
+                            "path": [
+                                "collection",
+                                "decks"
+                            ]
+                        },
+                        "description": "Crea un mazzo con carte basse per Bob."
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Flusso di Gioco (Servizio Game Engine)",
+            "description": "Simula la partita dall'inizio alla fine.",
+            "item": [
+                {
+                    "name": "1. Connetti Alice",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"uuid\": \"user-alice-uuid\",\n    \"username\": \"Alice\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "http://localhost:5001/game/connect",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5001",
+                            "path": [
+                                "game",
+                                "connect"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "2. Connetti Bob",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"uuid\": \"user-bob-uuid\",\n    \"username\": \"Bob\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "http://localhost:5001/game/connect",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5001",
+                            "path": [
+                                "game",
+                                "connect"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "3. Avvia Matchmaking",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "// Salva il game_id in una variabile della collection",
+                                    "var jsonData = pm.response.json();",
+                                    "pm.collectionVariables.set(\"game_id\", jsonData.game_id);",
+                                    "console.log(\"Game ID impostato: \" + jsonData.game_id);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:5001/game/matchmake",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5001",
+                            "path": [
+                                "game",
+                                "matchmake"
+                            ]
+                        },
+                        "description": "Crea la partita. Lo script nella tab 'Tests' salva il game_id restituito."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "4. Alice Seleziona Mazzo",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"player_uuid\": \"user-alice-uuid\",\n    \"deck_slot\": 1\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "http://localhost:5001/game/deck/{{game_id}}",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5001",
+                            "path": [
+                                "game",
+                                "deck",
+                                "{{game_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "5. Bob Seleziona Mazzo",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"player_uuid\": \"user-bob-uuid\",\n    \"deck_slot\": 1\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "http://localhost:5001/game/deck/{{game_id}}",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5001",
+                            "path": [
+                                "game",
+                                "deck",
+                                "{{game_id}}"
+                            ]
+                        },
+                        "description": "La partita inizia e 3 carte vengono pescate."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Game State (Debug)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:5001/game/state/{{game_id}}",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5001",
+                            "path": [
+                                "game",
+                                "state",
+                                "{{game_id}}"
+                            ]
+                        },
+                        "description": "Controlla lo stato. Per il debug, modifica 'get_game_state' sul server per mostrare le mani e vedere cosa giocare."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "TURNO 1 (A:1-B:0) Alice Gioca",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"player_uuid\": \"user-alice-uuid\",\n    \"card\": {\n        \"value\": \"A\",\n        \"suit\": \"hearts\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "http://localhost:5001/game/play/{{game_id}}",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5001",
+                            "path": [
+                                "game",
+                                "play",
+                                "{{game_id}}"
+                            ]
+                        },
+                        "description": "SIMULAZIONE: Alice gioca Asso di cuori. (Funziona solo se ha pescato questa carta!)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "TURNO 1 (A:1-B:0) Bob Gioca",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"player_uuid\": \"user-bob-uuid\",\n    \"card\": {\n        \"value\": \"2\",\n        \"suit\": \"spades\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "http://localhost:5001/game/play/{{game_id}}",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5001",
+                            "path": [
+                                "game",
+                                "play",
+                                "{{game_id}}"
+                            ]
+                        },
+                        "description": "SIMULAZIONE: Bob gioca 2 di picche. Alice vince (A > 2). Punteggio: 1-0"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "TURNO 2 (A:2-B:0) Alice Gioca",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"player_uuid\": \"user-alice-uuid\",\n    \"card\": {\n        \"value\": \"K\",\n        \"suit\": \"diamonds\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "http://localhost:5001/game/play/{{game_id}}",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5001",
+                            "path": [
+                                "game",
+                                "play",
+                                "{{game_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "TURNO 2 (A:2-B:0) Bob Gioca",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"player_uuid\": \"user-bob-uuid\",\n    \"card\": {\n        \"value\": \"3\",\n        \"suit\": \"clubs\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "http://localhost:5001/game/play/{{game_id}}",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5001",
+                            "path": [
+                                "game",
+                                "play",
+                                "{{game_id}}"
+                            ]
+                        },
+                        "description": "Alice vince (K > 3). Punteggio: 2-0"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "TURNO 3 (A:3-B:0) Alice Gioca",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"player_uuid\": \"user-alice-uuid\",\n    \"card\": {\n        \"value\": \"A\",\n        \"suit\": \"spades\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "http://localhost:5001/game/play/{{game_id}}",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5001",
+                            "path": [
+                                "game",
+                                "play",
+                                "{{game_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "TURNO 3 (A:3-B:0) Bob Gioca",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"player_uuid\": \"user-bob-uuid\",\n    \"card\": {\n        \"value\": \"3\",\n        \"suit\": \"spades\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "http://localhost:5001/game/play/{{game_id}}",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5001",
+                            "path": [
+                                "game",
+                                "play",
+                                "{{game_id}}"
+                            ]
+                        },
+                        "description": "Alice vince (A > 3). Punteggio: 3-0"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "TURNO 4 (A:4-B:0) Alice Gioca",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"player_uuid\": \"user-alice-uuid\",\n    \"card\": {\n        \"value\": \"K\",\n        \"suit\": \"clubs\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "http://localhost:5001/game/play/{{game_id}}",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5001",
+                            "path": [
+                                "game",
+                                "play",
+                                "{{game_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "TURNO 4 (A:4-B:0) Bob Gioca",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"player_uuid\": \"user-bob-uuid\",\n    \"card\": {\n        \"value\": \"2\",\n        \"suit\": \"clubs\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "http://localhost:5001/game/play/{{game_id}}",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5001",
+                            "path": [
+                                "game",
+                                "play",
+                                "{{game_id}}"
+                            ]
+                        },
+                        "description": "Alice vince (K > 2). Punteggio: 4-0"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "TURNO 5 (A:5-B:0) Alice Gioca [VITTORIA]",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"player_uuid\": \"user-alice-uuid\",\n    \"card\": {\n        \"value\": \"A\",\n        \"suit\": \"diamonds\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "http://localhost:5001/game/play/{{game_id}}",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5001",
+                            "path": [
+                                "game",
+                                "play",
+                                "{{game_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "TURNO 5 (A:5-B:0) Bob Gioca [VITTORIA]",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"player_uuid\": \"user-bob-uuid\",\n    \"card\": {\n        \"value\": \"3\",\n        \"suit\": \"hearts\"\n    }\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "http://localhost:5001/game/play/{{game_id}}",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5001",
+                            "path": [
+                                "game",
+                                "play",
+                                "{{game_id}}"
+                            ]
+                        },
+                        "description": "Alice vince (A > 3). Punteggio 5-0. La risposta JSON conterrà 'match_winner': 'Alice'."
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Game State (Fine Partita)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "http://localhost:5001/game/state/{{game_id}}",
+                            "protocol": "http",
+                            "host": [
+                                "localhost"
+                            ],
+                            "port": "5001",
+                            "path": [
+                                "game",
+                                "state",
+                                "{{game_id}}"
+                            ]
+                        },
+                        "description": "Controlla lo stato finale. Il campo 'winner' dovrebbe essere 'Alice' e i punteggi 5-0."
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "game_id",
+            "value": "ID_PARTITA_VERRA_QUI",
+            "type": "string"
+        }
+    ]
+}

@@ -147,6 +147,54 @@ def delete_deck(deck_id):
     
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+    
+    
+    
+@app.route('/collection/decks/user/<user_id>/slot/<int:slot_number>', methods=['GET'])
+def get_deck_by_slot(user_id, slot_number):
+    """
+    Restituisce un singolo mazzo per un utente e uno slot, 
+    popolando i dati delle carte e aggiungendo il Joker.
+    Questo endpoint è pensato per essere usato dal Game Engine.
+    """
+    try:
+        # 1. Carica il dizionario di tutte le carte per una ricerca veloce
+        all_cards = load_cards()
+        cards_dict = {c['id']: c for c in all_cards}
+
+        # 2. Trova il mazzo nel database
+        deck = decks_collection.find_one({
+            'userId': user_id, 
+            'slot': slot_number
+        })
+
+        if not deck:
+            return jsonify({'success': False, 'error': 'Deck not found in this slot'}), 404
+
+        # 3. "Popola" le carte: trasforma la lista di ID in una lista di oggetti carta
+        populated_cards = []
+        for card_id in deck.get('cards', []): # deck['cards'] è una lista di 8 ID
+            if card_id in cards_dict:
+                # Aggiungi solo i campi che servono al game-engine (value, suit)
+                card_data = cards_dict[card_id]
+                populated_cards.append({
+                    "value": card_data.get("value"), #
+                    "suit": card_data.get("suit")
+                })
+            
+        # 4. Aggiungi il Joker (richiesto dal game-engine)
+        populated_cards.append({"value": "JOKER", "suit": "none"})
+
+        # 5. Verifica che il mazzo sia completo (8 + 1 Joker)
+        if len(populated_cards) != 9:
+            app.logger.error(f"Deck {deck['_id']} for user {user_id} is incomplete. Found {len(populated_cards)-1} cards.")
+            return jsonify({'success': False, 'error': 'Deck data is corrupt or incomplete'}), 500
+
+        return jsonify({'success': True, 'data': populated_cards}), 200
+
+    except Exception as e:
+        app.logger.error(f"Error in get_deck_by_slot: {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5000)

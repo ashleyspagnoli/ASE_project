@@ -2,18 +2,20 @@ from models import Game, Player, Card, Deck
 import random
 import requests
 import uuid
+import json
+import os
 
-# GAME_HISTORY_URL = "http://game-history:5001/match" # Per ambiente di produzione
-
-GAME_HISTORY_URL = "http://localhost:5001/match" # Per test locale
+GAME_HISTORY_URL = os.environ.get("GAME_HISTORY_URL", "http://game_history:5000/match")
+COLLECTION_URL = os.environ.get("COLLECTION_URL", "http://collection:5000/collection")
+#GAME_HISTORY_URL = "http://localhost:5001/match" # Per test locale
 
 # ------------------------------------------------------------
 # 🂡 Utility: Create a full deck (for testing or reference)
 # ------------------------------------------------------------
 def generate_full_deck():
     suits = ["hearts", "diamonds", "clubs", "spades"]
-    ranks = [str(n) for n in range(2, 11)] + ["J", "Q", "K", "A"]
-    deck = [Card(rank, suit) for suit in suits for rank in ranks]
+    values = [str(n) for n in range(2, 11)] + ["J", "Q", "K", "A"]
+    deck = [Card(value, suit) for suit in suits for value in values]
     deck.append(Card("JOKER", "none"))
     return deck
 
@@ -31,28 +33,49 @@ def validate_deck(deck_cards):
         raise ValueError("Deck must contain exactly 9 cards (8 + 1 Joker).")
 
     suits = {}
+    joker_found = False
+
     for card in deck_cards:
-        rank, suit = card["rank"], card["suit"]
-        if rank == "JOKER":
+        # Controlla che la carta stessa sia un dizionario valido
+        if not isinstance(card, dict):
+            raise ValueError("Invalid card data received (not a dictionary)")
+
+        value = card.get("value")
+        suit = card.get("suit")
+
+        # Controlla che value e suit esistano e non siano None
+        if value is None or suit is None:
+            raise ValueError(f"Invalid card data: value or suit is null/missing. Card: {card}")
+
+        if value == "JOKER":
+            joker_found = True
             continue
 
         value_map = {"J": 11, "Q": 12, "K": 13, "A": 7}
+        
         try:
-            if rank in value_map:
-                val = value_map[rank]
+            if value in value_map:
+                val = value_map[value]
             else:
-                val = int(rank)
-        except ValueError:
-            raise ValueError(f"Invalid rank {rank}")
-
+                # Questo int() è ora protetto
+                val = int(value) 
+        except (ValueError, TypeError) as e:
+            # Cattura sia int("ciao") [ValueError]
+            # sia int(None) [TypeError]
+            raise ValueError(f"Invalid value {value}. Must be a number or J,Q,K,A. Error: {e}")
         suits.setdefault(suit, []).append(val)
+
+    if not joker_found:
+        raise ValueError("Deck must contain one Joker.")
+
+    if len(suits) != 4:
+         raise ValueError("Deck must contain exactly 4 suits (plus Joker).")
 
     for suit, vals in suits.items():
         if len(vals) != 2:
             raise ValueError(f"Suit '{suit}' must have exactly 2 cards.")
         if sum(vals) > 15:
             raise ValueError(f"Suit '{suit}' exceeds 15 total points (got {sum(vals)}).")
-
 
 # ------------------------------------------------------------
 # ⚙️ Game Management
@@ -66,19 +89,48 @@ def start_new_game(player1_uuid, player1_name, player2_uuid, player2_name, games
     games[game.game_id] = game
     return game.game_id
 
-def select_deck(game_id, player_uuid, deck_cards, games):
+def select_deck(game_id, player_uuid, deck_slot, games):
     game = games.get(game_id)
     if not game:
         raise ValueError("Invalid game ID")
 
-    validate_deck(deck_cards)
+    try:
+        # 1. Contatta il microservizio 'collection' per ottenere il mazzo
+        deck_url = f"{COLLECTION_URL}/decks/user/{player_uuid}/slot/{deck_slot}"
+        response = requests.get(deck_url, timeout=5)
+        
+        # Lancia un errore se la richiesta fallisce (es. 404 Deck non trovato)
+        response.raise_for_status() 
+        
+        deck_data = response.json()
+        
+        if not deck_data.get('success') or 'data' not in deck_data:
+            raise ValueError("Invalid response from collection service")
+            
+        # deck_cards è ora la lista di 9 carte (8 + 1 Joker)
+        deck_cards = deck_data['data'] 
+    
+    except requests.RequestException as e:
+        # Errore di connessione, timeout, o status code >= 400
+        if e.response:
+            try:
+                error_msg = e.response.json().get('error', 'Unknown error')
+            except json.JSONDecodeError:
+                error_msg = e.response.text
+            raise ValueError(f"Collection Service error: {error_msg}")
+        else:
+            raise ValueError(f"Could not reach collection service: {e}")
+    except (KeyError, json.JSONDecodeError):
+        raise ValueError("Failed to parse deck data from collection service")
+
+    validate_deck(deck_cards) # Valida il mazzo ricevuto dal servizio
 
     # Identifica il giocatore tramite UUID
     player = game.player1 if game.player1.uuid == player_uuid else game.player2
     if player.uuid != player_uuid:
         raise ValueError("Player UUID not found in this game")
 
-    player.deck.cards = [Card(c["rank"], c["suit"]) for c in deck_cards]
+    player.deck.cards = [Card(c["value"], c["suit"]) for c in deck_cards]
     player.deck.shuffle()
     
     opponent = game.player2 if game.player1.uuid == player_uuid else game.player1
@@ -93,7 +145,6 @@ def select_deck(game_id, player_uuid, deck_cards, games):
     else:
         return {"message": f"{player.name} deck selected. Waiting for opponent."}
 
-
 # ------------------------------------------------------------
 # 🧠 Card Comparison Logic
 # ------------------------------------------------------------
@@ -107,31 +158,31 @@ def compare_cards(card1: Card, card2: Card):
     }
 
     # Joker beats everything
-    if card1.rank == "JOKER" and card2.rank == "JOKER":
+    if card1.value == "JOKER" and card2.value == "JOKER":
         return "double_win"
-    elif card1.rank == "JOKER":
+    elif card1.value == "JOKER":
         return "player1"
-    elif card2.rank == "JOKER":
+    elif card2.value == "JOKER":
         return "player2"
 
     # --- Ace special interactions ---
-    if card1.rank == "A" and card2.rank in ["J", "Q", "K"]:
+    if card1.value == "A" and card2.value in ["J", "Q", "K"]:
         return "player1"
-    if card2.rank == "A" and card1.rank in ["J", "Q", "K"]:
+    if card2.value == "A" and card1.value in ["J", "Q", "K"]:
         return "player2"
-    if card1.rank == "A" and card2.rank.isdigit():
+    if card1.value == "A" and card2.value.isdigit():
         return "player2"
-    if card2.rank == "A" and card1.rank.isdigit():
+    if card2.value == "A" and card1.value.isdigit():
         return "player1"
 
     # --- Normal numeric comparison ---
-    v1, v2 = numeric_value[card1.rank], numeric_value[card2.rank]
+    v1, v2 = numeric_value[card1.value], numeric_value[card2.value]
     if v1 > v2:
         return "player1"
     elif v2 > v1:
         return "player2"
     else:
-        # Same rank → suit priority
+        # Same value → suit priority
         if suit_priority[card1.suit] > suit_priority[card2.suit]:
             return "player1"
         elif suit_priority[card1.suit] < suit_priority[card2.suit]:
@@ -158,7 +209,7 @@ def submit_card(game_id, player_uuid, card_data, games):
         raise ValueError("Player UUID not found in this game")
 
     matching_card = next(
-        (c for c in player.hand if c.rank == card_data["rank"] and c.suit == card_data["suit"]),
+        (c for c in player.hand if c.value == card_data["value"] and c.suit == card_data["suit"]),
         None
     )
     if not matching_card:
@@ -306,7 +357,7 @@ def _save_match_to_history(game: Game):
         "player1": game.player1.uuid,
         "player2": game.player2.uuid,
         "winner": winner_index,
-        "log": game.turns,             # <-- Usa il log serializzato
+        "log": game.turns,
         "points1": game.player1.score,
         "points2": game.player2.score
     }

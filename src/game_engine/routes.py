@@ -1,11 +1,11 @@
 from flask import Blueprint, jsonify, request
 from logic import (
-    start_new_game,
     submit_card,
     get_game_state,
     select_deck,
     matchmaking_connect,
     matchmaking_match,
+    start_new_game,
 )
 
 game_blueprint = Blueprint("game_engine", __name__)
@@ -33,18 +33,25 @@ class GameController:
 
     def choose_deck(self, game_id):
         data = request.get_json()
-        # Il client deve inviare 'player_uuid'
         player_uuid = data.get("player_uuid") 
-        deck = data.get("deck")
+        deck_slot = data.get("deck_slot")
         
-        if not player_uuid or not deck:
-            return jsonify({"error": "player_uuid and deck are required"}), 400
+        print(f"Received deck selection: player_uuid={player_uuid}, deck_slot={deck_slot}")
+        
+        if player_uuid is None or deck_slot is None:
+            return jsonify({"error": "player_uuid and deck_slot are required"}), 400
 
         try:
-            result = select_deck(game_id, player_uuid, deck, self.games)
+            # Passa lo slot, non il mazzo
+            result = select_deck(game_id, player_uuid, deck_slot, self.games) 
             return jsonify(result), 200
         except ValueError as e:
+            # Cattura sia l'int() fallito sia gli errori da select_deck
+            # (es. "Deck not found" o "Could not reach collection service")
             return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            # Altri errori imprevisti
+            return jsonify({"error": f"An unexpected error occurred: {e}"}), 500
 
     def play_turn(self, game_id):
         data = request.get_json()

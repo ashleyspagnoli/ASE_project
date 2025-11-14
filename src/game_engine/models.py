@@ -6,11 +6,11 @@ from typing import List, Dict, Optional
 
 @dataclass
 class Card:
-    rank: str
+    value: str
     suit: str
 
     def __repr__(self):
-        return f"{self.rank} of {self.suit}"
+        return f"{self.value} of {self.suit}"
 
 
 @dataclass
