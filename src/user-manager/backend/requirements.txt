@@ -1,5 +1,5 @@
 fastapi
-uvicorn
+uvicorn[standard] # AGGIUNTA: [standard] assicura il supporto SSL/TLS
 pymongo
 pydantic
 python-jose[cryptography] # Libreria per JWT
