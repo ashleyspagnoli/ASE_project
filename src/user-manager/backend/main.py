@@ -56,7 +56,7 @@ except Exception as e:
     raise ConnectionError(f"Impossibile connettersi a MongoDB: {e}")
 
 # Contesto per l'hashing delle password
-# *** CAMBIATO DA BCRYPT A ARGON2 PER MAGGIORE COMPATIBILITÀ E SICUREZZA ***
+# *** CAMBIATO DA BCRYPT A ARGON2 PER MAGGIORE COMPATIBILITÀ ***
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
