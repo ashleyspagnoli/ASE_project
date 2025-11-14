@@ -1,0 +1,271 @@
+openapi: 3.0.0
+info:
+  title: "Match Service API"
+  description: "API for managing game matches and leaderboards for a microservice."
+  version: "1.0.0"
+servers:
+  - url: "/"
+    description: "Relative server path"
+
+paths:
+  /match:
+    post:
+      summary: "Add a new match"
+      description: "Records the details of a completed match and updates the leaderboard."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewMatch"
+      responses:
+        '201':
+          description: "Match created successfully"
+          content:
+            application/json:
+              schema:
+                type: "object"
+                properties:
+                  status:
+                    type: "string"
+                    example: "ok"
+                  match_id:
+                    type: "string"
+                    format: "uuid"
+                    example: "a1b2c3d4-e5f6-7890-a1b2-c3d4e5f67890"
+        '400':
+          description: "Missing required match data"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        '500':
+          description: "Database error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /matches/{player_uuid}:
+    get:
+      summary: "List all matches for a user"
+      description: "Retrieves a list of all matches (both as player 1 and player 2) for a specific player."
+      parameters:
+        - in: path
+          name: player_uuid
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+          description: "The UUID of the player"
+      responses:
+        '200':
+          description: "A list of matches for the player"
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/MatchResponse"
+        '500':
+          description: "Database error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /match/{match_id}:
+    get:
+      summary: "Get details of a specific match"
+      description: "Retrieves the full details for a single match, including player names."
+      parameters:
+        - in: path
+          name: match_id
+          required: true
+          schema:
+            type: "string"
+            format: "uuid"
+          description: "The UUID of the match"
+      responses:
+        '200':
+          description: "Details of the specified match"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MatchResponse"
+        '404':
+          description: "Match not found"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        '500':
+          description: "Database error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /leaderboard:
+    get:
+      summary: "Get the game leaderboard"
+      description: "Retrieves the pre-computed leaderboard, sorted by wins (descending) and then points (descending)."
+      responses:
+        '200':
+          description: "The current leaderboard"
+          content:
+            application/json:
+              schema:
+                type: "array"
+                items:
+                  $ref: "#/components/schemas/LeaderboardEntry"
+        '500':
+          description: "Database error"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+components:
+  schemas:
+    NewMatch:
+      type: "object"
+      description: "Data required to create a new match entry."
+      required:
+        - player1
+        - player2
+        - winner
+      properties:
+        player1:
+          type: "string"
+          format: "uuid"
+          description: "UUID of the first player"
+        player2:
+          type: "string"
+          format: "uuid"
+          description: "UUID of the second player"
+        winner:
+          type: "string"
+          description: "Indicates the winner"
+          enum: ["1", "2", "draw"]
+        log:
+          type: "array"
+          items:
+            type: "string"
+          description: "A log of moves or events during the match (optional)"
+        points1:
+          type: "integer"
+          description: "Points awarded to player 1 (optional)"
+          default: 0
+        points2:
+          type: "integer"
+          description: "Points awarded to player 2 (optional)"
+          default: 0
+      example:
+        player1: "a1a1a1a1-b2b2-c3c3-d4d4-e5e5e5e5e5e5"
+        player2: "f6f6f6f6-g7g7-h8h8-i9i9-j0j0j0j0j0j0"
+        winner: "1"
+        log: ["move1", "move2", "player 1 wins"]
+        points1: 10
+        points2: -5
+
+    MatchBase:
+      type: "object"
+      properties:
+        id:
+          type: "string"
+          format: "uuid"
+          description: "The unique ID of the match"
+        player1:
+          type: "string"
+          format: "uuid"
+          description: "UUID of the first player"
+        player2:
+          type: "string"
+          format: "uuid"
+          description: "UUID of the second player"
+        winner:
+          type: "string"
+          enum: ["1", "2", "draw"]
+        log:
+          type: "array"
+          items:
+            type: "string"
+        points1:
+          type: "integer"
+        points2:
+          type: "integer"
+        timestamp:
+          type: "integer"
+          description: "Timestamp of when the match was recorded"
+
+    MatchResponse:
+      type: "object"
+      description: "Full match details as returned by the API"
+      allOf:
+        - $ref: "#/components/schemas/MatchBase"
+      properties:
+        _id:
+          type: "string"
+          description: "MongoDB document ID"
+        player1_name:
+          type: "string"
+          description: "Username of player 1 (fetched from user-manager)"
+        player2_name:
+          type: "string"
+          description: "Username of player 2 (fetched from user-manager)"
+      example:
+        id: "a1b2c3d4-e5f6-7890-a1b2-c3d4e5f67890"
+        player1: "a1a1a1a1-b2b2-c3c3-d4d4-e5e5e5e5e5e5"
+        player2: "f6f6f6f6-g7g7-h8h8-i9i9-j0j0j0j0j0j0"
+        winner: "1"
+        log: ["move1", "move2"]
+        points1: 10
+        points2: -5
+        timestamp: -1
+        _id: "60d5f1b2c3d4e5f6a1b2c3d4"
+        player1_name: "PlayerOne"
+        player2_name: "PlayerTwo"
+
+    LeaderboardEntry:
+      type: "object"
+      description: "A single player's entry on the leaderboard"
+      properties:
+        _id:
+          type: "string"
+          description: "MongoDB document ID"
+        uuid:
+          type: "string"
+          format: "uuid"
+          description: "Player's unique ID"
+        username:
+          type: "string"
+          description: "Player's username"
+        points:
+          type: "integer"
+          description: "Total points"
+        wins:
+          type: "integer"
+          description: "Total number of wins"
+        losses:
+          type: "integer"
+          description: "Total number of losses"
+        draws:
+          type: "integer"
+          description: "Total number of draws"
+      example:
+        _id: "60d5f1b2c3d4e5f6a1b2c3d5"
+        uuid: "a1a1a1a1-b2b2-c3c3-d4d4-e5e5e5e5e5e5"
+        username: "PlayerOne"
+        points: 150
+        wins: 15
+        losses: 3
+        draws: 2
+
+    Error:
+      type: "object"
+      properties:
+        error:
+          type: "string"
+      example:
+        error: "Match not found"
