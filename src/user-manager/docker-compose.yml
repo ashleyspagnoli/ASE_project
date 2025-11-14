@@ -24,7 +24,7 @@ services:
       context: ./backend # Adattare il percorso della cartella del tuo microservizio Utenti
     container_name: user_manager_service
     ports:
-      - "8000:8000" # Porta per l'accesso esterno
+      - "5004:5000" # Porta per l'accesso esterno
     depends_on:
       - user-db
     environment:
