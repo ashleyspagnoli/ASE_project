@@ -362,5 +362,12 @@
     "value": "K",
     "points": 13,
     "image": "/images/spades/K.png"
+  },
+  {
+    "id": "joker",
+    "suit": "none",
+    "value": "joker",
+    "points": 0,
+    "image": "/images/joker/joker.png"
   }
 ]
