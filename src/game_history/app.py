@@ -8,25 +8,16 @@ import os
 app = Flask(__name__)
 
 # --- MongoDB Connection ---
-# Use environment variables or default to 'mongodb' (common in Docker)
-MONGO_HOST = os.environ.get('MONGO_HOST', 'mongodb') 
-MONGO_PORT = int(os.environ.get('MONGO_PORT', 27017))
-MONGO_DB_NAME = "match_service_db"
-
 try:
-    client = MongoClient(f"mongodb://{MONGO_HOST}:{MONGO_PORT}/", serverSelectionTimeoutMS=5000)
+    client = MongoClient(f"mongodb://db-history:27017/", serverSelectionTimeoutMS=5000)
     client.server_info() # Force connection check
-    db = client[MONGO_DB_NAME]
+    db = client.history
     matches_collection = db.matches
     leaderboard_collection = db.leaderboard
-    print(f"Successfully connected to MongoDB at {MONGO_HOST}:{MONGO_PORT}")
+    print(f"Successfully connected to MongoDB")
 except Exception as e:
-    print(f"Error: Could not connect to MongoDB at {MONGO_HOST}:{MONGO_PORT}. {e}")
-    # In a real app, you might exit or have more robust retry logic
-    client = None
-    db = None
-    matches_collection = None
-    leaderboard_collection = None
+    print(f"Error: Could not connect to MongoDB, {e}")
+    exit()
 
 # --- User Service Connection ---
 # Use environment variables or default to 'user-manager'
@@ -40,8 +31,6 @@ def get_username(user_uuid):
     """
     Fetches the username from the user-manager microservice.
     """
-    if not user_uuid:
-        return "Unknown"
     try:
         resp = requests.get(f"{USER_MANAGER_URL}{user_uuid}")
         if resp.status_code == 200:
@@ -50,7 +39,7 @@ def get_username(user_uuid):
         print(f"Warning: Could not connect to user-manager at {USER_MANAGER_URL}{user_uuid}. {e}")
     except Exception as e:
         print(f"Warning: Error fetching username for {user_uuid}. {e}")
-    return user_uuid # Fallback to UUID
+    return "Unknown user"
 
 # Helper to process MongoDB documents (convert _id)
 def mongo_doc_to_json(doc):
@@ -84,7 +73,7 @@ def update_leaderboard_stats(player_uuid, points, is_win, is_loss, is_draw):
                 'username': get_username(player_uuid) # Get username on first insert
             }
         }
-        # upsert=True creates the document if it doesn't exist
+        # upsert=True creates the document if it doesn't exist, default numbers are 0
         leaderboard_collection.update_one(query, update, upsert=True)
     except Exception as e:
         print(f"Error: Failed to update leaderboard for {player_uuid}. {e}")
@@ -93,27 +82,22 @@ def update_leaderboard_stats(player_uuid, points, is_win, is_loss, is_draw):
 # Add a new match (POST /match)
 @app.route('/match', methods=['POST'])
 def add_match():
-    if not matches_collection or not leaderboard_collection:
-        return jsonify({'error': 'Database not connected'}), 500
-
     data = request.json
     if not data or 'player1' not in data or 'player2' not in data or 'winner' not in data:
         return jsonify({'error': 'Missing required match data'}), 400
 
     match_id = str(uuid.uuid4())
-    
-    # Store log directly as a list/object, MongoDB handles it
-    match_log = data.get('log', [])
 
     match = {
-        'id': match_id, # Use our own UUID as the primary identifier
+        'id': match_id,
         'player1': data['player1'],
         'player2': data['player2'],
         'winner': data['winner'], # '1', '2', or 'draw'
-        'log': match_log,
+        'log': data.get('log', []),
         'points1': data.get('points1', 0),
         'points2': data.get('points2', 0),
-        'timestamp': -1 # TODO: use datetime.utcnow()
+        'starttime': data.get('starttime', 0),
+        'endtime': data.get('endtime', 0)
     }
     
     try:
@@ -151,9 +135,6 @@ def add_match():
 # List all matches for a user (GET /matches/<player_uuid>)
 @app.route('/matches/<player_uuid>', methods=['GET'])
 def list_matches(player_uuid):
-    if not matches_collection:
-        return jsonify({'error': 'Database not connected'}), 500
-
     try:
         # Find matches where the player is either player1 or player2
         query = { '$or': [ { 'player1': player_uuid }, { 'player2': player_uuid } ] }
@@ -202,10 +183,7 @@ def match_details(match_id):
 def leaderboard():
     """
     Retrieves the pre-computed leaderboard.
-    This is now a fast read operation.
     """
-    if not leaderboard_collection:
-        return jsonify({'error': 'Database not connected'}), 500
 
     try:
         # Find all players, sort by wins (desc), then points (desc)
