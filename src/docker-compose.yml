@@ -63,6 +63,11 @@ services:
     # MODIFICA 3: Sovrascrive il CMD del Dockerfile per avviare Uvicorn in modalità HTTPS
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --ssl-keyfile key.pem --ssl-certfile cert.pem --workers 4
 
+  db-history:
+    image: mongo:latest
+    volumes:
+      - history-data:/data/db
+
   db-games:
     image: mongo:latest
     volumes:
@@ -75,6 +80,7 @@ services:
 
 
 volumes:
+  history-data:
   games-data:
   decks-data:
   user_mongo_data:
