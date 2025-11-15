@@ -96,8 +96,8 @@ def add_match():
         'log': data.get('log', []),
         'points1': data.get('points1', 0),
         'points2': data.get('points2', 0),
-        'starttime': data.get('starttime', 0),
-        'endtime': data.get('endtime', 0)
+        'started_at': data.get('started_at', 0),
+        'ended_at': data.get('ended_at', 0)
     }
     
     try:
