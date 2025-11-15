@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from pymongo import MongoClient, DESCENDING
+from pymongo import MongoClient
 import uuid
 import requests
 import json
@@ -41,15 +41,6 @@ def get_username(user_uuid):
         print(f"Warning: Error fetching username for {user_uuid}. {e}")
     return "Unknown user"
 
-# Helper to process MongoDB documents (convert _id)
-def mongo_doc_to_json(doc):
-    """
-    Converts a MongoDB document (with ObjectId) to a JSON-serializable dict.
-    """
-    if doc and "_id" in doc:
-        doc["_id"] = str(doc["_id"])
-    return doc
-
 # Helper for atomic leaderboard updates
 def update_leaderboard_stats(player_uuid, points, is_win, is_loss, is_draw):
     """
@@ -60,17 +51,13 @@ def update_leaderboard_stats(player_uuid, points, is_win, is_loss, is_draw):
         return
 
     try:
-        query = {'uuid': player_uuid}
+        query = {'_id': player_uuid}
         update = {
             '$inc': {
                 'points': points,
                 'wins': 1 if is_win else 0,
                 'losses': 1 if is_loss else 0,
                 'draws': 1 if is_draw else 0
-            },
-            '$setOnInsert': {
-                'uuid': player_uuid,
-                'username': get_username(player_uuid) # Get username on first insert
             }
         }
         # upsert=True creates the document if it doesn't exist, default numbers are 0
@@ -89,7 +76,7 @@ def add_match():
     match_id = str(uuid.uuid4())
 
     match = {
-        'id': match_id,
+        '_id': match_id,
         'player1': data['player1'],
         'player2': data['player2'],
         'winner': data['winner'], # '1', '2', or 'draw'
@@ -138,13 +125,11 @@ def list_matches(player_uuid):
     try:
         # Find matches where the player is either player1 or player2
         query = { '$or': [ { 'player1': player_uuid }, { 'player2': player_uuid } ] }
-        # Sort by timestamp, newest first (if you add it)
-        # user_matches_cursor = matches_collection.find(query).sort('timestamp', DESCENDING)
-        user_matches_cursor = matches_collection.find(query)
-
-        matches = [mongo_doc_to_json(m) for m in user_matches_cursor]
+        # Sort by timestamp
+        matches = matches_collection.find(query).sort('started_at', -1)
         
         # Get usernames for display
+        # TODO: make a single request with a list of uuid, too many requests!!
         for m in matches:
             m['player1_name'] = get_username(m['player1'])
             m['player2_name'] = get_username(m['player2'])
@@ -158,17 +143,12 @@ def list_matches(player_uuid):
 # Get details of a match (GET /match/<match_id>)
 @app.route('/match/<match_id>', methods=['GET'])
 def match_details(match_id):
-    if not matches_collection:
-        return jsonify({'error': 'Database not connected'}), 500
-        
     try:
-        # Find by 'id' field, not '_id'
-        match = matches_collection.find_one({'id': match_id})
+        match = matches_collection.find_one({'_id': match_id})
         
         if not match:
             return jsonify({'error': 'Match not found'}), 404
-            
-        match = mongo_doc_to_json(match)
+        
         match['player1_name'] = get_username(match['player1'])
         match['player2_name'] = get_username(match['player2'])
         
@@ -187,12 +167,7 @@ def leaderboard():
 
     try:
         # Find all players, sort by wins (desc), then points (desc)
-        leaderboard_cursor = leaderboard_collection.find().sort([
-            ('wins', DESCENDING),
-            ('points', DESCENDING)
-        ])
-        
-        leaderboard = [mongo_doc_to_json(player) for player in leaderboard_cursor]
+        leaderboard = leaderboard_collection.find().sort('points', -1)
         
         return jsonify(leaderboard)
     except Exception as e:
