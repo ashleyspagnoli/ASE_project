@@ -1,3 +1,4 @@
+import datetime
 from models import Game, Player, Card, Deck
 import random
 import requests
@@ -57,11 +58,8 @@ def validate_deck(deck_cards):
             if value in value_map:
                 val = value_map[value]
             else:
-                # Questo int() è ora protetto
                 val = int(value) 
         except (ValueError, TypeError) as e:
-            # Cattura sia int("ciao") [ValueError]
-            # sia int(None) [TypeError]
             raise ValueError(f"Invalid value {value}. Must be a number or J,Q,K,A. Error: {e}")
         suits.setdefault(suit, []).append(val)
 
@@ -251,19 +249,48 @@ def submit_card(game_id, player_uuid, card_data, games):
 
     # Controlla la condizione di fine partita (Regola 5 punti)
     match_winner = None
-    if game.player1.score >= 5:
-        match_winner = game.player1.name
-    elif game.player2.score >= 5:
-        match_winner = game.player2.name
+    
+    # 1. Controllo Punteggio (Vittoria o Pareggio immediato)
+    p1_wins_points = game.player1.score >= 5
+    p2_wins_points = game.player2.score >= 5
 
+    if p1_wins_points and p2_wins_points:
+        match_winner = "Draw" # Entrambi hanno raggiunto il target nello stesso turno
+    elif p1_wins_points:
+        match_winner = game.player1.name
+    elif p2_wins_points:
+        match_winner = game.player2.name
+    else:
+        # 2. Controllo Esaurimento Carte (se nessuno ha ancora vinto)
+        # Se entrambi i giocatori non hanno carte in mano E il mazzo è vuoto
+        p1_finished = len(game.player1.hand) == 0 and len(game.player1.deck.cards) == 0
+        p2_finished = len(game.player2.hand) == 0 and len(game.player2.deck.cards) == 0
+
+        if p1_finished and p2_finished:
+            # La partita finisce per esaurimento carte, controlliamo chi ha più punti
+            if game.player1.score > game.player2.score:
+                match_winner = game.player1.name
+            elif game.player2.score > game.player1.score:
+                match_winner = game.player2.name
+            else:
+                match_winner = "Draw" # Punteggio identico e carte finite
+
+    # --- GESTIONE FINE PARTITA ---
     if match_winner:
         game.winner = match_winner
+        game.ended_at = datetime.now()
         
-        # <-- ⭐️ CHIAMATA SINCRONA AL GAME HISTORY ⭐️ -->
         _save_match_to_history(game)
         
+        return {
+            "status": "finished",
+            "match_winner": match_winner,
+            "message": f"Game Over! Result: {match_winner}",
+            "scores": {game.player1.name: game.player1.score, game.player2.name: game.player2.score}
+        }
+        
     else:
-        # Regola: 1 carta nei turni successivi
+        # La partita continua: pescano se hanno carte nel mazzo
         game.player1.draw_card()
         game.player2.draw_card()
 
@@ -349,6 +376,8 @@ def _save_match_to_history(game: Game):
         winner_index = "1"
     elif game.winner == game.player2.name:
         winner_index = "2"
+    elif game.winner == "Draw":
+        winner_index = "0"
 
     # Il log (game.turns) è già stato serializzato 
     # dalla funzione game.resolve_round()
@@ -359,7 +388,9 @@ def _save_match_to_history(game: Game):
         "winner": winner_index,
         "log": game.turns,
         "points1": game.player1.score,
-        "points2": game.player2.score
+        "points2": game.player2.score,
+        "started_at": game.started_at.isoformat() if game.started_at else None,
+        "ended_at": game.ended_at.isoformat() if game.ended_at else None
     }
 
     try:
@@ -369,7 +400,24 @@ def _save_match_to_history(game: Game):
         print(f"Match {game.game_id} salvato con successo su Game History.")
     
     except requests.RequestException as e:
-        # La partita è finita, ma il salvataggio è fallito.
-        # Il client riceverà comunque l'esito della partita.
-        # Logga questo errore!
         print(f"ERRORE CRITICO: Impossibile salvare la partita {game.game_id} su Game History: {e}")
+        
+def get_player_hand(game_id, player_uuid, games):
+    """
+    Recupera la mano attuale di un giocatore specifico in formato JSON.
+    """
+    game = games.get(game_id)
+    if not game:
+        raise ValueError("Invalid game ID")
+
+    # Identifica il giocatore tramite UUID
+    player = game.player1 if game.player1.uuid == player_uuid else game.player2
+    if player.uuid != player_uuid:
+        raise ValueError("Player UUID not found in this game")
+
+    # Serializza le carte in un formato JSON-friendly
+    # (Trasforma [Card(value='K', suit='hearts'), ...] 
+    # in [{'value': 'K', 'suit': 'hearts'}, ...])
+    hand_data = [{"value": card.value, "suit": card.suit} for card in player.hand]
+    
+    return hand_data

@@ -1,3 +1,4 @@
+from datetime import datetime
 import uuid
 import random
 from dataclasses import dataclass, field
@@ -59,6 +60,8 @@ class Game:
     turn_number: int = 0
     winner: Optional[str] = None
     turns: List[Dict] = field(default_factory=list)
+    started_at: datetime = field(default_factory=datetime.now)
+    ended_at: Optional[datetime] = None
 
     def resolve_round(self, winner_name: Optional[str]):
         self.turn_number += 1

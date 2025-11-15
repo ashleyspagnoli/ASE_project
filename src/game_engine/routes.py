@@ -6,6 +6,7 @@ from logic import (
     matchmaking_connect,
     matchmaking_match,
     start_new_game,
+    get_player_hand
 )
 
 game_blueprint = Blueprint("game_engine", __name__)
@@ -67,6 +68,24 @@ class GameController:
             return jsonify(result), 200
         except ValueError as e:
             return jsonify({"error": str(e)}), 404 # 404 se game_id non valido, 400 per altro
+        
+    def get_hand(self, game_id):
+        """
+        Endpoint GET per recuperare la mano di un giocatore.
+        Usa un query parameter ?player_uuid=...
+        """
+        # Per le richieste GET, i parametri si leggono da request.args
+        player_uuid = request.args.get("player_uuid")
+        
+        if not player_uuid:
+            return jsonify({"error": "player_uuid query parameter is required"}), 400
+            
+        try:
+            hand = get_player_hand(game_id, player_uuid, self.games)
+            # Ritorna la mano come lista di oggetti
+            return jsonify(hand), 200 
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 404
 
     def get_state(self, game_id):
         try:
@@ -97,6 +116,7 @@ controller = GameController()
 game_blueprint.add_url_rule("/start", view_func=controller.start_game, methods=["POST"])
 game_blueprint.add_url_rule("/deck/<game_id>", view_func=controller.choose_deck, methods=["POST"])
 game_blueprint.add_url_rule("/play/<game_id>", view_func=controller.play_turn, methods=["POST"])
+game_blueprint.add_url_rule("/hand/<game_id>", view_func=controller.get_hand, methods=["GET"])
 game_blueprint.add_url_rule("/state/<game_id>", view_func=controller.get_state, methods=["GET"])
 game_blueprint.add_url_rule("/connect", view_func=controller.connect_player, methods=["POST"])
 game_blueprint.add_url_rule("/matchmake", view_func=controller.find_match, methods=["POST"])
