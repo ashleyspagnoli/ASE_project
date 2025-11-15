@@ -7,9 +7,14 @@ services:
     depends_on:
       - game_history
       - collection
+      - user-manager  # <-- MODIFICA 1: Aggiungi questa dipendenza
     environment:
+      GAME_ENGINE: "http://game_engine:5000/game"
       GAME_HISTORY_URL: "http://game_history:5000/match"
       COLLECTION_URL: "http://collection:5000/collection"
+      # --- MODIFICA 2: Aggiungi l'URL per il servizio utenti ---
+      # Deve essere HTTPS e sulla porta INTERNA 5000 (come da comando uvicorn)
+      USER_MANAGER_URL: "https://user-manager:5000" 
 
   game_history:
     build: ./game_history
@@ -31,21 +36,20 @@ services:
     container_name: user_auth_db
     restart: always 
     ports:
-      - "27017:27017" # Porta di default per il DB Utenti
+      - "27017:27017" 
     volumes:
       - user_mongo_data:/data/db 
     environment:
       MONGO_INITDB_ROOT_USERNAME: user_admin
       MONGO_INITDB_ROOT_PASSWORD: secure_password_user
-      MONGO_INITDB_DATABASE: user_auth_db # Nome del DB Utenti
+      MONGO_INITDB_DATABASE: user_auth_db
       
   user-manager:
     build: 
-      context: ./user-manager/backend # Adattare il percorso della cartella del tuo microservizio Utenti
+      context: ./user-manager/backend 
     container_name: user_manager_service
-    # MODIFICA 1: Mappa la porta esterna 5004 sulla porta interna 8000 (quella specificata nel comando Uvicorn)
     ports:
-      - "5004:8000" 
+      - "5004:5000" # Porta esterna 5004, porta interna 5000
     depends_on:
       - user-db
     environment:
@@ -53,16 +57,13 @@ services:
       SECRET_KEY: "GUERRA_ASE_SECRET_KEY"
       ALGORITHM: "HS256"
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
-      
-    # MODIFICA 2: Monta i file cert.pem e key.pem nel container (assicurati che siano nella stessa directory di docker-compose.yml)
     volumes:
       - ./user-manager/backend:/app
       - ./user-manager/cert.pem:/app/cert.pem
       - ./user-manager/key.pem:/app/key.pem
+    command: uvicorn main:app --host 0.0.0.0 --port 5000 --ssl-keyfile key.pem --ssl-certfile cert.pem --workers 4
 
-    # MODIFICA 3: Sovrascrive il CMD del Dockerfile per avviare Uvicorn in modalità HTTPS
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --ssl-keyfile key.pem --ssl-certfile cert.pem --workers 4
-
+  # (Mantenuti i tuoi db-history, db-games, db-decks)
   db-history:
     image: mongo:latest
     volumes:

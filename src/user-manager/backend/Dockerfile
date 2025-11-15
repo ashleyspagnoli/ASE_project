@@ -11,4 +11,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copia il resto del codice dell'applicazione
 COPY . .
 # Comando per avviare il server (usando Uvicorn per FastAPI)
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"] # MODIFICATO da 5000 a 8000
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "5000"]

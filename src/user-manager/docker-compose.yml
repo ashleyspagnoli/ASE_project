@@ -21,9 +21,9 @@ services:
     build: 
       context: ./backend # Adattare il percorso della cartella del tuo microservizio Utenti
     container_name: user_manager_service
-    # MODIFICA 1: Mappa la porta esterna 5004 sulla porta interna 8000 (quella specificata nel comando Uvicorn)
+    # MODIFICA 1: Mappa la porta esterna 5004 sulla porta interna 5000 (quella specificata nel comando Uvicorn)
     ports:
-      - "5004:8000" 
+      - "5004:5000" 
     depends_on:
       - user-db
     environment:
@@ -39,7 +39,7 @@ services:
       - ./key.pem:/app/key.pem
 
     # MODIFICA 3: Sovrascrive il CMD del Dockerfile per avviare Uvicorn in modalità HTTPS
-    command: uvicorn main:app --host 0.0.0.0 --port 8000 --ssl-keyfile key.pem --ssl-certfile cert.pem --workers 4
+    command: uvicorn main:app --host 0.0.0.0 --port 5000 --ssl-keyfile key.pem --ssl-certfile cert.pem --workers 4
 
       
 # Definizione dei Volumi

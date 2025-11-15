@@ -5,10 +5,16 @@ import requests
 import uuid
 import json
 import os
+import urllib3
+
+# Disabilita i warning di sicurezza per i certificati auto-firmati
+# Questo è necessario perché il game_engine chiama l'user-manager
+# con un certificato (cert.pem) di cui non si fida.
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 GAME_HISTORY_URL = os.environ.get("GAME_HISTORY_URL", "http://game_history:5000/match")
 COLLECTION_URL = os.environ.get("COLLECTION_URL", "http://collection:5000/collection")
-#GAME_HISTORY_URL = "http://localhost:5001/match" # Per test locale
+USER_MANAGER_URL = os.environ.get("USER_MANAGER_URL", "https://user_manager:5000")
 
 # ------------------------------------------------------------
 # 🂡 Utility: Create a full deck (for testing or reference)
@@ -402,6 +408,10 @@ def _save_match_to_history(game: Game):
     except requests.RequestException as e:
         print(f"ERRORE CRITICO: Impossibile salvare la partita {game.game_id} su Game History: {e}")
         
+        
+# ------------------------------------------------------------
+# 🃏 Get Player Hand
+# ------------------------------------------------------------
 def get_player_hand(game_id, player_uuid, games):
     """
     Recupera la mano attuale di un giocatore specifico in formato JSON.
@@ -421,3 +431,73 @@ def get_player_hand(game_id, player_uuid, games):
     hand_data = [{"value": card.value, "suit": card.suit} for card in player.hand]
     
     return hand_data
+
+
+# ------------------------------------------------------------
+# 🔐 User Token Validation
+#------------------------------------------------------------
+def validate_user_token(token_header: str):
+    """
+    Contatta l'user-manager (in HTTPS) per validare un token JWT.
+    
+    Ignora la verifica del certificato SSL (verify=False) per permettere
+    la comunicazione tra container con certificati auto-firmati.
+
+    Restituisce (user_uuid, username) se il token è valido.
+    Solleva ValueError se il token non è valido o il servizio non risponde.
+    """
+    if not token_header:
+        raise ValueError("Header 'Authorization' mancante.")
+
+    # Il token_header è "Bearer eyJ...". Dobbiamo estrarre solo il token "eyJ..."
+    try:
+        token_type, token = token_header.split(" ")
+        if token_type.lower() != "bearer":
+            raise ValueError("Tipo di token non valido, richiesto 'Bearer'.")
+    except Exception:
+        raise ValueError("Formato 'Authorization' header non valido. Usare 'Bearer <token>'.")
+
+    # Questo è l'endpoint che hai definito nel tuo user-manager
+    validate_url = f"{USER_MANAGER_URL}/utenti/validate-token"
+    
+    try:
+        # Il payload deve corrispondere al modello Pydantic 'Token' 
+        # dell'user-manager
+        payload = {"access_token": token}
+
+        # Esegui la chiamata POST
+        response = requests.post(
+            validate_url, 
+            json=payload, 
+            timeout=5,
+            verify=False  # <-- IMPORTANTE: Ignora la verifica del certificato SSL
+        )
+        
+        # Se l'user-manager risponde 401, 403, 404, ecc., solleva un errore
+        response.raise_for_status() 
+        
+        user_data = response.json()
+        
+        # L'endpoint /utenti/validate-token restituisce 'id' e 'username'
+        user_uuid = user_data.get("id")
+        username = user_data.get("username")
+        
+        if not user_uuid or not username:
+            raise ValueError("Dati utente incompleti dal servizio di validazione")
+            
+        print(f"[Game-Engine] Token validato con successo per l'utente: {username} ({user_uuid})")
+        return user_uuid, username
+        
+    except requests.RequestException as e:
+        # Errore di connessione o risposta 4xx/5xx dal servizio utenti
+        error_detail = f"Impossibile validare l'utente. Errore di connessione a {validate_url}."
+        if e.response:
+            try:
+                # Prova a leggere il 'detail' dall'errore FastAPI
+                error_detail = e.response.json().get('detail', 'Errore sconosciuto da User-Manager')
+            except json.JSONDecodeError:
+                error_detail = e.response.text
+        
+        print(f"ERRORE validazione token: {error_detail}")
+        # Solleva un ValueError che il controller (routes.py) convertirà in 401
+        raise ValueError(f"Servizio Utenti: {error_detail}")

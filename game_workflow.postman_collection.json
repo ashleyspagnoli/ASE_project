@@ -1,741 +1,999 @@
 {
-	"info": {
-		"_postman_id": "9a222244-d23d-4464-8d96-6e173bc19925",
-		"name": "[Simulazione] Game Workflow (Dinamico e Corretto)",
-		"description": "Usa GET /hand e variabili per simulare una partita reale, giocando carte che i giocatori hanno davvero in mano.",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-		"_exporter_id": "32252012",
-		"_collection_link": "https://microase25.postman.co/workspace/microase~cad67297-b74a-443b-8819-22250efccee9/collection/32252012-9a222244-d23d-4464-8d96-6e173bc19925?action=share&source=collection_link&creator=32252012"
-	},
-	"item": [
-		{
-			"name": "Setup: Creare Mazzi (Servizio Collection)",
-			"item": [
-				{
-					"name": "Crea Mazzo per Alice",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"userId\": \"{{alice_uuid}}\",\n    \"deckSlot\": 1,\n    \"deckName\": \"Alice Deck (High Cards)\",\n    \"cards\": [\n        \"hA\", \"h7\", \n        \"dA\", \"d7\", \n        \"cK\", \"c2\", \n        \"sK\", \"s2\"\n    ]\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "http://localhost:5003/collection/decks",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "5003",
-							"path": [
-								"collection",
-								"decks"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Crea Mazzo per Bob",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"userId\": \"{{bob_uuid}}\",\n    \"deckSlot\": 1,\n    \"deckName\": \"Bob Deck (Low Cards)\",\n    \"cards\": [\n        \"h2\", \"h3\", \n        \"d2\", \"d3\", \n        \"c3\", \"c4\", \n        \"s2\", \"s3\"\n    ]\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "http://localhost:5003/collection/decks",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "5003",
-							"path": [
-								"collection",
-								"decks"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
-			"name": "Flusso di Gioco (Servizio Game Engine)",
-			"item": [
-				{
-					"name": "1. Connetti Alice",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"uuid\": \"{{alice_uuid}}\",\n    \"username\": \"Alice\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "http://localhost:5001/game/connect",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "5001",
-							"path": [
-								"game",
-								"connect"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "2. Connetti Bob",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"uuid\": \"{{bob_uuid}}\",\n    \"username\": \"Bob\"\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "http://localhost:5001/game/connect",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "5001",
-							"path": [
-								"game",
-								"connect"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "3. Avvia Matchmaking",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"var jsonData = pm.response.json();",
-									"pm.collectionVariables.set(\"game_id\", jsonData.game_id);",
-									"console.log(\"Game ID impostato: \" + jsonData.game_id);"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [],
-						"url": {
-							"raw": "http://localhost:5001/game/matchmake",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "5001",
-							"path": [
-								"game",
-								"matchmake"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "4. Alice Seleziona Mazzo",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"player_uuid\": \"{{alice_uuid}}\",\n    \"deck_slot\": 1\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "http://localhost:5001/game/deck/{{game_id}}",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "5001",
-							"path": [
-								"game",
-								"deck",
-								"{{game_id}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "5. Bob Seleziona Mazzo (Inizia Partita)",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"player_uuid\": \"{{bob_uuid}}\",\n    \"deck_slot\": 1\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "http://localhost:5001/game/deck/{{game_id}}",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "5001",
-							"path": [
-								"game",
-								"deck",
-								"{{game_id}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Hand Alice (Salva Carta T1)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"// Salva la prima carta della mano in una variabile",
-									"var jsonData = pm.response.json();",
-									"if (jsonData && jsonData.length > 0) {",
-									"    var card = jsonData[0]; ",
-									"    pm.collectionVariables.set(\"alice_card_to_play\", JSON.stringify(card));",
-									"    console.log(\"Carta T1 Alice salvata: \" + JSON.stringify(card));",
-									"} else {",
-									"    console.log(\"Alice non ha carte in mano!\")",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "http://localhost:5001/game/hand/{{game_id}}?player_uuid={{alice_uuid}}",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "5001",
-							"path": [
-								"game",
-								"hand",
-								"{{game_id}}"
-							],
-							"query": [
-								{
-									"key": "player_uuid",
-									"value": "{{alice_uuid}}"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Alice Gioca Carta T1",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"player_uuid\": \"{{alice_uuid}}\",\n    \"card\": {{alice_card_to_play}}\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "http://localhost:5001/game/play/{{game_id}}",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "5001",
-							"path": [
-								"game",
-								"play",
-								"{{game_id}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Hand Bob (Salva Carta T1)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"var jsonData = pm.response.json();",
-									"if (jsonData && jsonData.length > 0) {",
-									"    var card = jsonData[0]; ",
-									"    pm.collectionVariables.set(\"bob_card_to_play\", JSON.stringify(card));",
-									"    console.log(\"Carta T1 Bob salvata: \" + JSON.stringify(card));",
-									"} else {",
-									"    console.log(\"Bob non ha carte in mano!\")",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "http://localhost:5001/game/hand/{{game_id}}?player_uuid={{bob_uuid}}",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "5001",
-							"path": [
-								"game",
-								"hand",
-								"{{game_id}}"
-							],
-							"query": [
-								{
-									"key": "player_uuid",
-									"value": "{{bob_uuid}}"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Bob Gioca Carta T1",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"player_uuid\": \"{{bob_uuid}}\",\n    \"card\": {{bob_card_to_play}}\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "http://localhost:5001/game/play/{{game_id}}",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "5001",
-							"path": [
-								"game",
-								"play",
-								"{{game_id}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Hand Alice (Salva Carta T2)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"var jsonData = pm.response.json();",
-									"if (jsonData && jsonData.length > 0) {",
-									"    var card = jsonData[0]; ",
-									"    pm.collectionVariables.set(\"alice_card_to_play\", JSON.stringify(card));",
-									"    console.log(\"Carta T2 Alice salvata: \" + JSON.stringify(card));",
-									"} else {",
-									"    console.log(\"Alice non ha carte in mano!\")",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "http://localhost:5001/game/hand/{{game_id}}?player_uuid={{alice_uuid}}",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "5001",
-							"path": [
-								"game",
-								"hand",
-								"{{game_id}}"
-							],
-							"query": [
-								{
-									"key": "player_uuid",
-									"value": "{{alice_uuid}}"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Alice Gioca Carta T2",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"player_uuid\": \"{{alice_uuid}}\",\n    \"card\": {{alice_card_to_play}}\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "http://localhost:5001/game/play/{{game_id}}",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "5001",
-							"path": [
-								"game",
-								"play",
-								"{{game_id}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Hand Bob (Salva Carta T2)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"var jsonData = pm.response.json();",
-									"if (jsonData && jsonData.length > 0) {",
-									"    var card = jsonData[0]; ",
-									"    pm.collectionVariables.set(\"bob_card_to_play\", JSON.stringify(card));",
-									"    console.log(\"Carta T2 Bob salvata: \" + JSON.stringify(card));",
-									"} else {",
-									"    console.log(\"Bob non ha carte in mano!\")",
-									"}"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "http://localhost:5001/game/hand/{{game_id}}?player_uuid={{bob_uuid}}",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "5001",
-							"path": [
-								"game",
-								"hand",
-								"{{game_id}}"
-							],
-							"query": [
-								{
-									"key": "player_uuid",
-									"value": "{{bob_uuid}}"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Bob Gioca Carta T2",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"player_uuid\": \"{{bob_uuid}}\",\n    \"card\": {{bob_card_to_play}}\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "http://localhost:5001/game/play/{{game_id}}",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "5001",
-							"path": [
-								"game",
-								"play",
-								"{{game_id}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Hand Alice (Salva Carta T3)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"var jsonData = pm.response.json();",
-									"if (jsonData && jsonData.length > 0) {",
-									"    var card = jsonData[0]; ",
-									"    pm.collectionVariables.set(\"alice_card_to_play\", JSON.stringify(card));",
-									"} "
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "http://localhost:5001/game/hand/{{game_id}}?player_uuid={{alice_uuid}}",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "5001",
-							"path": [
-								"game",
-								"hand",
-								"{{game_id}}"
-							],
-							"query": [
-								{
-									"key": "player_uuid",
-									"value": "{{alice_uuid}}"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Alice Gioca Carta T3",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"player_uuid\": \"{{alice_uuid}}\",\n    \"card\": {{alice_card_to_play}}\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "http://localhost:5001/game/play/{{game_id}}",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "5001",
-							"path": [
-								"game",
-								"play",
-								"{{game_id}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Hand Bob (Salva Carta T3)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"var jsonData = pm.response.json();",
-									"if (jsonData && jsonData.length > 0) {",
-									"    var card = jsonData[0]; ",
-									"    pm.collectionVariables.set(\"bob_card_to_play\", JSON.stringify(card));",
-									"} "
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "http://localhost:5001/game/hand/{{game_id}}?player_uuid={{bob_uuid}}",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "5001",
-							"path": [
-								"game",
-								"hand",
-								"{{game_id}}"
-							],
-							"query": [
-								{
-									"key": "player_uuid",
-									"value": "{{bob_uuid}}"
-								}
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Bob Gioca Carta T3",
-					"request": {
-						"method": "POST",
-						"header": [],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"player_uuid\": \"{{bob_uuid}}\",\n    \"card\": {{bob_card_to_play}}\n}",
-							"options": {
-								"raw": {
-									"language": "json"
-								}
-							}
-						},
-						"url": {
-							"raw": "http://localhost:5001/game/play/{{game_id}}",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "5001",
-							"path": [
-								"game",
-								"play",
-								"{{game_id}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get State (Debug Iniziale)",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "http://localhost:5001/game/state/{{game_id}}",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "5001",
-							"path": [
-								"game",
-								"state",
-								"{{game_id}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "Get Game State (Fine Partita)",
-					"request": {
-						"method": "GET",
-						"header": [],
-						"url": {
-							"raw": "http://localhost:5001/game/state/{{game_id}}",
-							"protocol": "http",
-							"host": [
-								"localhost"
-							],
-							"port": "5001",
-							"path": [
-								"game",
-								"state",
-								"{{game_id}}"
-							]
-						},
-						"description": "Controlla lo stato finale. (Dovrai continuare a giocare i turni 4 e 5 per vedere un vincitore)"
-					},
-					"response": []
-				}
-			]
-		}
-	],
-	"variable": [
-		{
-			"key": "game_id",
-			"value": "ID_PARTITA_VERRA_QUI"
-		},
-		{
-			"key": "alice_uuid",
-			"value": "user-alice-uuid"
-		},
-		{
-			"key": "bob_uuid",
-			"value": "user-bob-uuid"
-		},
-		{
-			"key": "alice_card_to_play",
-			"value": ""
-		},
-		{
-			"key": "bob_card_to_play",
-			"value": ""
-		}
-	]
+    "info": {
+        "_postman_id": "9a222244-d23d-4464-8d96-6e173bc19925",
+        "name": "[Simulazione] Game Workflow (Con Autenticazione)",
+        "description": "Workflow completo: 1. Login (User-Manager) 2. Get UUID (User-Manager) 3. Crea Mazzi (Collection) 4. Gioca Partita (Game-Engine)",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "1. Setup: Autenticazione (User Manager)",
+            "item": [
+                {
+                    "name": "Registra Alice",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"username\": \"{{alice_username}}\",\n    \"password\": \"{{alice_password}}\",\n    \"email\": \"alice@example.com\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{user_manager_url}}/utenti/registrati",
+                            "host": [
+                                "{{user_manager_url}}"
+                            ],
+                            "path": [
+                                "utenti",
+                                "registrati"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Registra Bob",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"username\": \"{{bob_username}}\",\n    \"password\": \"{{bob_password}}\",\n    \"email\": \"bob@example.com\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{user_manager_url}}/utenti/registrati",
+                            "host": [
+                                "{{user_manager_url}}"
+                            ],
+                            "path": [
+                                "utenti",
+                                "registrati"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Login Alice (Salva JWT)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "pm.collectionVariables.set(\"alice_jwt\", jsonData.token);",
+                                    "console.log(\"Token Alice salvato.\");"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"username\": \"{{alice_username}}\",\n    \"password\": \"{{alice_password}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{user_manager_url}}/login",
+                            "host": [
+                                "{{user_manager_url}}"
+                            ],
+                            "path": [
+                                "login"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Login Bob (Salva JWT)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "pm.collectionVariables.set(\"bob_jwt\", jsonData.token);",
+                                    "console.log(\"Token Bob salvato.\");"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"username\": \"{{bob_username}}\",\n    \"password\": \"{{bob_password}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{user_manager_url}}/login",
+                            "host": [
+                                "{{user_manager_url}}"
+                            ],
+                            "path": [
+                                "login"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Alice UUID (Salva UUID)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "// Salva l'UUID di Alice per usarlo nel servizio Collection",
+                                    "var jsonData = pm.response.json();",
+                                    "pm.collectionVariables.set(\"alice_uuid\", jsonData.id);",
+                                    "console.log(\"UUID Alice salvato: \" + jsonData.id);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"access_token\": \"{{alice_jwt}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{user_manager_url}}/utenti/validate-token",
+                            "host": [
+                                "{{user_manager_url}}"
+                            ],
+                            "path": [
+                                "utenti",
+                                "validate-token"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Bob UUID (Salva UUID)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "pm.collectionVariables.set(\"bob_uuid\", jsonData.id);",
+                                    "console.log(\"UUID Bob salvato: \" + jsonData.id);"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"access_token\": \"{{bob_jwt}}\"\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{user_manager_url}}/utenti/validate-token",
+                            "host": [
+                                "{{user_manager_url}}"
+                            ],
+                            "path": [
+                                "utenti",
+                                "validate-token"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "2. Setup: Creare Mazzi (Collection Service)",
+            "item": [
+                {
+                    "name": "Crea Mazzo per Alice",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"userId\": \"{{alice_uuid}}\",\n    \"deckSlot\": 1,\n    \"deckName\": \"Alice Deck (High Cards)\",\n    \"cards\": [\n        \"hA\", \"h7\", \n        \"dA\", \"d7\", \n        \"cK\", \"c2\", \n        \"sK\", \"s2\"\n    ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{collection_service_url}}/collection/decks",
+                            "host": [
+                                "{{collection_service_url}}"
+                            ],
+                            "path": [
+                                "collection",
+                                "decks"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Crea Mazzo per Bob",
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"userId\": \"{{bob_uuid}}\",\n    \"deckSlot\": 1,\n    \"deckName\": \"Bob Deck (Low Cards)\",\n    \"cards\": [\n        \"h2\", \"h3\", \n        \"d2\", \"d3\", \n        \"c3\", \"c4\", \n        \"s2\", \"s3\"\n    ]\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{collection_service_url}}/collection/decks",
+                            "host": [
+                                "{{collection_service_url}}"
+                            ],
+                            "path": [
+                                "collection",
+                                "decks"
+                            ]
+                        }
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "3. Flusso di Gioco (Game Engine)",
+            "item": [
+                {
+                    "name": "1. Connetti Alice",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{alice_jwt}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{game_engine_url}}/game/connect",
+                            "host": [
+                                "{{game_engine_url}}"
+                            ],
+                            "path": [
+                                "game",
+                                "connect"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "2. Connetti Bob",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{bob_jwt}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{game_engine_url}}/game/connect",
+                            "host": [
+                                "{{game_engine_url}}"
+                            ],
+                            "path": [
+                                "game",
+                                "connect"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "3. Avvia Matchmaking",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if(jsonData.game_id) {",
+                                    "    pm.collectionVariables.set(\"game_id\", jsonData.game_id);",
+                                    "    console.log(\"Game ID impostato: \" + jsonData.game_id);",
+                                    "} else {",
+                                    "    console.log(\"Matchmaking fallito, game_id non trovato.\");",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [],
+                        "url": {
+                            "raw": "{{game_engine_url}}/game/matchmake",
+                            "host": [
+                                "{{game_engine_url}}"
+                            ],
+                            "path": [
+                                "game",
+                                "matchmake"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "4. Alice Seleziona Mazzo",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{alice_jwt}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"deck_slot\": 1\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{game_engine_url}}/game/deck/{{game_id}}",
+                            "host": [
+                                "{{game_engine_url}}"
+                            ],
+                            "path": [
+                                "game",
+                                "deck",
+                                "{{game_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "5. Bob Seleziona Mazzo (Inizia Partita)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{bob_jwt}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"deck_slot\": 1\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{game_engine_url}}/game/deck/{{game_id}}",
+                            "host": [
+                                "{{game_engine_url}}"
+                            ],
+                            "path": [
+                                "game",
+                                "deck",
+                                "{{game_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get State (Debug)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{game_engine_url}}/game/state/{{game_id}}",
+                            "host": [
+                                "{{game_engine_url}}"
+                            ],
+                            "path": [
+                                "game",
+                                "state",
+                                "{{game_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Hand Alice (Salva Carta T1)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "// Salva la prima carta della mano in una variabile",
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData && jsonData.length > 0) {",
+                                    "    var card = jsonData[0]; ",
+                                    "    pm.collectionVariables.set(\"alice_card_to_play\", JSON.stringify(card));",
+                                    "    console.log(\"Carta T1 Alice salvata: \" + JSON.stringify(card));",
+                                    "} else {",
+                                    "    console.log(\"Alice non ha carte in mano!\")",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{alice_jwt}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{game_engine_url}}/game/hand/{{game_id}}",
+                            "host": [
+                                "{{game_engine_url}}"
+                            ],
+                            "path": [
+                                "game",
+                                "hand",
+                                "{{game_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Alice Gioca Carta T1",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{alice_jwt}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"card\": {{alice_card_to_play}}\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{game_engine_url}}/game/play/{{game_id}}",
+                            "host": [
+                                "{{game_engine_url}}"
+                            ],
+                            "path": [
+                                "game",
+                                "play",
+                                "{{game_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Hand Bob (Salva Carta T1)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData && jsonData.length > 0) {",
+                                    "    var card = jsonData[0]; ",
+                                    "    pm.collectionVariables.set(\"bob_card_to_play\", JSON.stringify(card));",
+                                    "    console.log(\"Carta T1 Bob salvata: \" + JSON.stringify(card));",
+                                    "} else {",
+                                    "    console.log(\"Bob non ha carte in mano!\")",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{bob_jwt}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{game_engine_url}}/game/hand/{{game_id}}",
+                            "host": [
+                                "{{game_engine_url}}"
+                            ],
+                            "path": [
+                                "game",
+                                "hand",
+                                "{{game_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Bob Gioca Carta T1",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{bob_jwt}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"card\": {{bob_card_to_play}}\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{game_engine_url}}/game/play/{{game_id}}",
+                            "host": [
+                                "{{game_engine_url}}"
+                            ],
+                            "path": [
+                                "game",
+                                "play",
+                                "{{game_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Hand Alice (Salva Carta T2)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData && jsonData.length > 0) {",
+                                    "    var card = jsonData[0]; ",
+                                    "    pm.collectionVariables.set(\"alice_card_to_play\", JSON.stringify(card));",
+                                    "    console.log(\"Carta T2 Alice salvata: \" + JSON.stringify(card));",
+                                    "} else {",
+                                    "    console.log(\"Alice non ha carte in mano!\")",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{alice_jwt}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{game_engine_url}}/game/hand/{{game_id}}",
+                            "host": [
+                                "{{game_engine_url}}"
+                            ],
+                            "path": [
+                                "game",
+                                "hand",
+                                "{{game_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Alice Gioca Carta T2",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{alice_jwt}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"card\": {{alice_card_to_play}}\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{game_engine_url}}/game/play/{{game_id}}",
+                            "host": [
+                                "{{game_engine_url}}"
+                            ],
+                            "path": [
+                                "game",
+                                "play",
+                                "{{game_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Hand Bob (Salva Carta T2)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData && jsonData.length > 0) {",
+                                    "    var card = jsonData[0]; ",
+                                    "    pm.collectionVariables.set(\"bob_card_to_play\", JSON.stringify(card));",
+                                    "    console.log(\"Carta T2 Bob salvata: \" + JSON.stringify(card));",
+                                    "} else {",
+                                    "    console.log(\"Bob non ha carte in mano!\")",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{bob_jwt}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{game_engine_url}}/game/hand/{{game_id}}",
+                            "host": [
+                                "{{game_engine_url}}"
+                            ],
+                            "path": [
+                                "game",
+                                "hand",
+                                "{{game_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Bob Gioca Carta T2",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{bob_jwt}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"card\": {{bob_card_to_play}}\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{game_engine_url}}/game/play/{{game_id}}",
+                            "host": [
+                                "{{game_engine_url}}"
+                            ],
+                            "path": [
+                                "game",
+                                "play",
+                                "{{game_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Hand Alice (Salva Carta T3)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData && jsonData.length > 0) {",
+                                    "    var card = jsonData[0]; ",
+                                    "    pm.collectionVariables.set(\"alice_card_to_play\", JSON.stringify(card));",
+                                    "} "
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{alice_jwt}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{game_engine_url}}/game/hand/{{game_id}}",
+                            "host": [
+                                "{{game_engine_url}}"
+                            ],
+                            "path": [
+                                "game",
+                                "hand",
+                                "{{game_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Alice Gioca Carta T3",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{alice_jwt}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"card\": {{alice_card_to_play}}\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{game_engine_url}}/game/play/{{game_id}}",
+                            "host": [
+                                "{{game_engine_url}}"
+                            ],
+                            "path": [
+                                "game",
+                                "play",
+                                "{{game_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Hand Bob (Salva Carta T3)",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData && jsonData.length > 0) {",
+                                    "    var card = jsonData[0]; ",
+                                    "    pm.collectionVariables.set(\"bob_card_to_play\", JSON.stringify(card));",
+                                    "} "
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{bob_jwt}}"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{game_engine_url}}/game/hand/{{game_id}}",
+                            "host": [
+                                "{{game_engine_url}}"
+                            ],
+                            "path": [
+                                "game",
+                                "hand",
+                                "{{game_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Bob Gioca Carta T3",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{bob_jwt}}"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n    \"card\": {{bob_card_to_play}}\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "url": {
+                            "raw": "{{game_engine_url}}/game/play/{{game_id}}",
+                            "host": [
+                                "{{game_engine_url}}"
+                            ],
+                            "path": [
+                                "game",
+                                "play",
+                                "{{game_id}}"
+                            ]
+                        }
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Game State (Fine Partita)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{game_engine_url}}/game/state/{{game_id}}",
+                            "host": [
+                                "{{game_engine_url}}"
+                            ],
+                            "path": [
+                                "game",
+                                "state",
+                                "{{game_id}}"
+                            ]
+                        },
+                        "description": "Controlla lo stato finale. (Dovrai continuare a giocare i turni 4 e 5 per vedere un vincitore)"
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "game_id",
+            "value": ""
+        },
+        {
+            "key": "alice_uuid",
+            "value": ""
+        },
+        {
+            "key": "bob_uuid",
+            "value": ""
+        },
+        {
+            "key": "alice_jwt",
+            "value": ""
+        },
+        {
+            "key": "bob_jwt",
+            "value": ""
+        },
+        {
+            "key": "alice_card_to_play",
+            "value": ""
+        },
+        {
+            "key": "bob_card_to_play",
+            "value": ""
+        },
+        {
+            "key": "alice_username",
+            "value": "Alice"
+        },
+        {
+            "key": "alice_password",
+            "value": "password123"
+        },
+        {
+            "key": "bob_username",
+            "value": "Bob"
+        },
+        {
+            "key": "bob_password",
+            "value": "password123"
+        },
+        {
+            "key": "user_manager_url",
+            "value": "https://localhost:5004"
+        },
+        {
+            "key": "game_engine_url",
+            "value": "http://localhost:5001"
+        },
+        {
+            "key": "collection_service_url",
+            "value": "http://localhost:5003"
+        }
+    ]
 }
