@@ -201,7 +201,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     return user
 
 # --- ENDPOINT DI AUTENTICAZIONE E UTENTI (Raggruppati con Tags) ---
-@app.get(
+@app.post(
     "/getidfromusernamelist", 
     status_code=status.HTTP_200_OK,
     tags=["Autenticazione e Utenti"],
@@ -221,8 +221,8 @@ def idfromusername(user_credentials: UsernameList):
             result[username] = None
     return result
 
-@app.get(
-    "/getusernamefromidlist/{user_id}",
+@app.post(
+    "/getusernamefromidlist",
     status_code=status.HTTP_200_OK,
     tags=["Autenticazione e Utenti"],
     summary="Da lo username dall'id"
