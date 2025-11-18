@@ -71,6 +71,8 @@ class Item(BaseModel):
 class UsernameList(BaseModel):
     usernames: List[str] = Field(..., description="Lista di nomi utente.")
 
+class UserIdList(BaseModel):
+    user_ids: List[str] = Field(..., description="Lista di ID utente.")
 
 class UserBase(BaseModel):
     """Schema base contenente solo il nome utente."""
@@ -200,7 +202,7 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 
 # --- ENDPOINT DI AUTENTICAZIONE E UTENTI (Raggruppati con Tags) ---
 @app.get(
-    "/getidfromusername", 
+    "/getidfromusernamelist", 
     status_code=status.HTTP_200_OK,
     tags=["Autenticazione e Utenti"],
     summary="Da l'id dallo username"
@@ -219,6 +221,25 @@ def idfromusername(user_credentials: UsernameList):
             result[username] = None
     return result
 
+@app.get(
+    "/getusernamefromidlist/{user_id}",
+    status_code=status.HTTP_200_OK,
+    tags=["Autenticazione e Utenti"],
+    summary="Da lo username dall'id"
+)
+def usernamefromid(user_ids: UserIdList):
+    """
+    Endpoint per ottenere i nomi utente dati una lista di ID utente.
+    Restituisce una mappatura di ID a username.
+    """
+    result = {}
+    for user_id in user_ids.user_ids:
+        user_doc = USERS_COLLECTION.find_one({"_id": ObjectId(user_id)})
+        if user_doc:
+            result[user_id] = user_doc["username"]
+        else:
+            result[user_id] = None
+    return result
 
 @app.post(
     "/utenti/registrati", 
