@@ -68,6 +68,10 @@ class Item(BaseModel):
     nome: str = Field(..., description="Il nome descrittivo dell'elemento.")
     valore: int = Field(..., description="Un valore numerico associato all'elemento.")
 
+class UsernameList(BaseModel):
+    usernames: List[str] = Field(..., description="Lista di nomi utente.")
+
+
 class UserBase(BaseModel):
     """Schema base contenente solo il nome utente."""
     username: str = Field(..., description="Nome utente univoco.")
@@ -173,8 +177,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
+        # In get_current_user:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
+        username: str = payload.get("sub")  # <--- CERCA "sub"!
         if username is None:
             raise credentials_exception
         token_data = TokenData(username=username)
@@ -194,6 +199,26 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
     return user
 
 # --- ENDPOINT DI AUTENTICAZIONE E UTENTI (Raggruppati con Tags) ---
+@app.get(
+    "/getidfromusername", 
+    status_code=status.HTTP_200_OK,
+    tags=["Autenticazione e Utenti"],
+    summary="Da l'id dallo username"
+)
+def idfromusername(user_credentials: UsernameList):
+    """
+    Endpoint per ottenere gli ID utente dati una lista di nomi utente.
+    Restituisce una mappatura di username a ID.
+    """
+    result = {}
+    for username in user_credentials.usernames:
+        user = get_user(username)
+        if user:
+            result[username] = user.id
+        else:
+            result[username] = None
+    return result
+
 
 @app.post(
     "/utenti/registrati", 
