@@ -23,9 +23,7 @@ MONGO_URI = environ.get("MONGO_URI", DEFAULT_MONGO_URI)
 # JWT Configuration (read from environment)
 SECRET_KEY = environ.get("SECRET_KEY", "default_secret_key_weak")
 ALGORITHM = environ.get("ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
-RESET_TOKEN_EXPIRE_MINUTES = 60 
-VERIFICATION_TOKEN_EXPIRE_MINUTES = 120 
+ACCESS_TOKEN_EXPIRE_MINUTES = int(environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", 30)) 
 
 # Database Connection Initialization
 try:
@@ -45,6 +43,7 @@ except Exception as e:
 # Context for password hashing
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
 
 # FastAPI App Initialization
 app = FastAPI(
@@ -197,8 +196,33 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
 
 # --- ENDPOINTS: AUTHENTICATION AND USERS ---
 
+
+@app.post("/token", response_model=Token, tags=["Authentication and Users"], summary="OAuth2 Standard Token Exchange")
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    """
+    Standard OAuth2 endpoint to exchange username and password (form-data) for a JWT token.
+    This endpoint is used by the global 'Authorize' button in Swagger UI.
+    """
+    # 1. Autentica l'utente usando i dati del Form Data
+    user = authenticate_user(form_data.username, form_data.password)
+    
+    if not user:
+         raise HTTPException(
+             status_code=status.HTTP_401_UNAUTHORIZED,
+             detail="Invalid username or password",
+             headers={"WWW-Authenticate": "Bearer"},
+         )
+    
+    # 2. Crea il token con i dati dell'utente
+    access_token = create_access_token(
+        data={"username": user.username, "id": user.id}
+    )
+    
+    # 3. Restituisce il token
+    return {"access_token": access_token, "token_type": "bearer"}
+
 @app.post(
-    "/utenti/registrati", 
+    "/users/register", 
     status_code=status.HTTP_201_CREATED,
     tags=["Authentication and Users"],
     summary="Register a new user"
@@ -234,7 +258,7 @@ def register_user(user_in: UserCreate):
     }
 
 @app.post(
-    "/login", 
+    "/users/login", 
     status_code=status.HTTP_200_OK,
     tags=["Authentication and Users"],
     summary="Simplified JSON Login and JWT generation"
@@ -264,17 +288,16 @@ def simple_login(user_credentials: UserLogin):
         "token_type": "bearer"
     }
 
-@app.post(
-    "/utenti/validate-token", 
+@app.get(
+    "/users/validate-token", 
     response_model=UsernameMapping,
     tags=["Internal Services"],
     summary="[INTERNAL] Validate a JWT token and return user data."
 )
-def validate_token(token_data: Token):
+def validate_token(token_str: str):
     """
     Used by other microservices to validate a JWT and retrieve the user's ID and username.
     """
-    token_str = token_data.access_token
 
     try:
         # 1. Decode and verify the token using the SECRET_KEY
@@ -307,6 +330,8 @@ def validate_token(token_data: Token):
     )
 
 # --- ENDPOINTS: INTERNAL ID/USERNAME RESOLUTION ---
+
+
 
 @app.get(
     "/utenti/usernames-by-ids", 
@@ -380,8 +405,9 @@ def get_ids_by_usernames(
 
 # --- ENDPOINTS: ADMIN AND PROTECTED ACCESS ---
 
+
 @app.get(
-    "/utenti/dev-all-users", 
+    "/devs/dev-all-users", 
     response_model=List[UserOut],
     tags=["Administration (Debug)"],
     summary="[DEBUG] Get all users (including password hash)"
@@ -405,7 +431,7 @@ def get_all_users_for_devs():
     return users_list
 
 @app.delete(
-    "/utenti/admin-clear-users", 
+    "/devs/admin-clear-users", 
     status_code=status.HTTP_200_OK,
     tags=["Administration (Protected)"],
     summary="[ADMIN] Delete all non-admin users"
@@ -432,7 +458,7 @@ def clear_all_users_except_admin(current_user: UserInDB = Depends(get_current_us
     }
 
 @app.get(
-    "/utenti/admin-all-users", 
+    "/devs/admin-all-users", 
     response_model=List[UserOut],
     tags=["Administration (Protected)"],
     summary="[ADMIN] Get all users (including password hash) with protection"
@@ -462,74 +488,3 @@ def get_all_users_for_admin(current_user: UserInDB = Depends(get_current_user)):
         
     return users_list
 
-# --- ENDPOINTS: PROTECTED OPERATIONS (Requires JWT) ---
-
-@app.post(
-    "/elementi/", 
-    response_model=Item, 
-    status_code=status.HTTP_201_CREATED,
-    tags=["Protected Operations (Items)"],
-    summary="Create a new item"
-)
-def crea_elemento(item: Item, current_user: UserInDB = Depends(get_current_user)):
-    """
-    Creates a new item associated with the authenticated user.
-    Requires a valid JWT.
-    """
-    nuovo_elemento = item.model_dump(exclude_unset=True, exclude={'id'})
-    nuovo_elemento['owner'] = current_user.username 
-
-    try:
-        risultato = ITEMS_COLLECTION.insert_one(nuovo_elemento)
-    except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"MongoDB insertion error: {e}")
-    
-    item.id = str(risultato.inserted_id)
-    return item
-
-@app.get(
-    "/elementi/", 
-    response_model=List[Item],
-    tags=["Protected Operations (Items)"],
-    summary="Get all items for the current user"
-)
-def ottieni_tutti_gli_elementi(current_user: UserInDB = Depends(get_current_user)):
-    """
-    Returns a list of all items created by the current user.
-    Requires a valid JWT.
-    """
-    items = []
-    for elemento in ITEMS_COLLECTION.find({"owner": current_user.username}): 
-        items.append(Item(
-            id=str(elemento['_id']),
-            nome=elemento['nome'],
-            valore=elemento['valore']
-        ))
-        
-    return items
-
-@app.get(
-    "/elementi/{item_id}", 
-    response_model=Item,
-    tags=["Protected Operations (Items)"],
-    summary="Get an item by ID"
-)
-def ottieni_elemento_per_id(item_id: str):
-    """
-    Returns a specific item by its MongoDB ObjectId.
-    NOTE: This endpoint is NOT protected by JWT.
-    """
-    try:
-        elemento = ITEMS_COLLECTION.find_one({"_id": ObjectId(item_id)})
-        
-        if elemento:
-            return Item(
-                id=str(elemento['_id']),
-                nome=elemento['nome'],
-                valore=elemento['valore']
-            )
-            
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Item not found")
-        
-    except Exception:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid ID format")
