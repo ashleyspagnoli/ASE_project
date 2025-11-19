@@ -458,36 +458,32 @@ def validate_user_token(token_header: str):
         raise ValueError("Formato 'Authorization' header non valido. Usare 'Bearer <token>'.")
 
     # Questo è l'endpoint che hai definito nel tuo user-manager
-    validate_url = f"{USER_MANAGER_URL}/utenti/validate-token"
-    
-    try:
-        # Il payload deve corrispondere al modello Pydantic 'Token' 
-        # dell'user-manager
-        payload = {"access_token": token}
+    validate_url = f"{USER_MANAGER_URL}/users/validate-token"
 
-        # Esegui la chiamata POST
-        response = requests.post(
-            validate_url, 
-            json=payload, 
+    try:
+        # Invia la richiesta GET con il token come query parameter
+        response = requests.get(
+            validate_url,
+            params={"token_str": token},
             timeout=5,
             verify=False  # <-- IMPORTANTE: Ignora la verifica del certificato SSL
         )
-        
+
         # Se l'user-manager risponde 401, 403, 404, ecc., solleva un errore
-        response.raise_for_status() 
-        
+        response.raise_for_status()
+
         user_data = response.json()
-        
-        # L'endpoint /utenti/validate-token restituisce 'id' e 'username'
+
+        # L'endpoint /users/validate-token restituisce 'id' e 'username'
         user_uuid = user_data.get("id")
         username = user_data.get("username")
-        
+
         if not user_uuid or not username:
             raise ValueError("Dati utente incompleti dal servizio di validazione")
-            
+
         print(f"[Game-Engine] Token validato con successo per l'utente: {username} ({user_uuid})")
         return user_uuid, username
-        
+
     except requests.RequestException as e:
         # Errore di connessione o risposta 4xx/5xx dal servizio utenti
         error_detail = f"Impossibile validare l'utente. Errore di connessione a {validate_url}."
@@ -497,7 +493,7 @@ def validate_user_token(token_header: str):
                 error_detail = e.response.json().get('detail', 'Errore sconosciuto da User-Manager')
             except json.JSONDecodeError:
                 error_detail = e.response.text
-        
+
         print(f"ERRORE validazione token: {error_detail}")
         # Solleva un ValueError che il controller (routes.py) convertirà in 401
         raise ValueError(f"Servizio Utenti: {error_detail}")

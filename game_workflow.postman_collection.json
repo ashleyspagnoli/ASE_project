@@ -24,13 +24,13 @@
                             }
                         },
                         "url": {
-                            "raw": "{{user_manager_url}}/utenti/registrati",
+                            "raw": "{{user_manager_url}}/users/register",
                             "host": [
                                 "{{user_manager_url}}"
                             ],
                             "path": [
-                                "utenti",
-                                "registrati"
+                                "users",
+                                "register"
                             ]
                         }
                     },
@@ -51,13 +51,13 @@
                             }
                         },
                         "url": {
-                            "raw": "{{user_manager_url}}/utenti/registrati",
+                            "raw": "{{user_manager_url}}/users/register",
                             "host": [
                                 "{{user_manager_url}}"
                             ],
                             "path": [
-                                "utenti",
-                                "registrati"
+                                "users",
+                                "register"
                             ]
                         }
                     },
@@ -91,11 +91,12 @@
                             }
                         },
                         "url": {
-                            "raw": "{{user_manager_url}}/login",
+                            "raw": "{{user_manager_url}}/users/login",
                             "host": [
                                 "{{user_manager_url}}"
                             ],
                             "path": [
+                                "users",
                                 "login"
                             ]
                         }
@@ -130,11 +131,12 @@
                             }
                         },
                         "url": {
-                            "raw": "{{user_manager_url}}/login",
+                            "raw": "{{user_manager_url}}/users/login",
                             "host": [
                                 "{{user_manager_url}}"
                             ],
                             "path": [
+                                "users",
                                 "login"
                             ]
                         }
@@ -158,25 +160,22 @@
                         }
                     ],
                     "request": {
-                        "method": "POST",
+                        "method": "GET",
                         "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"access_token\": \"{{alice_jwt}}\"\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
                         "url": {
-                            "raw": "{{user_manager_url}}/utenti/validate-token",
+                            "raw": "{{user_manager_url}}/users/validate-token?token_str={{alice_jwt}}",
                             "host": [
                                 "{{user_manager_url}}"
                             ],
                             "path": [
-                                "utenti",
+                                "users",
                                 "validate-token"
+                            ],
+                            "query": [
+                                {
+                                    "key": "token_str",
+                                    "value": "{{alice_jwt}}"
+                                }
                             ]
                         }
                     },
@@ -198,25 +197,22 @@
                         }
                     ],
                     "request": {
-                        "method": "POST",
+                        "method": "GET",
                         "header": [],
-                        "body": {
-                            "mode": "raw",
-                            "raw": "{\n    \"access_token\": \"{{bob_jwt}}\"\n}",
-                            "options": {
-                                "raw": {
-                                    "language": "json"
-                                }
-                            }
-                        },
                         "url": {
-                            "raw": "{{user_manager_url}}/utenti/validate-token",
+                            "raw": "{{user_manager_url}}/users/validate-token?token_str={{bob_jwt}}",
                             "host": [
                                 "{{user_manager_url}}"
                             ],
                             "path": [
-                                "utenti",
+                                "users",
                                 "validate-token"
+                            ],
+                            "query": [
+                                {
+                                    "key": "token_str",
+                                    "value": "{{bob_jwt}}"
+                                }
                             ]
                         }
                     },

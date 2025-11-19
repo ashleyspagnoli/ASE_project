@@ -48,11 +48,14 @@ In case of equal value (e.g., two 9s), the higher suit wins:
 
 ---
 
+
 ## 💡 Examples
 
 - ♥️9 beats ♦️9 → same value, Hearts outrank Diamonds.  
 - ♠️10 beats ♥️A → Aces lose to numbers.  
-- ♦️A beats ♣️K → Aces beat face cards.  
+- ♦️A beats ♣️K → Ace beats King (special rule).  
+- ♥️A beats ♠️J → Ace beats Jack (special rule).  
+- ♦️A beats ♣️Q → Ace beats Queen (special rule).  
 - 🃏 Joker beats **everything**.
 
 ---
@@ -65,3 +68,33 @@ In case of equal value (e.g., two 9s), the higher suit wins:
 - Joker beats everything  
 - Hearts > Diamonds > Clubs > Spades  
 - Win condition: 5 points
+
+---
+
+## 🏆 Example of a Match
+
+**Players:**  
+- Alice  
+- Bob  
+
+**Decks:**  
+- Alice: ♥️A, ♥️7, ♦️A, ♦️7, ♣️K, ♣️2, ♠️K, ♠️2, 🃏 Joker  
+- Bob: ♥️2, ♥️3, ♦️2, ♦️3, ♣️3, ♣️4, ♠️2, ♠️3, 🃏 Joker  
+
+
+**Turns:**
+
+| Turn | Alice's Card | Bob's Card | Winner | Score (Alice-Bob) |
+|------|--------------|------------|--------|-------------------|
+| 1    | ♥️A          | ♣️K        | Alice  | 1-0               |
+| 2    | ♦️A          | ♦️3        | Bob    | 1-1               |
+| 3    | ♣️K          | ♣️3        | Alice  | 2-1               |
+| 4    | ♠️K          | ♠️2        | Alice  | 3-1               |
+| 5    | ♥️7          | ♣️4        | Bob    | 3-2               |
+| 6    | ♦️7          | ♠️3        | Bob    | 3-3               |
+| 7    | ♣️2          | 🃏 Joker   | Bob    | 3-4               |
+| 8    | 🃏 Joker     | ♥️2        | Alice  | 4-4               |
+| 9    | ♥️7          | ♠️3        | Alice  | 5-4               |
+
+**Result:**  
+Alice reaches 5 points first and wins the match!
