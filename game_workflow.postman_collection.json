@@ -464,7 +464,29 @@
                             ]
                         }
                     },
-                    "response": []
+                        "event": [
+                            {
+                                "listen": "test",
+                                "script": {
+                                    "exec": [
+                                        "var jsonData = pm.response.json();",
+                                        "if (jsonData.finished || jsonData.winner) {",
+                                        "    console.log('Game resolved! Winner:', jsonData.winner);",
+                                        "    pm.test('Game is resolved', function () {",
+                                        "        pm.expect(jsonData.finished || jsonData.winner).to.be.ok;",
+                                        "    });",
+                                        "} else {",
+                                        "    console.log('Game NOT resolved, continue to next round.');",
+                                        "    pm.test('Game is NOT resolved', function () {",
+                                        "        pm.expect(jsonData.finished || jsonData.winner).to.not.be.ok;",
+                                        "    });",
+                                        "}"
+                                    ],
+                                    "type": "text/javascript"
+                                }
+                            }
+                        ],
+                        "response": []
                 },
                 {
                     "name": "Get Hand Alice (Salva Carta T1)",
@@ -616,6 +638,41 @@
                         }
                     },
                     "response": []
+                    },
+                    {
+                        "name": "Get Game State (Check Winner T1)",
+                        "request": {
+                            "method": "GET",
+                            "header": [],
+                            "url": {
+                                "raw": "{{game_engine_url}}/game/state/{{game_id}}",
+                                "host": ["{{game_engine_url}}"],
+                                "path": ["game", "state", "{{game_id}}"]
+                            }
+                        },
+                        "event": [
+                            {
+                                "listen": "test",
+                                "script": {
+                                    "exec": [
+                                        "var jsonData = pm.response.json();",
+                                        "if (jsonData.finished || jsonData.winner) {",
+                                        "    console.log('Game resolved! Winner:', jsonData.winner);",
+                                        "    pm.test('Game is resolved', function () {",
+                                        "        pm.expect(jsonData.finished || jsonData.winner).to.be.ok;",
+                                        "    });",
+                                        "} else {",
+                                        "    console.log('Game NOT resolved, continue to next round.');",
+                                        "    pm.test('Game is NOT resolved', function () {",
+                                        "        pm.expect(jsonData.finished || jsonData.winner).to.not.be.ok;",
+                                        "    });",
+                                        "}"
+                                    ],
+                                    "type": "text/javascript"
+                                }
+                            }
+                        ],
+                        "response": []
                 },
                 {
                     "name": "Get Hand Alice (Salva Carta T2)",
@@ -768,6 +825,47 @@
                     "response": []
                 },
                 {
+                    "name": "Get Game State (Check Winner T2)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{game_engine_url}}/game/state/{{game_id}}",
+                            "host": [
+                                "{{game_engine_url}}"
+                            ],
+                            "path": [
+                                "game",
+                                "state",
+                                "{{game_id}}"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.finished || jsonData.winner) {",
+                                    "    console.log('Game resolved! Winner:', jsonData.winner);",
+                                    "    pm.test('Game is resolved', function () {",
+                                    "        pm.expect(jsonData.finished || jsonData.winner).to.be.ok;",
+                                    "    });",
+                                    "} else {",
+                                    "    console.log('Game NOT resolved, continue to next round.');",
+                                    "    pm.test('Game is NOT resolved', function () {",
+                                    "        pm.expect(jsonData.finished || jsonData.winner).to.not.be.ok;",
+                                    "    });",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
                     "name": "Get Hand Alice (Salva Carta T3)",
                     "event": [
                         {
@@ -912,6 +1010,47 @@
                     "response": []
                 },
                 {
+                    "name": "Get Game State (Check Winner T3)",
+                    "request": {
+                        "method": "GET",
+                        "header": [],
+                        "url": {
+                            "raw": "{{game_engine_url}}/game/state/{{game_id}}",
+                            "host": [
+                                "{{game_engine_url}}"
+                            ],
+                            "path": [
+                                "game",
+                                "state",
+                                "{{game_id}}"
+                            ]
+                        }
+                    },
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "var jsonData = pm.response.json();",
+                                    "if (jsonData.finished || jsonData.winner) {",
+                                    "    console.log('Game resolved! Winner:', jsonData.winner);",
+                                    "    pm.test('Game is resolved', function () {",
+                                    "        pm.expect(jsonData.finished || jsonData.winner).to.be.ok;",
+                                    "    });",
+                                    "} else {",
+                                    "    console.log('Game NOT resolved, continue to next round.');",
+                                    "    pm.test('Game is NOT resolved', function () {",
+                                    "        pm.expect(jsonData.finished || jsonData.winner).to.not.be.ok;",
+                                    "    });",
+                                    "}"
+                                ],
+                                "type": "text/javascript"
+                            }
+                        }
+                    ],
+                    "response": []
+                },
+                {
                     "name": "Get Game State (Fine Partita)",
                     "request": {
                         "method": "GET",
@@ -927,10 +1066,1370 @@
                                 "{{game_id}}"
                             ]
                         },
-                        "description": "Controlla lo stato finale. (Dovrai continuare a giocare i turni 4 e 5 per vedere un vincitore)"
+                            "description": "Controlla lo stato finale dopo 5 turni. (Ora la partita dovrebbe essere conclusa)"
                     },
-                    "response": []
+                        "event": [
+                            {
+                                "listen": "test",
+                                "script": {
+                                    "exec": [
+                                        "var jsonData = pm.response.json();",
+                                        "if (jsonData.finished || jsonData.winner) {",
+                                        "    console.log('La partita è risolta. Winner:', jsonData.winner);",
+                                        "    pm.test('Game is resolved', function () {",
+                                        "        pm.expect(jsonData.finished || jsonData.winner).to.be.ok;",
+                                        "    });",
+                                        "} else {",
+                                        "    console.log('La partita NON è risolta dopo 5 turni.');",
+                                        "    pm.test('Game is NOT resolved', function () {",
+                                        "        pm.expect(jsonData.finished || jsonData.winner).to.not.be.ok;",
+                                        "    });",
+                                        "}"
+                                    ],
+                                    "type": "text/javascript"
+                                }
+                            }
+                        ],
+                        "response": []
                 }
+                    ,
+                    {
+                        "name": "Get Hand Alice (Salva Carta T4)",
+                        "event": [
+                            {
+                                "listen": "test",
+                                "script": {
+                                    "exec": [
+                                        "var jsonData = pm.response.json();",
+                                        "if (jsonData && jsonData.length > 0) {",
+                                        "    var card = jsonData[0]; ",
+                                        "    pm.collectionVariables.set(\"alice_card_to_play\", JSON.stringify(card));",
+                                        "    console.log(\"Carta T4 Alice salvata: \" + JSON.stringify(card));",
+                                        "} else {",
+                                        "    console.log(\"Alice non ha carte in mano!\")",
+                                        "}"
+                                    ],
+                                    "type": "text/javascript"
+                                }
+                            }
+                        ],
+                        "request": {
+                            "method": "GET",
+                            "header": [
+                                {
+                                    "key": "Authorization",
+                                    "value": "Bearer {{alice_jwt}}"
+                                }
+                            ],
+                            "url": {
+                                "raw": "{{game_engine_url}}/game/hand/{{game_id}}",
+                                "host": [
+                                    "{{game_engine_url}}"
+                                ],
+                                "path": [
+                                    "game",
+                                    "hand",
+                                    "{{game_id}}"
+                                ]
+                            }
+                        },
+                        "response": []
+                    },
+                    {
+                        "name": "Alice Gioca Carta T4",
+                        "request": {
+                            "method": "POST",
+                            "header": [
+                                {
+                                    "key": "Authorization",
+                                    "value": "Bearer {{alice_jwt}}"
+                                }
+                            ],
+                            "body": {
+                                "mode": "raw",
+                                "raw": "{\n    \"card\": {{alice_card_to_play}}\n}",
+                                "options": {
+                                    "raw": {
+                                        "language": "json"
+                                    }
+                                }
+                            },
+                            "url": {
+                                "raw": "{{game_engine_url}}/game/play/{{game_id}}",
+                                "host": [
+                                    "{{game_engine_url}}"
+                                ],
+                                "path": [
+                                    "game",
+                                    "play",
+                                    "{{game_id}}"
+                                ]
+                            }
+                        },
+                        "response": []
+                    },
+                    {
+                        "name": "Get Hand Bob (Salva Carta T4)",
+                        "event": [
+                            {
+                                "listen": "test",
+                                "script": {
+                                    "exec": [
+                                        "var jsonData = pm.response.json();",
+                                        "if (jsonData && jsonData.length > 0) {",
+                                        "    var card = jsonData[0]; ",
+                                        "    pm.collectionVariables.set(\"bob_card_to_play\", JSON.stringify(card));",
+                                        "    console.log(\"Carta T4 Bob salvata: \" + JSON.stringify(card));",
+                                        "} else {",
+                                        "    console.log(\"Bob non ha carte in mano!\")",
+                                        "}"
+                                    ],
+                                    "type": "text/javascript"
+                                }
+                            }
+                        ],
+                        "request": {
+                            "method": "GET",
+                            "header": [
+                                {
+                                    "key": "Authorization",
+                                    "value": "Bearer {{bob_jwt}}"
+                                }
+                            ],
+                            "url": {
+                                "raw": "{{game_engine_url}}/game/hand/{{game_id}}",
+                                "host": [
+                                    "{{game_engine_url}}"
+                                ],
+                                "path": [
+                                    "game",
+                                    "hand",
+                                    "{{game_id}}"
+                                ]
+                            }
+                        },
+                        "response": []
+                    },
+                    {
+                        "name": "Bob Gioca Carta T4",
+                        "request": {
+                            "method": "POST",
+                            "header": [
+                                {
+                                    "key": "Authorization",
+                                    "value": "Bearer {{bob_jwt}}"
+                                }
+                            ],
+                            "body": {
+                                "mode": "raw",
+                                "raw": "{\n    \"card\": {{bob_card_to_play}}\n}",
+                                "options": {
+                                    "raw": {
+                                        "language": "json"
+                                    }
+                                }
+                            },
+                            "url": {
+                                "raw": "{{game_engine_url}}/game/play/{{game_id}}",
+                                "host": [
+                                    "{{game_engine_url}}"
+                                ],
+                                "path": [
+                                    "game",
+                                    "play",
+                                    "{{game_id}}"
+                                ]
+                            }
+                        },
+                        "response": []
+                    },
+                    {
+                        "name": "Get Game State (Check Winner T4)",
+                        "request": {
+                            "method": "GET",
+                            "header": [],
+                            "url": {
+                                "raw": "{{game_engine_url}}/game/state/{{game_id}}",
+                                "host": [
+                                    "{{game_engine_url}}"
+                                ],
+                                "path": [
+                                    "game",
+                                    "state",
+                                    "{{game_id}}"
+                                ]
+                            }
+                        },
+                        "event": [
+                            {
+                                "listen": "test",
+                                "script": {
+                                    "exec": [
+                                        "var jsonData = pm.response.json();",
+                                        "if (jsonData.finished || jsonData.winner) {",
+                                        "    console.log('Game resolved! Winner:', jsonData.winner);",
+                                        "    pm.test('Game is resolved', function () {",
+                                        "        pm.expect(jsonData.finished || jsonData.winner).to.be.ok;",
+                                        "    });",
+                                        "} else {",
+                                        "    console.log('Game NOT resolved, continue to next round.');",
+                                        "    pm.test('Game is NOT resolved', function () {",
+                                        "        pm.expect(jsonData.finished || jsonData.winner).to.not.be.ok;",
+                                        "    });",
+                                        "}"
+                                    ],
+                                    "type": "text/javascript"
+                                }
+                            }
+                        ],
+                        "response": []
+                    },
+                    {
+                        "name": "Get Hand Alice (Salva Carta T5)",
+                        "event": [
+                            {
+                                "listen": "test",
+                                "script": {
+                                    "exec": [
+                                        "var jsonData = pm.response.json();",
+                                        "if (jsonData && jsonData.length > 0) {",
+                                        "    var card = jsonData[0]; ",
+                                        "    pm.collectionVariables.set(\"alice_card_to_play\", JSON.stringify(card));",
+                                        "    console.log(\"Carta T5 Alice salvata: \" + JSON.stringify(card));",
+                                        "} else {",
+                                        "    console.log(\"Alice non ha carte in mano!\")",
+                                        "}"
+                                    ],
+                                    "type": "text/javascript"
+                                }
+                            }
+                        ],
+                        "request": {
+                            "method": "GET",
+                            "header": [
+                                {
+                                    "key": "Authorization",
+                                    "value": "Bearer {{alice_jwt}}"
+                                }
+                            ],
+                            "url": {
+                                "raw": "{{game_engine_url}}/game/hand/{{game_id}}",
+                                "host": [
+                                    "{{game_engine_url}}"
+                                ],
+                                "path": [
+                                    "game",
+                                    "hand",
+                                    "{{game_id}}"
+                                ]
+                            }
+                        },
+                        "response": []
+                    },
+                    {
+                        "name": "Alice Gioca Carta T5",
+                        "request": {
+                            "method": "POST",
+                            "header": [
+                                {
+                                    "key": "Authorization",
+                                    "value": "Bearer {{alice_jwt}}"
+                                }
+                            ],
+                            "body": {
+                                "mode": "raw",
+                                "raw": "{\n    \"card\": {{alice_card_to_play}}\n}",
+                                "options": {
+                                    "raw": {
+                                        "language": "json"
+                                    }
+                                }
+                            },
+                            "url": {
+                                "raw": "{{game_engine_url}}/game/play/{{game_id}}",
+                                "host": [
+                                    "{{game_engine_url}}"
+                                ],
+                                "path": [
+                                    "game",
+                                    "play",
+                                    "{{game_id}}"
+                                ]
+                            }
+                        },
+                        "response": []
+                    },
+                    {
+                        "name": "Get Hand Bob (Salva Carta T5)",
+                        "event": [
+                            {
+                                "listen": "test",
+                                "script": {
+                                    "exec": [
+                                        "var jsonData = pm.response.json();",
+                                        "if (jsonData && jsonData.length > 0) {",
+                                        "    var card = jsonData[0]; ",
+                                        "    pm.collectionVariables.set(\"bob_card_to_play\", JSON.stringify(card));",
+                                        "    console.log(\"Carta T5 Bob salvata: \" + JSON.stringify(card));",
+                                        "} else {",
+                                        "    console.log(\"Bob non ha carte in mano!\")",
+                                        "}"
+                                    ],
+                                    "type": "text/javascript"
+                                }
+                            }
+                        ],
+                        "request": {
+                            "method": "GET",
+                            "header": [
+                                {
+                                    "key": "Authorization",
+                                    "value": "Bearer {{bob_jwt}}"
+                                }
+                            ],
+                            "url": {
+                                "raw": "{{game_engine_url}}/game/hand/{{game_id}}",
+                                "host": [
+                                    "{{game_engine_url}}"
+                                ],
+                                "path": [
+                                    "game",
+                                    "hand",
+                                    "{{game_id}}"
+                                ]
+                            }
+                        },
+                        "response": []
+                    },
+                    {
+                        "name": "Bob Gioca Carta T5",
+                        "request": {
+                            "method": "POST",
+                            "header": [
+                                {
+                                    "key": "Authorization",
+                                    "value": "Bearer {{bob_jwt}}"
+                                }
+                            ],
+                            "body": {
+                                "mode": "raw",
+                                "raw": "{\n    \"card\": {{bob_card_to_play}}\n}",
+                                "options": {
+                                    "raw": {
+                                        "language": "json"
+                                    }
+                                }
+                            },
+                            "url": {
+                                "raw": "{{game_engine_url}}/game/play/{{game_id}}",
+                                "host": [
+                                    "{{game_engine_url}}"
+                                ],
+                                "path": [
+                                    "game",
+                                    "play",
+                                    "{{game_id}}"
+                                ]
+                            }
+                        },
+                        "response": []
+                    },
+                    {
+                        "name": "Get Game State (Check Winner T5)",
+                        "request": {
+                            "method": "GET",
+                            "header": [],
+                            "url": {
+                                "raw": "{{game_engine_url}}/game/state/{{game_id}}",
+                                "host": [
+                                    "{{game_engine_url}}"
+                                ],
+                                "path": [
+                                    "game",
+                                    "state",
+                                    "{{game_id}}"
+                                ]
+                            }
+                        },
+                        "event": [
+                            {
+                                "listen": "test",
+                                "script": {
+                                    "exec": [
+                                        "var jsonData = pm.response.json();",
+                                        "if (jsonData.finished || jsonData.winner) {",
+                                        "    console.log('Game resolved! Winner:', jsonData.winner);",
+                                        "    pm.test('Game is resolved', function () {",
+                                        "        pm.expect(jsonData.finished || jsonData.winner).to.be.ok;",
+                                        "    });",
+                                        "} else {",
+                                        "    console.log('Game NOT resolved, continue to next round.');",
+                                        "    pm.test('Game is NOT resolved', function () {",
+                                        "        pm.expect(jsonData.finished || jsonData.winner).to.not.be.ok;",
+                                        "    });",
+                                        "}"
+                                    ],
+                                    "type": "text/javascript"
+                                }
+                            }
+                        ],
+                        "response": []
+                    },
+                        {
+                            "name": "Get Hand Alice (Salva Carta T6)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "exec": [
+                                            "var jsonData = pm.response.json();",
+                                            "if (jsonData && jsonData.length > 0) {",
+                                            "    var card = jsonData[0]; ",
+                                            "    pm.collectionVariables.set(\"alice_card_to_play\", JSON.stringify(card));",
+                                            "    console.log(\"Carta T6 Alice salvata: \" + JSON.stringify(card));",
+                                            "} else {",
+                                            "    console.log(\"Alice non ha carte in mano!\")",
+                                            "}"
+                                        ],
+                                        "type": "text/javascript"
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{alice_jwt}}"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{game_engine_url}}/game/hand/{{game_id}}",
+                                    "host": [
+                                        "{{game_engine_url}}"
+                                    ],
+                                    "path": [
+                                        "game",
+                                        "hand",
+                                        "{{game_id}}"
+                                    ]
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Alice Gioca Carta T6",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{alice_jwt}}"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"card\": {{alice_card_to_play}}\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{game_engine_url}}/game/play/{{game_id}}",
+                                    "host": [
+                                        "{{game_engine_url}}"
+                                    ],
+                                    "path": [
+                                        "game",
+                                        "play",
+                                        "{{game_id}}"
+                                    ]
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Get Hand Bob (Salva Carta T6)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "exec": [
+                                            "var jsonData = pm.response.json();",
+                                            "if (jsonData && jsonData.length > 0) {",
+                                            "    var card = jsonData[0]; ",
+                                            "    pm.collectionVariables.set(\"bob_card_to_play\", JSON.stringify(card));",
+                                            "    console.log(\"Carta T6 Bob salvata: \" + JSON.stringify(card));",
+                                            "} else {",
+                                            "    console.log(\"Bob non ha carte in mano!\")",
+                                            "}"
+                                        ],
+                                        "type": "text/javascript"
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{bob_jwt}}"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{game_engine_url}}/game/hand/{{game_id}}",
+                                    "host": [
+                                        "{{game_engine_url}}"
+                                    ],
+                                    "path": [
+                                        "game",
+                                        "hand",
+                                        "{{game_id}}"
+                                    ]
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Bob Gioca Carta T6",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{bob_jwt}}"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"card\": {{bob_card_to_play}}\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{game_engine_url}}/game/play/{{game_id}}",
+                                    "host": [
+                                        "{{game_engine_url}}"
+                                    ],
+                                    "path": [
+                                        "game",
+                                        "play",
+                                        "{{game_id}}"
+                                    ]
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Get Game State (Check Winner T6)",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{game_engine_url}}/game/state/{{game_id}}",
+                                    "host": [
+                                        "{{game_engine_url}}"
+                                    ],
+                                    "path": [
+                                        "game",
+                                        "state",
+                                        "{{game_id}}"
+                                    ]
+                                }
+                            },
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "exec": [
+                                            "var jsonData = pm.response.json();",
+                                            "if (jsonData.finished || jsonData.winner) {",
+                                            "    console.log('Game resolved! Winner:', jsonData.winner);",
+                                            "    pm.test('Game is resolved', function () {",
+                                            "        pm.expect(jsonData.finished || jsonData.winner).to.be.ok;",
+                                            "    });",
+                                            "} else {",
+                                            "    console.log('Game NOT resolved, continue to next round.');",
+                                            "    pm.test('Game is NOT resolved', function () {",
+                                            "        pm.expect(jsonData.finished || jsonData.winner).to.not.be.ok;",
+                                            "    });",
+                                            "}"
+                                        ],
+                                        "type": "text/javascript"
+                                    }
+                                }
+                            ],
+                            "response": []
+                        },
+                        {
+                            "name": "Get Hand Alice (Salva Carta T7)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "exec": [
+                                            "var jsonData = pm.response.json();",
+                                            "if (jsonData && jsonData.length > 0) {",
+                                            "    var card = jsonData[0]; ",
+                                            "    pm.collectionVariables.set(\"alice_card_to_play\", JSON.stringify(card));",
+                                            "    console.log(\"Carta T7 Alice salvata: \" + JSON.stringify(card));",
+                                            "} else {",
+                                            "    console.log(\"Alice non ha carte in mano!\")",
+                                            "}"
+                                        ],
+                                        "type": "text/javascript"
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{alice_jwt}}"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{game_engine_url}}/game/hand/{{game_id}}",
+                                    "host": [
+                                        "{{game_engine_url}}"
+                                    ],
+                                    "path": [
+                                        "game",
+                                        "hand",
+                                        "{{game_id}}"
+                                    ]
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Alice Gioca Carta T7",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{alice_jwt}}"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"card\": {{alice_card_to_play}}\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{game_engine_url}}/game/play/{{game_id}}",
+                                    "host": [
+                                        "{{game_engine_url}}"
+                                    ],
+                                    "path": [
+                                        "game",
+                                        "play",
+                                        "{{game_id}}"
+                                    ]
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Get Hand Bob (Salva Carta T7)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "exec": [
+                                            "var jsonData = pm.response.json();",
+                                            "if (jsonData && jsonData.length > 0) {",
+                                            "    var card = jsonData[0]; ",
+                                            "    pm.collectionVariables.set(\"bob_card_to_play\", JSON.stringify(card));",
+                                            "    console.log(\"Carta T7 Bob salvata: \" + JSON.stringify(card));",
+                                            "} else {",
+                                            "    console.log(\"Bob non ha carte in mano!\")",
+                                            "}"
+                                        ],
+                                        "type": "text/javascript"
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{bob_jwt}}"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{game_engine_url}}/game/hand/{{game_id}}",
+                                    "host": [
+                                        "{{game_engine_url}}"
+                                    ],
+                                    "path": [
+                                        "game",
+                                        "hand",
+                                        "{{game_id}}"
+                                    ]
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Bob Gioca Carta T7",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{bob_jwt}}"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"card\": {{bob_card_to_play}}\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{game_engine_url}}/game/play/{{game_id}}",
+                                    "host": [
+                                        "{{game_engine_url}}"
+                                    ],
+                                    "path": [
+                                        "game",
+                                        "play",
+                                        "{{game_id}}"
+                                    ]
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Get Game State (Check Winner T7)",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{game_engine_url}}/game/state/{{game_id}}",
+                                    "host": [
+                                        "{{game_engine_url}}"
+                                    ],
+                                    "path": [
+                                        "game",
+                                        "state",
+                                        "{{game_id}}"
+                                    ]
+                                }
+                            },
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "exec": [
+                                            "var jsonData = pm.response.json();",
+                                            "if (jsonData.finished || jsonData.winner) {",
+                                            "    console.log('Game resolved! Winner:', jsonData.winner);",
+                                            "    pm.test('Game is resolved', function () {",
+                                            "        pm.expect(jsonData.finished || jsonData.winner).to.be.ok;",
+                                            "    });",
+                                            "} else {",
+                                            "    console.log('Game NOT resolved, continue to next round.');",
+                                            "    pm.test('Game is NOT resolved', function () {",
+                                            "        pm.expect(jsonData.finished || jsonData.winner).to.not.be.ok;",
+                                            "    });",
+                                            "}"
+                                        ],
+                                        "type": "text/javascript"
+                                    }
+                                }
+                            ],
+                            "response": []
+                        },
+                        {
+                            "name": "Get Hand Alice (Salva Carta T8)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "exec": [
+                                            "var jsonData = pm.response.json();",
+                                            "if (jsonData && jsonData.length > 0) {",
+                                            "    var card = jsonData[0]; ",
+                                            "    pm.collectionVariables.set(\"alice_card_to_play\", JSON.stringify(card));",
+                                            "    console.log(\"Carta T8 Alice salvata: \" + JSON.stringify(card));",
+                                            "} else {",
+                                            "    console.log(\"Alice non ha carte in mano!\")",
+                                            "}"
+                                        ],
+                                        "type": "text/javascript"
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{alice_jwt}}"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{game_engine_url}}/game/hand/{{game_id}}",
+                                    "host": [
+                                        "{{game_engine_url}}"
+                                    ],
+                                    "path": [
+                                        "game",
+                                        "hand",
+                                        "{{game_id}}"
+                                    ]
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Alice Gioca Carta T8",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{alice_jwt}}"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"card\": {{alice_card_to_play}}\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{game_engine_url}}/game/play/{{game_id}}",
+                                    "host": [
+                                        "{{game_engine_url}}"
+                                    ],
+                                    "path": [
+                                        "game",
+                                        "play",
+                                        "{{game_id}}"
+                                    ]
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Get Hand Bob (Salva Carta T8)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "exec": [
+                                            "var jsonData = pm.response.json();",
+                                            "if (jsonData && jsonData.length > 0) {",
+                                            "    var card = jsonData[0]; ",
+                                            "    pm.collectionVariables.set(\"bob_card_to_play\", JSON.stringify(card));",
+                                            "    console.log(\"Carta T8 Bob salvata: \" + JSON.stringify(card));",
+                                            "} else {",
+                                            "    console.log(\"Bob non ha carte in mano!\")",
+                                            "}"
+                                        ],
+                                        "type": "text/javascript"
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{bob_jwt}}"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{game_engine_url}}/game/hand/{{game_id}}",
+                                    "host": [
+                                        "{{game_engine_url}}"
+                                    ],
+                                    "path": [
+                                        "game",
+                                        "hand",
+                                        "{{game_id}}"
+                                    ]
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Bob Gioca Carta T8",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{bob_jwt}}"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"card\": {{bob_card_to_play}}\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{game_engine_url}}/game/play/{{game_id}}",
+                                    "host": [
+                                        "{{game_engine_url}}"
+                                    ],
+                                    "path": [
+                                        "game",
+                                        "play",
+                                        "{{game_id}}"
+                                    ]
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Get Game State (Check Winner T8)",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{game_engine_url}}/game/state/{{game_id}}",
+                                    "host": [
+                                        "{{game_engine_url}}"
+                                    ],
+                                    "path": [
+                                        "game",
+                                        "state",
+                                        "{{game_id}}"
+                                    ]
+                                }
+                            },
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "exec": [
+                                            "var jsonData = pm.response.json();",
+                                            "if (jsonData.finished || jsonData.winner) {",
+                                            "    console.log('Game resolved! Winner:', jsonData.winner);",
+                                            "    pm.test('Game is resolved', function () {",
+                                            "        pm.expect(jsonData.finished || jsonData.winner).to.be.ok;",
+                                            "    });",
+                                            "} else {",
+                                            "    console.log('Game NOT resolved, continue to next round.');",
+                                            "    pm.test('Game is NOT resolved', function () {",
+                                            "        pm.expect(jsonData.finished || jsonData.winner).to.not.be.ok;",
+                                            "    });",
+                                            "}"
+                                        ],
+                                        "type": "text/javascript"
+                                    }
+                                }
+                            ],
+                            "response": []
+                        },
+                        {
+                            "name": "Get Hand Alice (Salva Carta T9)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "exec": [
+                                            "var jsonData = pm.response.json();",
+                                            "if (jsonData && jsonData.length > 0) {",
+                                            "    var card = jsonData[0]; ",
+                                            "    pm.collectionVariables.set(\"alice_card_to_play\", JSON.stringify(card));",
+                                            "    console.log(\"Carta T9 Alice salvata: \" + JSON.stringify(card));",
+                                            "} else {",
+                                            "    console.log(\"Alice non ha carte in mano!\")",
+                                            "}"
+                                        ],
+                                        "type": "text/javascript"
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{alice_jwt}}"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{game_engine_url}}/game/hand/{{game_id}}",
+                                    "host": [
+                                        "{{game_engine_url}}"
+                                    ],
+                                    "path": [
+                                        "game",
+                                        "hand",
+                                        "{{game_id}}"
+                                    ]
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Alice Gioca Carta T9",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{alice_jwt}}"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"card\": {{alice_card_to_play}}\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{game_engine_url}}/game/play/{{game_id}}",
+                                    "host": [
+                                        "{{game_engine_url}}"
+                                    ],
+                                    "path": [
+                                        "game",
+                                        "play",
+                                        "{{game_id}}"
+                                    ]
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Get Hand Bob (Salva Carta T9)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "exec": [
+                                            "var jsonData = pm.response.json();",
+                                            "if (jsonData && jsonData.length > 0) {",
+                                            "    var card = jsonData[0]; ",
+                                            "    pm.collectionVariables.set(\"bob_card_to_play\", JSON.stringify(card));",
+                                            "    console.log(\"Carta T9 Bob salvata: \" + JSON.stringify(card));",
+                                            "} else {",
+                                            "    console.log(\"Bob non ha carte in mano!\")",
+                                            "}"
+                                        ],
+                                        "type": "text/javascript"
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{bob_jwt}}"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{game_engine_url}}/game/hand/{{game_id}}",
+                                    "host": [
+                                        "{{game_engine_url}}"
+                                    ],
+                                    "path": [
+                                        "game",
+                                        "hand",
+                                        "{{game_id}}"
+                                    ]
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Bob Gioca Carta T9",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{bob_jwt}}"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"card\": {{bob_card_to_play}}\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{game_engine_url}}/game/play/{{game_id}}",
+                                    "host": [
+                                        "{{game_engine_url}}"
+                                    ],
+                                    "path": [
+                                        "game",
+                                        "play",
+                                        "{{game_id}}"
+                                    ]
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Get Game State (Check Winner T9)",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{game_engine_url}}/game/state/{{game_id}}",
+                                    "host": [
+                                        "{{game_engine_url}}"
+                                    ],
+                                    "path": [
+                                        "game",
+                                        "state",
+                                        "{{game_id}}"
+                                    ]
+                                }
+                            },
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "exec": [
+                                            "var jsonData = pm.response.json();",
+                                            "if (jsonData.finished || jsonData.winner) {",
+                                            "    console.log('Game resolved! Winner:', jsonData.winner);",
+                                            "    pm.test('Game is resolved', function () {",
+                                            "        pm.expect(jsonData.finished || jsonData.winner).to.be.ok;",
+                                            "    });",
+                                            "} else {",
+                                            "    console.log('Game NOT resolved, continue to next round.');",
+                                            "    pm.test('Game is NOT resolved', function () {",
+                                            "        pm.expect(jsonData.finished || jsonData.winner).to.not.be.ok;",
+                                            "    });",
+                                            "}"
+                                        ],
+                                        "type": "text/javascript"
+                                    }
+                                }
+                            ],
+                            "response": []
+                        },
+                        {
+                            "name": "Get Hand Alice (Salva Carta T10)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "exec": [
+                                            "var jsonData = pm.response.json();",
+                                            "if (jsonData && jsonData.length > 0) {",
+                                            "    var card = jsonData[0]; ",
+                                            "    pm.collectionVariables.set(\"alice_card_to_play\", JSON.stringify(card));",
+                                            "    console.log(\"Carta T10 Alice salvata: \" + JSON.stringify(card));",
+                                            "} else {",
+                                            "    console.log(\"Alice non ha carte in mano!\")",
+                                            "}"
+                                        ],
+                                        "type": "text/javascript"
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{alice_jwt}}"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{game_engine_url}}/game/hand/{{game_id}}",
+                                    "host": [
+                                        "{{game_engine_url}}"
+                                    ],
+                                    "path": [
+                                        "game",
+                                        "hand",
+                                        "{{game_id}}"
+                                    ]
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Alice Gioca Carta T10",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{alice_jwt}}"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"card\": {{alice_card_to_play}}\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{game_engine_url}}/game/play/{{game_id}}",
+                                    "host": [
+                                        "{{game_engine_url}}"
+                                    ],
+                                    "path": [
+                                        "game",
+                                        "play",
+                                        "{{game_id}}"
+                                    ]
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Get Hand Bob (Salva Carta T10)",
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "exec": [
+                                            "var jsonData = pm.response.json();",
+                                            "if (jsonData && jsonData.length > 0) {",
+                                            "    var card = jsonData[0]; ",
+                                            "    pm.collectionVariables.set(\"bob_card_to_play\", JSON.stringify(card));",
+                                            "    console.log(\"Carta T10 Bob salvata: \" + JSON.stringify(card));",
+                                            "} else {",
+                                            "    console.log(\"Bob non ha carte in mano!\")",
+                                            "}"
+                                        ],
+                                        "type": "text/javascript"
+                                    }
+                                }
+                            ],
+                            "request": {
+                                "method": "GET",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{bob_jwt}}"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "{{game_engine_url}}/game/hand/{{game_id}}",
+                                    "host": [
+                                        "{{game_engine_url}}"
+                                    ],
+                                    "path": [
+                                        "game",
+                                        "hand",
+                                        "{{game_id}}"
+                                    ]
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Bob Gioca Carta T10",
+                            "request": {
+                                "method": "POST",
+                                "header": [
+                                    {
+                                        "key": "Authorization",
+                                        "value": "Bearer {{bob_jwt}}"
+                                    }
+                                ],
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\n    \"card\": {{bob_card_to_play}}\n}",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "url": {
+                                    "raw": "{{game_engine_url}}/game/play/{{game_id}}",
+                                    "host": [
+                                        "{{game_engine_url}}"
+                                    ],
+                                    "path": [
+                                        "game",
+                                        "play",
+                                        "{{game_id}}"
+                                    ]
+                                }
+                            },
+                            "response": []
+                        },
+                        {
+                            "name": "Get Game State (Check Winner T10)",
+                            "request": {
+                                "method": "GET",
+                                "header": [],
+                                "url": {
+                                    "raw": "{{game_engine_url}}/game/state/{{game_id}}",
+                                    "host": [
+                                        "{{game_engine_url}}"
+                                    ],
+                                    "path": [
+                                        "game",
+                                        "state",
+                                        "{{game_id}}"
+                                    ]
+                                }
+                            },
+                            "event": [
+                                {
+                                    "listen": "test",
+                                    "script": {
+                                        "exec": [
+                                            "var jsonData = pm.response.json();",
+                                            "if (jsonData.finished || jsonData.winner) {",
+                                            "    console.log('Game resolved! Winner:', jsonData.winner);",
+                                            "    pm.test('Game is resolved', function () {",
+                                            "        pm.expect(jsonData.finished || jsonData.winner).to.be.ok;",
+                                            "    });",
+                                            "} else {",
+                                            "    console.log('Game NOT resolved, continue to next round.');",
+                                            "    pm.test('Game is NOT resolved', function () {",
+                                            "        pm.expect(jsonData.finished || jsonData.winner).to.not.be.ok;",
+                                            "    });",
+                                            "}"
+                                        ],
+                                        "type": "text/javascript"
+                                    }
+                                }
+                            ],
+                            "response": []
+                        }
             ]
         }
     ],
