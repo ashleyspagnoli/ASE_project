@@ -22,24 +22,45 @@ except Exception as e:
 # --- User Service Connection ---
 # Use environment variables or default to 'user-manager'
 USER_MANAGER_HOST = os.environ.get('USER_MANAGER_HOST', 'user-manager')
-USER_MANAGER_PORT = os.environ.get('USER_MANAGER_PORT', 5000)
-USER_MANAGER_URL = f'http://{USER_MANAGER_HOST}:{USER_MANAGER_PORT}/username/'
+USER_MANAGER_PORT = int(os.environ.get('USER_MANAGER_PORT', 5000))
+USER_MANAGER_BASE = f'http://{USER_MANAGER_HOST}:{USER_MANAGER_PORT}'
+USERNAMES_BY_IDS_URL = f'{USER_MANAGER_BASE}/utenti/usernames-by-ids'
 
 
-# Helper to get username from uuid
-def get_username(user_uuid):
+# Helper to get usernames for a list of UUIDs in one request
+def get_usernames_by_ids(user_ids):
     """
-    Fetches the username from the user-manager microservice.
+    Fetch usernames for a list of user IDs via the user-manager endpoint
+    GET /utenti/usernames-by-ids?id_list=<id>&id_list=<id2> ...
+    Returns a dict {id: username}
     """
+    if not user_ids:
+        return {}
+
+    # Deduplicate and drop falsy values while preserving order
+    deduped_ids = list(dict.fromkeys([uid for uid in user_ids if uid]))
     try:
-        resp = requests.get(f"{USER_MANAGER_URL}{user_uuid}")
+        # requests will serialize list params as repeated query params
+        resp = requests.get(
+            USERNAMES_BY_IDS_URL,
+            params={'id_list': deduped_ids},
+            timeout=3
+        )
         if resp.status_code == 200:
-            return resp.json().get('username', user_uuid)
+            data = resp.json() or []
+            mapping = {item.get('id'): item.get('username') for item in data if isinstance(item, dict)}
+            # Ensure all ids present in mapping
+            for uid in deduped_ids:
+                mapping.setdefault(uid, "Unknown user")
+            return mapping
+        else:
+            print(f"Warning: usernames-by-ids returned {resp.status_code}: {resp.text}")
     except requests.exceptions.ConnectionError as e:
-        print(f"Warning: Could not connect to user-manager at {USER_MANAGER_URL}{user_uuid}. {e}")
+        print(f"Warning: Could not connect to user-manager at {USERNAMES_BY_IDS_URL}. {e}")
     except Exception as e:
-        print(f"Warning: Error fetching username for {user_uuid}. {e}")
-    return "Unknown user"
+        print(f"Warning: Error fetching usernames for ids {deduped_ids}. {e}")
+
+    return {uid: "Unknown user" for uid in deduped_ids}
 
 # Helper for atomic leaderboard updates
 def update_leaderboard_stats(player_uuid, points, is_win, is_loss, is_draw):
@@ -126,13 +147,20 @@ def list_matches(player_uuid):
         # Find matches where the player is either player1 or player2
         query = { '$or': [ { 'player1': player_uuid }, { 'player2': player_uuid } ] }
         # Sort by timestamp
-        matches = matches_collection.find(query).sort('started_at', -1)
+        cursor = matches_collection.find(query).sort('started_at', -1)
+        matches = list(cursor)
         
-        # Get usernames for display
-        # TODO: make a single request with a list of uuid, too many requests!!
+        # Batch fetch usernames for all involved players
+        all_ids = []
         for m in matches:
-            m['player1_name'] = get_username(m['player1'])
-            m['player2_name'] = get_username(m['player2'])
+            all_ids.extend([m.get('player1'), m.get('player2')])
+        id_to_username = get_usernames_by_ids(all_ids)
+        
+        for m in matches:
+            p1 = m.get('player1')
+            p2 = m.get('player2')
+            m['player1_name'] = id_to_username.get(p1, p1 or "Unknown user")
+            m['player2_name'] = id_to_username.get(p2, p2 or "Unknown user")
             
         return jsonify(matches)
     except Exception as e:
@@ -149,8 +177,12 @@ def match_details(match_id):
         if not match:
             return jsonify({'error': 'Match not found'}), 404
         
-        match['player1_name'] = get_username(match['player1'])
-        match['player2_name'] = get_username(match['player2'])
+        # Batch fetch the two usernames in one request
+        ids = [match.get('player1'), match.get('player2')]
+        id_to_username = get_usernames_by_ids(ids)
+        
+        match['player1_name'] = id_to_username.get(match.get('player1'), match.get('player1') or "Unknown user")
+        match['player2_name'] = id_to_username.get(match.get('player2'), match.get('player2') or "Unknown user")
         
         return jsonify(match)
     except Exception as e:
