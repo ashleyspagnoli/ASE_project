@@ -1,0 +1,470 @@
+openapi: 3.1.0
+info:
+  title: User Authentication Microservice (Auth)
+  description: Handles user registration, JWT login, and core user data management.
+  version: 1.0.0
+servers:
+  - url: http://localhost:8000
+    description: Local Development Server
+
+paths:
+  /token:
+    post:
+      tags:
+        - Authentication and Users
+      summary: OAuth2 Standard Token Exchange
+      description: |
+        Standard OAuth2 endpoint to exchange username and password (form-data) for a JWT token.
+        This endpoint is used by the global 'Authorize' button in Swagger UI.
+      operationId: login_for_access_token_token_post
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Body_login_for_access_token_token_post'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Token'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /users/register:
+    post:
+      tags:
+        - Authentication and Users
+      summary: Register a new user
+      description: Registers a new user and grants the 'admin' role if the username is 'admin'.
+      operationId: register_user_users_register_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreate'
+        required: true
+      responses:
+        '201':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Registration successful.
+                  username:
+                    type: string
+                  token_for_testing_only:
+                    type: string
+        '400':
+          description: Bad Request (Username or Email already exists)
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /users/login:
+    post:
+      tags:
+        - Authentication and Users
+      summary: Simplified JSON Login and JWT generation
+      description: Authenticates user credentials provided in JSON format and returns a JWT token.
+      operationId: simple_login_users_login_post
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+        required: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  token:
+                    type: string
+                  token_type:
+                    type: string
+        '401':
+          description: Invalid username or password
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /users/validate-token:
+    get:
+      tags:
+        - Internal Services
+      summary: '[INTERNAL] Validate a JWT token and return user data.'
+      description: Used by other microservices to validate a JWT and retrieve the user's ID and username.
+      operationId: validate_token_users_validate_token_get
+      parameters:
+        - name: token_str
+          in: query
+          required: true
+          schema:
+            type: string
+            title: Token Str
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsernameMapping'
+        '401':
+          description: Invalid or expired token
+        '403':
+          description: Account not verified
+        '404':
+          description: User not found
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /utenti/usernames-by-ids:
+    get:
+      tags:
+        - Internal Services
+      summary: '[INTERNAL] Get usernames from a list of user IDs.'
+      description: Returns a list of usernames mapped to their corresponding user IDs.
+      operationId: get_usernames_by_ids_utenti_usernames_by_ids_get
+      parameters:
+        - name: id_list
+          in: query
+          description: List of user IDs (repeated in query -> ?id_list=ID1&id_list=ID2)
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+            title: Id List
+          style: form
+          explode: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UsernameMapping'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /utenti/ids-by-usernames:
+    get:
+      tags:
+        - Internal Services
+      summary: '[INTERNAL] Get user IDs from a list of usernames.'
+      description: Returns a list of user IDs mapped to their corresponding usernames.
+      operationId: get_ids_by_usernames_utenti_ids_by_usernames_get
+      parameters:
+        - name: username_list
+          in: query
+          description: List of usernames (repeated in query -> ?username_list=user1&username_list=user2)
+          required: true
+          schema:
+            type: array
+            items:
+              type: string
+            title: Username List
+          style: form
+          explode: true
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserIdMapping'
+        '422':
+          description: Validation Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HTTPValidationError'
+
+  /devs/dev-all-users:
+    get:
+      tags:
+        - Administration (Debug)
+      summary: '[DEBUG] Get all users (including password hash)'
+      description: "WARNING: Unprotected debug/admin endpoint. Returns ALL user data. Must be removed in production!"
+      operationId: get_all_users_for_devs_devs_dev_all_users_get
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserOut'
+
+  /devs/admin-clear-users:
+    delete:
+      tags:
+        - Administration (Protected)
+      summary: '[ADMIN] Delete all non-admin users'
+      description: "WARNING: Destructive endpoint. Deletes all accounts whose role is NOT 'admin'. Requires a valid JWT with 'admin' role."
+      operationId: clear_all_users_except_admin_devs_admin_clear_users_delete
+      security:
+        - OAuth2PasswordBearer: []
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                  deleted_count:
+                    type: integer
+        '403':
+          description: Access denied. Only administrators can perform this operation.
+        '401':
+          description: Unauthorized (Invalid Token)
+
+  /devs/admin-all-users:
+    get:
+      tags:
+        - Administration (Protected)
+      summary: '[ADMIN] Get all users (including password hash) with protection'
+      description: "Returns all user data, including sensitive fields. Requires a valid JWT with 'admin' role."
+      operationId: get_all_users_for_admin_devs_admin_all_users_get
+      security:
+        - OAuth2PasswordBearer: []
+      responses:
+        '200':
+          description: Successful Response
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/UserOut'
+        '403':
+          description: Access denied. Only administrators can view all users.
+        '401':
+          description: Unauthorized (Invalid Token)
+
+components:
+  schemas:
+    Body_login_for_access_token_token_post:
+      title: Body_login_for_access_token_token_post
+      required:
+        - username
+        - password
+      type: object
+      properties:
+        grant_type:
+          title: Grant Type
+          pattern: password
+          type: string
+        username:
+          title: Username
+          type: string
+        password:
+          title: Password
+          type: string
+        scope:
+          title: Scope
+          default: ''
+          type: string
+        client_id:
+          title: Client Id
+          type: string
+        client_secret:
+          title: Client Secret
+          type: string
+
+    HTTPValidationError:
+      title: HTTPValidationError
+      type: object
+      properties:
+        detail:
+          title: Detail
+          type: array
+          items:
+            $ref: '#/components/schemas/ValidationError'
+
+    Token:
+      title: Token
+      required:
+        - access_token
+      type: object
+      properties:
+        access_token:
+          title: Access Token
+          description: The JWT access token.
+          type: string
+        token_type:
+          title: Token Type
+          description: Token type (Bearer).
+          default: bearer
+          type: string
+
+    UserCreate:
+      title: UserCreate
+      required:
+        - username
+        - password
+        - email
+      type: object
+      properties:
+        username:
+          title: Username
+          description: Unique username.
+          type: string
+        password:
+          title: Password
+          description: The plain text password provided by the user.
+          type: string
+        email:
+          title: Email
+          description: The user's email address.
+          type: string
+
+    UserIdMapping:
+      title: UserIdMapping
+      required:
+        - username
+        - id
+      type: object
+      properties:
+        username:
+          title: Username
+          description: Username.
+          type: string
+        id:
+          title: Id
+          description: Unique user ID (ObjectId).
+          type: string
+
+    UserLogin:
+      title: UserLogin
+      required:
+        - username
+        - password
+      type: object
+      properties:
+        username:
+          title: Username
+          description: Unique username.
+          type: string
+        password:
+          title: Password
+          description: The plain text password provided by the user.
+          type: string
+
+    UserOut:
+      title: UserOut
+      required:
+        - username
+        - email
+        - is_verified
+        - role
+        - hashed_password
+      type: object
+      properties:
+        username:
+          title: Username
+          description: Unique username.
+          type: string
+        id:
+          title: Id
+          description: Unique database ID.
+          type: string
+          nullable: true
+        email:
+          title: Email
+          type: string
+        is_verified:
+          title: Is Verified
+          description: Email verification status.
+          type: boolean
+        role:
+          title: Role
+          description: User role (e.g., 'user', 'admin').
+          type: string
+        hashed_password:
+          title: Hashed Password
+          description: Password hash (admin view only).
+          type: string
+
+    UsernameMapping:
+      title: UsernameMapping
+      required:
+        - id
+        - username
+      type: object
+      properties:
+        id:
+          title: Id
+          description: Unique user ID.
+          type: string
+        username:
+          title: Username
+          description: Username.
+          type: string
+
+    ValidationError:
+      title: ValidationError
+      required:
+        - loc
+        - msg
+        - type
+      type: object
+      properties:
+        loc:
+          title: Location
+          type: array
+          items:
+            anyOf:
+              - type: string
+              - type: integer
+        msg:
+          title: Message
+          type: string
+        type:
+          title: Error Type
+          type: string
+
+  securitySchemes:
+    OAuth2PasswordBearer:
+      type: oauth2
+      flows:
+        password:
+          tokenUrl: token
