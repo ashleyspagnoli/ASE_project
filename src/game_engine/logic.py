@@ -383,7 +383,7 @@ def _save_match_to_history(game: Game):
     elif game.winner == game.player2.name:
         winner_index = "2"
     elif game.winner == "Draw":
-        winner_index = "0"
+        winner_index = "draw"
 
     # Il log (game.turns) è già stato serializzato 
     # dalla funzione game.resolve_round()
