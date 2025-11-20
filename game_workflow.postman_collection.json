@@ -2617,7 +2617,7 @@
 		},
 		{
 			"key": "game_history_url",
-			"value": ""
+			"value": "http://localhost:5002"
 		}
 	]
 }
