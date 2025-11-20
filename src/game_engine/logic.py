@@ -12,7 +12,7 @@ import urllib3
 # con un certificato (cert.pem) di cui non si fida.
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-GAME_HISTORY_URL = os.environ.get("GAME_HISTORY_URL", "http://game_history:5000/match")
+GAME_HISTORY_URL = os.environ.get("GAME_HISTORY_URL", "http://game_history:5000/addmatch")
 COLLECTION_URL = os.environ.get("COLLECTION_URL", "http://collection:5000/collection")
 USER_MANAGER_URL = os.environ.get("USER_MANAGER_URL", "https://user_manager:5000")
 

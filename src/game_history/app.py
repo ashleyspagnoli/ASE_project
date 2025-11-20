@@ -4,7 +4,6 @@ import uuid
 import requests
 import json
 import os
-import traceback
 
 app = Flask(__name__)
 
@@ -15,17 +14,15 @@ try:
     db = client.history
     matches_collection = db.matches
     leaderboard_collection = db.leaderboard
-    print(f"Successfully connected to MongoDB")
+    print(f"Successfully connected to MongoDB", flush=True)
 except Exception as e:
-    print(f"Error: Could not connect to MongoDB, {e}")
+    print(f"Error: Could not connect to MongoDB, {e}", flush=True)
     exit()
 
 # --- User Service Connection ---
 # Use environment variables or default to 'user-manager'
-USER_MANAGER_HOST = os.environ.get('USER_MANAGER_HOST', 'user-manager')
-USER_MANAGER_PORT = int(os.environ.get('USER_MANAGER_PORT', 5000))
-USER_MANAGER_BASE = f'http://{USER_MANAGER_HOST}:{USER_MANAGER_PORT}'
-USERNAMES_BY_IDS_URL = f'{USER_MANAGER_BASE}/utenti/usernames-by-ids'
+USER_MANAGER_URL = os.environ.get('USER_MANAGER_URL', 'https://user-manager:5000')
+USERNAMES_BY_IDS_URL = f'{USER_MANAGER_URL}/utenti/usernames-by-ids'
 
 
 # Helper to get usernames for a list of UUIDs in one request
@@ -45,7 +42,8 @@ def get_usernames_by_ids(user_ids):
         resp = requests.get(
             USERNAMES_BY_IDS_URL,
             params={'id_list': deduped_ids},
-            timeout=3
+            timeout=3,
+            verify=False
         )
         if resp.status_code == 200:
             data = resp.json() or []
@@ -55,72 +53,61 @@ def get_usernames_by_ids(user_ids):
                 mapping.setdefault(uid, "Unknown user")
             return mapping
         else:
-            print(f"Warning: usernames-by-ids returned {resp.status_code}: {resp.text}")
+            print(f"Warning: usernames-by-ids returned {resp.status_code}: {resp.text}", flush=True)
     except requests.exceptions.ConnectionError as e:
-        print(f"Warning: Could not connect to user-manager at {USERNAMES_BY_IDS_URL}. {e}")
+        print(f"Warning: Could not connect to user-manager at {USERNAMES_BY_IDS_URL}. {e}", flush=True)
     except Exception as e:
-        print(f"Warning: Error fetching usernames for ids {deduped_ids}. {e}")
+        print(f"Warning: Error fetching usernames for ids {deduped_ids}. {e}", flush=True)
 
     return {uid: "Unknown user" for uid in deduped_ids}
 
-# Helper for atomic leaderboard updates
 # Helper for atomic leaderboard updates
 def update_leaderboard_stats(player_uuid, points, is_win, is_loss, is_draw):
     """
     Atomically updates a single player's stats in the leaderboard collection.
     """
-    if not player_uuid:
-        print("Warning: player_uuid is missing. Skipping leaderboard update.")
-        return
-
     if leaderboard_collection is None:
-        print(f"Error: leaderboard_collection not initialized. Skipping update for {player_uuid}.")
-        raise RuntimeError("leaderboard_collection not initialized")
+        print(f"Error: leaderboard_collection not initialized. Skipping update for {player_uuid}.", flush=True)
+        return
 
     try:
         query = {'_id': player_uuid}
-        
-        # Conversione di sicurezza per evitare errori se points arriva come stringa
-        safe_points = int(points) if points is not None else 0
-        
         update = {
             '$inc': {
-                'points': safe_points,
+                'points': points,
                 'wins': 1 if is_win else 0,
                 'losses': 1 if is_loss else 0,
                 'draws': 1 if is_draw else 0
             }
         }
-        result = leaderboard_collection.update_one(query, update, upsert=True)
-        if not result.acknowledged:
-            raise RuntimeError(f"Leaderboard update not acknowledged for player {player_uuid}")
+        # upsert=True creates the document if it doesn't exist, default numbers are 0
+        leaderboard_collection.update_one(query, update, upsert=True)
     except Exception as e:
-        print(f"Error: Failed to update leaderboard for {player_uuid}. Details: {e}")
-        raise
+        print(f"Error: Failed to update leaderboard for {player_uuid}. {e}", flush=True)
 
 
 # Add a new match (POST /match)
-@app.route('/match', methods=['POST'])
+@app.route('/addmatch', methods=['POST'])
 def add_match():
+    data = request.json
+    if not data or 'player1' not in data or 'player2' not in data or 'winner' not in data:
+        return jsonify({'error': 'Missing required match data'}), 400
+
+    match_id = str(uuid.uuid4())
+
+    match = {
+        '_id': match_id,
+        'player1': data['player1'],
+        'player2': data['player2'],
+        'winner': data['winner'], # '1', '2', or 'draw'
+        'log': data.get('log', []),
+        'points1': data.get('points1', 0),
+        'points2': data.get('points2', 0),
+        'started_at': data.get('started_at', 0),
+        'ended_at': data.get('ended_at', 0)
+    }
+    
     try:
-        data = request.json
-        if not data or 'player1' not in data or 'player2' not in data or 'winner' not in data:
-            return jsonify({'error': 'Missing required match data'}), 400
-
-        match_id = str(uuid.uuid4())
-
-        match = {
-            '_id': match_id,
-            'player1': data['player1'],
-            'player2': data['player2'],
-            'winner': data['winner'], # '1', '2', or 'draw'
-            'log': data.get('log', []),
-            'points1': data.get('points1', 0),
-            'points2': data.get('points2', 0),
-            'started_at': data.get('started_at', 0),
-            'ended_at': data.get('ended_at', 0)
-        }
-        
         # --- 1. Insert the new match ---
         matches_collection.insert_one(match)
 
@@ -128,7 +115,6 @@ def add_match():
         winner = match['winner']
         
         # Update Player 1
-        print(f"Updating stats for Player 1: {match['player1']}")
         update_leaderboard_stats(
             player_uuid=match['player1'],
             points=match['points1'],
@@ -138,7 +124,6 @@ def add_match():
         )
         
         # Update Player 2
-        print(f"Updating stats for Player 2: {match['player2']}")
         update_leaderboard_stats(
             player_uuid=match['player2'],
             points=match['points2'],
@@ -150,9 +135,8 @@ def add_match():
         return jsonify({'status': 'ok', 'match_id': match_id}), 201
     
     except Exception as e:
-        print("CRITICAL ERROR TRACEBACK:")
-        traceback.print_exc() # Questo stampa TUTTO l'errore nei log
-        return jsonify({'error': f'Failed to add match: {str(e)}'}), 500
+        print(f"Error in add_match: {e}", flush=True)
+        return jsonify({'error': 'Failed to add match'}), 500
 
 
 # List all matches for a user (GET /matches/<player_uuid>)
@@ -179,7 +163,7 @@ def list_matches(player_uuid):
             
         return jsonify(matches)
     except Exception as e:
-        print(f"Error in list_matches: {e}")
+        print(f"Error in list_matches: {e}", flush=True)
         return jsonify({'error': 'Failed to retrieve matches'}), 500
 
 
@@ -201,7 +185,7 @@ def match_details(match_id):
         
         return jsonify(match)
     except Exception as e:
-        print(f"Error in match_details: {e}")
+        print(f"Error in match_details: {e}", flush=True)
         return jsonify({'error': 'Failed to retrieve match details'}), 500
 
 
@@ -209,33 +193,31 @@ def match_details(match_id):
 @app.route('/leaderboard', methods=['GET'])
 def leaderboard():
     """
-    Retrieves the pre-computed leaderboard.
+    Retrieves the pre-computed leaderboard, replacing player UUID '_id' with 'username'.
     """
     try:
-        # Find all players, sort by points (desc)
-        leaderboard_cursor = leaderboard_collection.find().sort('points', -1)
+        # Fetch all entries sorted by points desc
+        raw_entries = list(leaderboard_collection.find().sort('points', -1))
+        # Extract player UUIDs
+        ids = [doc.get('_id') for doc in raw_entries]
+        id_to_username = get_usernames_by_ids(ids)
+
+        # Build response replacing _id with username
+        response = []
+        for doc in raw_entries:
+            entry = {k: v for k, v in doc.items() if k != '_id'}  # keep all other stats
+            entry['username'] = id_to_username.get(doc.get('_id'))
+            response.append(entry)
         
-        # Convert cursor to a list of dictionaries
-        leaderboard_data = list(leaderboard_cursor)
-        
-        # Batch fetch usernames
-        all_player_ids = [p['_id'] for p in leaderboard_data]
-        id_to_username = get_usernames_by_ids(all_player_ids)
-        
-        # Add usernames to the leaderboard data
-        for player_stats in leaderboard_data:
-            player_id = player_stats.get('_id')
-            player_stats['username'] = id_to_username.get(player_id, "Unknown User")
-            
-        return jsonify(leaderboard_data)
+        return jsonify(response)
     except Exception as e:
-        print(f"Error in leaderboard: {e}")
+        print(f"Error in leaderboard: {e}", flush=True)
         return jsonify({'error': 'Failed to retrieve leaderboard'}), 500
 
 
 if __name__ == '__main__':
     # Check if DB is connected before running
     if not db:
-        print("Fatal: MongoDB connection not established. Exiting.")
+        print("Fatal: MongoDB connection not established. Exiting.", flush=True)
     else:
         app.run(host='0.0.0.0', port=5001, debug=True)
