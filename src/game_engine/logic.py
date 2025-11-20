@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 from models import Game, Player, Card, Deck
 import random
 import requests
