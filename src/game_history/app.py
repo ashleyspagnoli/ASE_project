@@ -140,8 +140,14 @@ def add_match():
 
 
 # List all matches for a user (GET /matches/<player_uuid>)
-@app.route('/matches/<player_uuid>', methods=['GET'])
-def list_matches(player_uuid):
+@app.route('/matches', methods=['GET'])
+def list_matches():
+    token_header = request.headers.get("Authorization")
+    try:
+        player_uuid, username = validate_user_token(token_header)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 401
+    
     try:
         # Find matches where the player is either player1 or player2
         query = { '$or': [ { 'player1': player_uuid }, { 'player2': player_uuid } ] }
@@ -221,3 +227,70 @@ if __name__ == '__main__':
         print("Fatal: MongoDB connection not established. Exiting.", flush=True)
     else:
         app.run(host='0.0.0.0', port=5001, debug=True)
+
+
+
+# ------------------------------------------------------------
+# 🔐 User Token Validation (copied from game_engine)
+#------------------------------------------------------------
+def validate_user_token(token_header: str):
+    """
+    Contatta l'user-manager (in HTTPS) per validare un token JWT.
+    
+    Ignora la verifica del certificato SSL (verify=False) per permettere
+    la comunicazione tra container con certificati auto-firmati.
+
+    Restituisce (user_uuid, username) se il token è valido.
+    Solleva ValueError se il token non è valido o il servizio non risponde.
+    """
+    if not token_header:
+        raise ValueError("Header 'Authorization' mancante.")
+
+    # Il token_header è "Bearer eyJ...". Dobbiamo estrarre solo il token "eyJ..."
+    try:
+        token_type, token = token_header.split(" ")
+        if token_type.lower() != "bearer":
+            raise ValueError("Tipo di token non valido, richiesto 'Bearer'.")
+    except Exception:
+        raise ValueError("Formato 'Authorization' header non valido. Usare 'Bearer <token>'.")
+
+    # Questo è l'endpoint che hai definito nel tuo user-manager
+    validate_url = f"{USER_MANAGER_URL}/users/validate-token"
+
+    try:
+        # Invia la richiesta GET con il token come query parameter
+        response = requests.get(
+            validate_url,
+            params={"token_str": token},
+            timeout=5,
+            verify=False  # <-- IMPORTANTE: Ignora la verifica del certificato SSL
+        )
+
+        # Se l'user-manager risponde 401, 403, 404, ecc., solleva un errore
+        response.raise_for_status()
+
+        user_data = response.json()
+
+        # L'endpoint /users/validate-token restituisce 'id' e 'username'
+        user_uuid = user_data.get("id")
+        username = user_data.get("username")
+
+        if not user_uuid or not username:
+            raise ValueError("Dati utente incompleti dal servizio di validazione")
+
+        print(f"[Game-Engine] Token validato con successo per l'utente: {username} ({user_uuid})")
+        return user_uuid, username
+
+    except requests.RequestException as e:
+        # Errore di connessione o risposta 4xx/5xx dal servizio utenti
+        error_detail = f"Impossibile validare l'utente. Errore di connessione a {validate_url}."
+        if e.response:
+            try:
+                # Prova a leggere il 'detail' dall'errore FastAPI
+                error_detail = e.response.json().get('detail', 'Errore sconosciuto da User-Manager')
+            except json.JSONDecodeError:
+                error_detail = e.response.text
+
+        print(f"ERRORE validazione token: {error_detail}")
+        # Solleva un ValueError che il controller (routes.py) convertirà in 401
+        raise ValueError(f"Servizio Utenti: {error_detail}")
