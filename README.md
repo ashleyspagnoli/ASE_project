@@ -10,7 +10,7 @@ This project is a multi-service card game platform for two players, featuring au
 
 1. **Clone the repository**
    ```sh
-   git clone <your-repo-url>
+   git clone https://github.com/ashleyspagnoli/ASE_project.git
    cd ASE_project_/src
    ```
 
