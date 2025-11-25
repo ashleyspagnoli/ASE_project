@@ -1,0 +1,11 @@
+flask
+requests
+fastapi
+pydantic
+werkzeug
+uvicorn[standard]  # Supporto SSL/TLS
+pytest
+pytest-asyncio
+httpx
+pytest-mock
+python-dotenv
