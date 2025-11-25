@@ -1,6 +1,9 @@
 
 from fastapi import FastAPI, HTTPException, Depends, status, Query
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.requests import Request
+from fastapi.responses import JSONResponse
+from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel, Field
 from pymongo import MongoClient
 from os import environ
@@ -41,7 +44,7 @@ except Exception as e:
 
 # Context for password hashing
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
 
 
 # FastAPI App Initialization
@@ -53,23 +56,14 @@ app = FastAPI(
 
 # --- PYDANTIC DATA MODELS ---
 
-class Item(BaseModel):
-    """Schema for a generic item (used for testing protected endpoints)."""
-    id: Optional[str] = Field(None, description="The unique MongoDB ID of the item.")
-    nome: str = Field(..., description="The descriptive name of the item.")
-    valore: int = Field(..., description="A numerical value associated with the item.")
 
 class UserBase(BaseModel):
     """Base schema containing only the username."""
     username: str = Field(..., description="Unique username.")
 
-class UserLogin(UserBase):
-    """Schema for user login credentials."""
-    password: str = Field(..., description="The plain text password provided by the user.")
 
-class UserCreate(UserLogin):
-    """Schema for new user registration."""
-    email: str = Field(..., description="The user's email address.")
+
+
 
 class UserInDB(UserBase):
     """Internal schema for user data manipulation at the database level."""
@@ -164,7 +158,38 @@ def authenticate_user(username: str, password: str):
         return False
     return user
 
-async def get_current_user(token: str = Depends(oauth2_scheme)):
+# --- DEPENDENCY: GET CURRENT USER FROM JWT TOKEN ---
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    # Ottieni la prima riga di errore
+    first_error = exc.errors()[0]
+    loc = first_error.get("loc")
+    
+    # Controlla se l'errore è un problema di lunghezza di un campo specifico
+    if 'min_length' in str(first_error):
+        field_name = loc[-1] # Prende il nome del campo (es. 'old_email')
+        
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST, # Usa 400 invece di 422 per errore chiaro
+            content={
+                "detail": f"Il campo '{field_name}' non può essere vuoto o troppo corto. Riprova."
+            },
+        )
+    
+    # Per tutti gli altri errori, restituisce il default 422
+    return JSONResponse(
+        status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+        content={"detail": exc.errors()},
+    )
+
+# --- ENDPOINTS: AUTHENTICATION AND USERS ---
+
+# OAuth2 Standard Token Endpoint (For Swagger UI and standard clients)
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+def get_current_user(token: str = Depends(oauth2_scheme)):
     """Decodes and validates the JWT token, returning the UserInDB object."""
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -193,11 +218,8 @@ async def get_current_user(token: str = Depends(oauth2_scheme)):
         
     return user
 
-# --- ENDPOINTS: AUTHENTICATION AND USERS ---
-
-
 @app.post("/token", response_model=Token, tags=["Authentication and Users"], summary="OAuth2 Standard Token Exchange")
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     """
     Standard OAuth2 endpoint to exchange username and password (form-data) for a JWT token.
     This endpoint is used by the global 'Authorize' button in Swagger UI.
@@ -220,41 +242,15 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     # 3. Restituisce il token
     return {"access_token": access_token, "token_type": "bearer"}
 
-@app.post(
-    "/users/register", 
-    status_code=status.HTTP_201_CREATED,
-    tags=["Authentication and Users"],
-    summary="Register a new user"
-)
-def register_user(user_in: UserCreate):
-    """
-    Registers a new user and grants the 'admin' role if the username is 'admin'.
-    """
-    if get_user(user_in.username):
-        raise HTTPException(status_code=400, detail="Username already registered")
-        
-    if USERS_COLLECTION.find_one({"email": user_in.email}):
-        raise HTTPException(status_code=400, detail="Email already registered")
-        
-    hashed_password = get_password_hash(user_in.password)
-    
-    user_data = {
-        "username": user_in.username,
-        "email": user_in.email, 
-        "hashed_password": hashed_password,
-        "is_verified": True, 
-        "role": "admin" if user_in.username == "admin" else "user" 
-    }
-    
-    result = USERS_COLLECTION.insert_one(user_data)
-    userid = str(result.inserted_id)
-    
-    return {
-        "message": "Registration successful.", 
-        "username": user_in.username,
-        # Token is provided for testing convenience; REMOVE IN PRODUCTION
-        "token_for_testing_only": create_access_token(data={"username": user_in.username, "id": userid})
-    }
+
+#--- ENDPOINTS: USER REGISTRATION AND LOGIN ---
+
+
+
+
+class UserLogin(UserBase):
+    """Schema for user login credentials."""
+    password: str = Field(..., description="The plain text password provided by the user.")
 
 @app.post(
     "/users/login", 
@@ -287,61 +283,78 @@ def simple_login(user_credentials: UserLogin):
         "token_type": "bearer"
     }
 
+
+
+
+
+class UserCreate(UserBase):
+    """Schema for new user registration."""
+    password: str = Field(..., min_length=3, description="The plain text password for the new user.") # FAI CONTROLLI SUALLA SICREZZA DELLA PASSWORD
+    email: str = Field(..., description="The user's email address.")
+    
+@app.post(
+    "/users/register", 
+    status_code=status.HTTP_201_CREATED,
+    tags=["Authentication and Users"],
+    summary="Register a new user"
+)
+
+def register_user(user_in: UserCreate):
+    """
+    Registers a new user and grants the 'admin' role if the username is 'admin'.
+    """
+    if get_user(user_in.username):
+        raise HTTPException(status_code=400, detail="Username already registered")
+        
+    if USERS_COLLECTION.find_one({"email": user_in.email}):
+        raise HTTPException(status_code=400, detail="Email already registered")
+        
+    hashed_password = get_password_hash(user_in.password)
+    
+    user_data = {
+        "username": user_in.username,
+        "email": user_in.email, 
+        "hashed_password": hashed_password,
+        "is_verified": True, 
+        "role": "admin" if user_in.username == "admin" else "user" 
+    }
+    
+    result = USERS_COLLECTION.insert_one(user_data)
+    userid = str(result.inserted_id)
+    
+    return {
+        "message": "Registration successful.", 
+        "username": user_in.username,
+    }
+
+# --- ENDPOINTS: INTERNAL ID/USERNAME RESOLUTION ---
+
 @app.get(
     "/users/validate-token", 
     response_model=UsernameMapping,
     tags=["Internal Services"],
     summary="[INTERNAL] Validate a JWT token and return user data."
 )
-def validate_token(token_str: str):
+def validate_token(current_user: UserInDB = Depends(get_current_user)):
     """
     Used by other microservices to validate a JWT and retrieve the user's ID and username.
     """
-
-    try:
-        # 1. Decode and verify the token using the SECRET_KEY
-        payload = jwt.decode(token_str, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("username")
-        
-        if username is None:
-            # Fallback check if token was created using the standard 'sub' claim
-            username = payload.get("sub")
-            if username is None:
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Token does not contain a valid user identifier ('username' or 'sub').")
-        
-    except JWTError:
-        # Catches JWTError (invalid signature, expiry, etc.)
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired JWT token.")
-        
-    # 2. Retrieve user from DB for additional verification
-    user = get_user(username)
-    if user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User associated with token not found.")
-    
-    if not user.is_verified:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Account not verified.")
-        
-    # 3. Return the requested data to the client service
-    return UsernameMapping(
-        # Use the ID stored in the token payload (if present) or retrieved from DB
-        id=payload.get("id") if payload.get("id") else user.id,
-        username=user.username,
-    )
-
-# --- ENDPOINTS: INTERNAL ID/USERNAME RESOLUTION ---
+    return UsernameMapping(id=current_user.id, username=current_user.username)
 
 
 
 @app.get(
-    "/utenti/usernames-by-ids", 
+    "/users/usernames-by-ids", 
     response_model=List[UsernameMapping],
     tags=["Internal Services"],
     summary="[INTERNAL] Get usernames from a list of user IDs."
 )
+
 def get_usernames_by_ids(
     # Standard FastAPI way to handle multiple query parameters
     id_list: List[str] = Query(..., description="List of user IDs (repeated in query: ?id_list=ID1&id_list=ID2)")
 ):
+    
     """
     Returns a list of usernames mapped to their corresponding user IDs.
     """
@@ -370,7 +383,7 @@ def get_usernames_by_ids(
     return results
 
 @app.get(
-    "/utenti/ids-by-usernames", 
+    "/users/ids-by-usernames", 
     response_model=List[UserIdMapping],
     tags=["Internal Services"],
     summary="[INTERNAL] Get user IDs from a list of usernames."
@@ -402,7 +415,160 @@ def get_ids_by_usernames(
             ))
     return results
 
+
+# --- EXTERNAL: USER EDITOR ---
+
+class UsernameUpdate(BaseModel):
+    new_username: str = Field(..., min_length=1, description="Il nuovo username desiderato")
+
+
+@app.patch(
+    "/users/modify/change-username",
+    status_code=status.HTTP_200_OK,
+    tags=["User Editor"],
+    summary="Change username"
+)
+# 1. Rimuovi `new_username: str` dai parametri
+# 2. Usa un modello Pydantic (update_data) per i dati del body
+# 3. Imposta la dipendenza `current_user` per iniettare l'oggetto UserInDB
+def change_username(
+    update_data: UsernameUpdate, # Dati dal body JSON
+    current_user: UserInDB = Depends(get_current_user) # Oggetto utente iniettato
+):
+    """
+    Permette agli utenti autenticati di cambiare il proprio username.
+    Ritorna 200 OK e invalida il token attuale.
+    """
+    
+    old_username = current_user.username
+    new_username = update_data.new_username # Ottieni il nuovo username dal body
+    
+    # La validazione del token è implicita: se non è valido, Depends(get_current_user)
+    # solleva un 401/403 prima che questa funzione inizi.
+    
+    # 1. Controlla se il nuovo username è già in uso
+    if get_user(new_username):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Username already taken."
+        )
+    
+    # 2. Previene la modifica se lo username è lo stesso
+    if old_username == new_username:
+        return {"message": "Il nuovo username è identico a quello attuale."}
+
+    # 3. Aggiorna l'utente nel database
+    result = USERS_COLLECTION.update_one(
+        # Filtra sull'username fornito dalla dipendenza (quello attuale)
+        {"username": old_username}, 
+        {"$set": {"username": new_username}}
+    )
+    
+    if result.modified_count == 1:
+        # Messaggio di successo (l'utente dovrà rifare il login)
+        return {
+            "message": "Username changed successfully. Here is the new token, repeat the login.",
+            "old_username": old_username,
+            "new_username": new_username,
+            "new_token": create_access_token(
+                data={"username": new_username, "id": current_user.id} # Il login va eseguito di nuovo dopo il cambio di username
+            )
+        }
+    else:
+        # Questo non dovrebbe accadere se il controllo `if old_username == new_username` fallisce
+        # e l'utente esiste.
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Failed to change username due to internal error."
+        )
+
+class PasswordUpdate(BaseModel):
+    new_password: str = Field(..., min_length=3, description="New desired password")  # FAI CONTROLLI SUALLA SICREZZA DELLA PASSWORD
+    old_password: str = Field(..., description="Current password for verification")
+
+
+@app.patch(
+    "/users/modify/change-password",
+    status_code=status.HTTP_200_OK,
+    tags=["User Editor"],
+    summary="Change user password"
+)
+
+def change_password(
+        update_data: PasswordUpdate,
+        current_user: UserInDB = Depends(get_current_user)
+        ):
+        """
+        Allows authenticated users to change their password.
+        """
+        old_password = update_data.old_password
+        new_password = update_data.new_password
+        if not verify_password(old_password, current_user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Old password is incorrect."
+            )
+        
+        hashed_password = get_password_hash(new_password)
+        
+        result = USERS_COLLECTION.update_one(
+            {"username": current_user.username},
+            {"$set": {"hashed_password": hashed_password}}
+        )
+        
+        if result.modified_count == 1:
+            return {"message": "Password changed successfully."}
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to change password. Please try again."
+            )
+
+
+class UpdateEmail(BaseModel):
+    old_email: str = Field(..., min_length=1, description="Current email address for verification")
+    new_email: str = Field(..., min_length=1, description="New desired email address")
+
+@app.patch(
+    "/users/modify/change-email",
+    status_code=status.HTTP_200_OK,
+    tags=["User Editor"],
+    summary="Change user email"
+)
+def change_email(
+        new_email_data: UpdateEmail,
+        current_user: UserInDB = Depends(get_current_user)
+        ):
+        """
+        Allows authenticated users to change their email.
+        """
+        
+        new_email = new_email_data.new_email
+        old_email = new_email_data.old_email
+        if old_email != current_user.email:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Old email does not match our records."
+            )
+
+        
+        result = USERS_COLLECTION.update_one(
+            {"username": current_user.username},
+            {"$set": {"email": new_email}}
+        )
+        
+        if result.modified_count == 1:
+            return {"message": "Email changed successfully."}
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to change email. Please try again."
+            )
+
+
+
 # --- ENDPOINTS: ADMIN AND PROTECTED ACCESS ---
+
 
 
 @app.get(
