@@ -50,7 +50,7 @@ services:
       
   user-manager:
     build: 
-      context: ./user-manager/backend 
+      context: ./user-manager
     container_name: user_manager_service
     ports:
       - "5004:5000" # Porta esterna 5004, porta interna 5000
@@ -61,11 +61,18 @@ services:
       SECRET_KEY: "GUERRA_ASE_SECRET_KEY"
       ALGORITHM: "HS256"
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
+
     volumes:
-      - ./user-manager/backend:/app
-      - ./user-manager/cert.pem:/app/cert.pem
-      - ./user-manager/key.pem:/app/key.pem
-    command: uvicorn main:app --host 0.0.0.0 --port 5000 --ssl-keyfile key.pem --ssl-certfile cert.pem --workers 4
+      - ./user-manager:/app
+
+    secrets:
+      - user_manager_cert
+      - user_manager_key
+
+    command: 
+      uvicorn main:app --host 0.0.0.0 --port 5000 
+      --ssl-keyfile /run/secrets/user_manager_key 
+      --ssl-certfile /run/secrets/user_manager_cert
 
   # (Mantenuti i tuoi db-history, db-games, db-decks)
   db-history:
@@ -83,15 +90,48 @@ services:
     volumes:
       - decks-data:/data/db
 
-secrets:
-  history_key:
-    file: ./certs/game_history/key.pem
-  history_cert:
-    file: ./certs/game_history/cert.pem
-    
+  api-gateway:
+    build: 
+      context: ./api_gateway
+    container_name: api_gateway_service
+    ports:
+      - "8443:8000"
+    depends_on:
+      - user-manager
+    secrets:
+      - api_gateway_cert
+      - api_gateway_key
+    command: 
+      [
+        "uvicorn", 
+        "gateway:app", 
+        "--host", 
+        "0.0.0.0", 
+        "--port", 
+        "8000",
+        "--ssl-keyfile", 
+        "/run/secrets/api_gateway_key",
+        "--ssl-certfile", 
+        "/run/secrets/api_gateway_cert"
+      ]
+
 
 volumes:
   history-data:
   games-data:
   decks-data:
   user_mongo_data:
+
+secrets:
+  api_gateway_cert:
+    file: ./api_gateway/secrets/api_gateway_cert.pem  
+  api_gateway_key:
+    file: ./api_gateway/secrets/api_gateway_key.pem 
+  user_manager_cert:
+    file: ./user-manager/secrets/cert.pem  
+  user_manager_key:
+    file: ./user-manager/secrets/key.pem
+  history_key:
+    file: ./certs/game_history/key.pem
+  history_cert:
+    file: ./certs/game_history/cert.pem

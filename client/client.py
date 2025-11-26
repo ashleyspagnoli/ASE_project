@@ -22,7 +22,7 @@ CURRENT_USER_STATE = UserState()
 
 
 
-AUTH_SERVICE_URL = "https://localhost:5004"
+API_GATEWAY_URL = "https://localhost:8443"
 
 class ApiResult:
     def __init__(self, success: bool, message: str):
@@ -40,7 +40,7 @@ async def api_validate_token_internal():
         
     async with httpx.AsyncClient(verify=False) as client:
         try:
-            validate_url = f"{AUTH_SERVICE_URL}/users/validate-token"
+            validate_url = f"{API_GATEWAY_URL}/users/validate-token"
             response = await client.get(
                 validate_url,
                 headers={"Authorization": f"Bearer {token}"},
@@ -58,7 +58,7 @@ async def api_validate_token_internal():
 async def api_login(username, password):
     async with httpx.AsyncClient(verify=False) as client:
         try:
-            login_url = f"{AUTH_SERVICE_URL}/users/login"
+            login_url = f"{API_GATEWAY_URL}/users/login"
             body = {"username": username, "password": password}
             
             response = await client.post(
@@ -85,7 +85,7 @@ async def api_register(username, password, email):
     # Logica di registrazione: OK
     async with httpx.AsyncClient(verify=False) as client:
         try:
-            register_url = f"{AUTH_SERVICE_URL}/users/register"
+            register_url = f"{API_GATEWAY_URL}/users/register"
             body = {"username": username, "password": password, "email": email}
             
             response = await client.post(register_url, json=body)
@@ -110,7 +110,7 @@ async def api_change_password(old_password, new_password): #ENDPOINT IMPLEMENTAT
     
     async with httpx.AsyncClient(verify=False) as client:
         try:
-            change_url = f"{AUTH_SERVICE_URL}/users/modify/change-password"
+            change_url = f"{API_GATEWAY_URL}/users/modify/change-password"
             headers = {"Authorization": f"Bearer {token}"}
             body = {"old_password": old_password, "new_password": new_password}
             
@@ -155,7 +155,7 @@ async def api_change_email(old_email,new_email):
     
     async with httpx.AsyncClient(verify=False) as client:
         try:
-            change_url = f"{AUTH_SERVICE_URL}/users/modify/change-email"
+            change_url = f"{API_GATEWAY_URL}/users/modify/change-email"
             headers = {"Authorization": f"Bearer {token}"}
             body = {"old_password": old_email, "new_password": new_email}
             
