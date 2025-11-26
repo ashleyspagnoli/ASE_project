@@ -335,39 +335,63 @@ def get_game_state(game_id, games):
 # ------------------------------------------------------------
 # 🔗 Matchmaking
 # ------------------------------------------------------------
-def matchmaking_connect(user_uuid, username, online_players):
-    if user_uuid in online_players:
-        return {"message": f"{username} ({user_uuid}) is already online."}
-    
-    # Memorizza {uuid: nome}
-    online_players[user_uuid] = username
-    
-    return {"message": f"{username} connected.", "players_online_count": len(online_players)}
+# Coda di attesa in memoria: una lista di dizionari
+# Ogni elemento: {'uuid': str, 'name': str, 'sid': str}
+matchmaking_queue = []
 
-def matchmaking_match(online_players, games):
-    if len(online_players) < 2:
-        return {"message": "Waiting for more players...", "players_online_count": len(online_players)}
+def handle_socket_join(user_uuid, username, socket_id, games):
+    """
+    Gestisce l'ingresso di un giocatore via WebSocket.
+    Ritorna una tupla (match_found: bool, data: dict).
+    """
+    global matchmaking_queue
 
-    player_uuids = list(online_players.keys())
-    p1_uuid, p2_uuid = random.sample(player_uuids, 2)
-    
-    p1_name = online_players[p1_uuid]
-    p2_name = online_players[p2_uuid]
+    # 1. Pulizia: Se l'utente è già in coda (magari con un vecchio socket), rimuovilo
+    matchmaking_queue = [p for p in matchmaking_queue if p['uuid'] != user_uuid]
 
-    # Avvia la partita con UUID e Nomi
-    game_id = start_new_game(p1_uuid, p1_name, p2_uuid, p2_name, games)
-    
-    del online_players[p1_uuid]
-    del online_players[p2_uuid]
-    
-    return {
-        "message": f"Match created between {p1_name} and {p2_name}",
-        "game_id": game_id,
-        "players": [
-            {"uuid": p1_uuid, "name": p1_name},
-            {"uuid": p2_uuid, "name": p2_name}
-        ]
-    }
+    # 2. Controllo: C'è qualcuno che aspetta?
+    if len(matchmaking_queue) > 0:
+        # --- MATCH TROVATO! ---
+        opponent = matchmaking_queue.pop(0) # Prendi il primo in attesa
+        
+        # Crea la partita usando la tua funzione esistente
+        game_id = start_new_game(
+            opponent['uuid'], opponent['name'],
+            user_uuid, username,
+            games
+        )
+
+        # Prepara i dati per entrambi i giocatori
+        match_data = {
+            "game_id": game_id,
+            "players": [
+                {"uuid": opponent['uuid'], "name": opponent['name']},
+                {"uuid": user_uuid, "name": username}
+            ]
+        }
+        
+        # Ritorna i dati necessari per notificare entrambi
+        return True, {
+            "match_data": match_data,
+            "player1_sid": opponent['sid'], # Socket ID dell'avversario
+            "player2_sid": socket_id        # Socket ID del giocatore corrente
+        }
+
+    else:
+        # --- NESSUNO IN CODA ---
+        # Aggiungi il giocatore alla coda e aspetta
+        matchmaking_queue.append({
+            'uuid': user_uuid,
+            'name': username,
+            'sid': socket_id
+        })
+        return False, {"message": "In attesa di un avversario..."}
+
+def handle_socket_disconnect(socket_id):
+    """Rimuove un giocatore dalla coda se si disconnette prima del match."""
+    global matchmaking_queue
+    # Mantieni solo i giocatori che NON hanno quel socket_id
+    matchmaking_queue = [p for p in matchmaking_queue if p['sid'] != socket_id]
 
 # ------------------------------------------------------------
 # 💾 History Saving
@@ -439,17 +463,10 @@ def get_player_hand(game_id, player_uuid, games):
 def validate_user_token(token_header: str):
     """
     Contatta l'user-manager (in HTTPS) per validare un token JWT.
-    
-    Ignora la verifica del certificato SSL (verify=False) per permettere
-    la comunicazione tra container con certificati auto-firmati.
-
-    Restituisce (user_uuid, username) se il token è valido.
-    Solleva ValueError se il token non è valido o il servizio non risponde.
     """
     if not token_header:
         raise ValueError("Header 'Authorization' mancante.")
 
-    # Il token_header è "Bearer eyJ...". Dobbiamo estrarre solo il token "eyJ..."
     try:
         token_type, token = token_header.split(" ")
         if token_type.lower() != "bearer":
@@ -457,43 +474,40 @@ def validate_user_token(token_header: str):
     except Exception:
         raise ValueError("Formato 'Authorization' header non valido. Usare 'Bearer <token>'.")
 
-    # Questo è l'endpoint che hai definito nel tuo user-manager
+    # URL del servizio User Manager
     validate_url = f"{USER_MANAGER_URL}/users/validate-token"
 
-    try:
-        # Invia la richiesta GET con il token come query parameter
+    try: 
+        headers = {
+            "Authorization": f"Bearer {token}"
+        }
+        
         response = requests.get(
             validate_url,
-            params={"token_str": token},
+            headers=headers,
             timeout=5,
-            verify=False  # <-- IMPORTANTE: Ignora la verifica del certificato SSL
+            verify=False 
         )
 
-        # Se l'user-manager risponde 401, 403, 404, ecc., solleva un errore
         response.raise_for_status()
-
         user_data = response.json()
 
-        # L'endpoint /users/validate-token restituisce 'id' e 'username'
         user_uuid = user_data.get("id")
         username = user_data.get("username")
 
         if not user_uuid or not username:
             raise ValueError("Dati utente incompleti dal servizio di validazione")
 
-        print(f"[Game-Engine] Token validato con successo per l'utente: {username} ({user_uuid})")
+        print(f"[Game-Engine] Token validato con successo: {username}")
         return user_uuid, username
 
     except requests.RequestException as e:
-        # Errore di connessione o risposta 4xx/5xx dal servizio utenti
-        error_detail = f"Impossibile validare l'utente. Errore di connessione a {validate_url}."
-        if e.response:
+        error_detail = f"Impossibile validare l'utente. Errore connessione a {validate_url}."
+        if e.response is not None:
             try:
-                # Prova a leggere il 'detail' dall'errore FastAPI
-                error_detail = e.response.json().get('detail', 'Errore sconosciuto da User-Manager')
-            except json.JSONDecodeError:
-                error_detail = e.response.text
+                error_detail = e.response.json().get('detail', e.response.text)
+            except:
+                error_detail = f"Status Code: {e.response.status_code}"
 
         print(f"ERRORE validazione token: {error_detail}")
-        # Solleva un ValueError che il controller (routes.py) convertirà in 401
         raise ValueError(f"Servizio Utenti: {error_detail}")

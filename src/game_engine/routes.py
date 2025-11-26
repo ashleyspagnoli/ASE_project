@@ -3,8 +3,6 @@ from logic import (
     submit_card,
     get_game_state,
     select_deck,
-    matchmaking_connect,
-    matchmaking_match,
     start_new_game,
     get_player_hand,
     validate_user_token
@@ -95,21 +93,6 @@ class GameController:
         except ValueError as e:
             return jsonify({"error": str(e)}), 404
 
-    def connect_player(self):
-        token_header = request.headers.get("Authorization")
-        
-        try:
-            user_uuid, username = validate_user_token(token_header)
-        except ValueError as e:
-            return jsonify({"error": str(e)}), 401
-            
-        result = matchmaking_connect(user_uuid, username, self.online_players)
-        return jsonify(result), 200
-
-    def find_match(self):
-        match = matchmaking_match(self.online_players, self.games)
-        return jsonify(match), 200
-
 controller = GameController()
 
 game_blueprint.add_url_rule("/start", view_func=controller.start_game, methods=["POST"])
@@ -117,5 +100,3 @@ game_blueprint.add_url_rule("/deck/<game_id>", view_func=controller.choose_deck,
 game_blueprint.add_url_rule("/play/<game_id>", view_func=controller.play_turn, methods=["POST"])
 game_blueprint.add_url_rule("/hand/<game_id>", view_func=controller.get_hand, methods=["GET"])
 game_blueprint.add_url_rule("/state/<game_id>", view_func=controller.get_state, methods=["GET"])
-game_blueprint.add_url_rule("/connect", view_func=controller.connect_player, methods=["POST"])
-game_blueprint.add_url_rule("/matchmake", view_func=controller.find_match, methods=["POST"])
