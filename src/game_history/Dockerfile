@@ -9,4 +9,4 @@ COPY app.py .
 
 EXPOSE 5000
 
-CMD flask run --host=0.0.0.0 --port=5000
+CMD flask run --cert=/run/secrets/history_cert --key=/run/secrets/history_key --host=0.0.0.0 --port=5000

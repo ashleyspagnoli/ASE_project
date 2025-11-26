@@ -18,6 +18,9 @@ services:
 
   game_history:
     build: ./game_history
+    secrets:
+      - history_key
+      - history_cert
     ports:
       - 5002:5000
     depends_on:
@@ -80,6 +83,12 @@ services:
     volumes:
       - decks-data:/data/db
 
+secrets:
+  history_key:
+    file: ./certs/game_history/key.pem
+  history_cert:
+    file: ./certs/game_history/cert.pem
+    
 
 volumes:
   history-data:

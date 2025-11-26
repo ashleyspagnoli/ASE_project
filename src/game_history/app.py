@@ -19,6 +19,8 @@ except Exception as e:
     print(f"Error: Could not connect to MongoDB, {e}", flush=True)
     exit()
 
+PAGE_SIZE = 10
+
 # --- User Service Connection ---
 # Use environment variables or default to 'user-manager'
 USER_MANAGER_URL = os.environ.get('USER_MANAGER_URL', 'https://user-manager:5000')
@@ -142,6 +144,7 @@ def add_match():
 # List all matches for a user (GET /matches/<player_uuid>)
 @app.route('/matches', methods=['GET'])
 def list_matches():
+    page = request.args.get('page', default=0, type=int) #It's a int -> doesn't need to be sanitized
     token_header = request.headers.get("Authorization")
     try:
         player_uuid, username = validate_user_token(token_header)
@@ -152,7 +155,7 @@ def list_matches():
         # Find matches where the player is either player1 or player2
         query = { '$or': [ { 'player1': player_uuid }, { 'player2': player_uuid } ] }
         # Sort by timestamp
-        cursor = matches_collection.find(query).sort('started_at', -1)
+        cursor = matches_collection.find(query).sort('started_at', -1).skip(page*PAGE_SIZE).limit(PAGE_SIZE)
         matches = list(cursor)
         
         # Batch fetch usernames for all involved players
@@ -164,8 +167,8 @@ def list_matches():
         for m in matches:
             p1 = m.get('player1')
             p2 = m.get('player2')
-            m['player1_name'] = id_to_username.get(p1, p1 or "Unknown user")
-            m['player2_name'] = id_to_username.get(p2, p2 or "Unknown user")
+            m['player1'] = id_to_username.get(p1, p1 or "Unknown user")
+            m['player2'] = id_to_username.get(p2, p2 or "Unknown user")
             
         return jsonify(matches)
     except Exception as e:
@@ -174,25 +177,25 @@ def list_matches():
 
 
 # Get details of a match (GET /match/<match_id>)
-@app.route('/match/<match_id>', methods=['GET'])
-def match_details(match_id):
-    try:
-        match = matches_collection.find_one({'_id': match_id})
+# @app.route('/match/<match_id>', methods=['GET'])
+# def match_details(match_id):
+#     try:
+#         match = matches_collection.find_one({'_id': match_id})
         
-        if not match:
-            return jsonify({'error': 'Match not found'}), 404
+#         if not match:
+#             return jsonify({'error': 'Match not found'}), 404
         
-        # Batch fetch the two usernames in one request
-        ids = [match.get('player1'), match.get('player2')]
-        id_to_username = get_usernames_by_ids(ids)
+#         # Batch fetch the two usernames in one request
+#         ids = [match.get('player1'), match.get('player2')]
+#         id_to_username = get_usernames_by_ids(ids)
         
-        match['player1_name'] = id_to_username.get(match.get('player1'), match.get('player1') or "Unknown user")
-        match['player2_name'] = id_to_username.get(match.get('player2'), match.get('player2') or "Unknown user")
+#         match['player1_name'] = id_to_username.get(match.get('player1'), match.get('player1') or "Unknown user")
+#         match['player2_name'] = id_to_username.get(match.get('player2'), match.get('player2') or "Unknown user")
         
-        return jsonify(match)
-    except Exception as e:
-        print(f"Error in match_details: {e}", flush=True)
-        return jsonify({'error': 'Failed to retrieve match details'}), 500
+#         return jsonify(match)
+#     except Exception as e:
+#         print(f"Error in match_details: {e}", flush=True)
+#         return jsonify({'error': 'Failed to retrieve match details'}), 500
 
 
 # Get leaderboard (GET /leaderboard)
