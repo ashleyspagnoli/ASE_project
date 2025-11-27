@@ -9,3 +9,4 @@ pytest-asyncio
 httpx
 pytest-mock
 python-dotenv
+python-multipart

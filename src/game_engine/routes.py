@@ -5,7 +5,10 @@ from logic import (
     select_deck,
     start_new_game,
     get_player_hand,
-    validate_user_token
+    validate_user_token,
+    process_matchmaking_request,
+    check_matchmaking_status,
+    remove_from_matchmaking
 )
 
 game_blueprint = Blueprint("game_engine", __name__)
@@ -14,8 +17,6 @@ game_blueprint = Blueprint("game_engine", __name__)
 class GameController:
     def __init__(self):
         self.games = {}
-        # online_players ora è un dizionario {uuid: nome}
-        self.online_players = {}
 
     def start_game(self):
         """ Avvio manuale (per testing?) """
@@ -32,70 +33,60 @@ class GameController:
         return jsonify({"game_id": game_id, "status": "started"}), 201
 
     def choose_deck(self, game_id):
-        token_header = request.headers.get("Authorization")
-        
         try:
-            user_uuid, username = validate_user_token(token_header)
-        except ValueError as e:
-            # Se la validazione fallisce (token non valido, scaduto, servizio down)
-            return jsonify({"error": str(e)}), 401 # 401 Unauthorized
-
-        data = request.get_json()
-        deck_slot = data.get("deck_slot")
-        
-        if deck_slot is None:
-            return jsonify({"error": "deck_slot is required"}), 400
-
-        try:
-            result = select_deck(game_id, user_uuid, deck_slot, self.games) 
-            return jsonify(result), 200
-        except ValueError as e:
-            return jsonify({"error": str(e)}), 400
-        except Exception as e:
-            return jsonify({"error": f"An unexpected error occurred: {e}"}), 500
+            user_uuid, _ = validate_user_token(request.headers.get("Authorization"))
+            # Nota: select_deck deve esistere in logic.py
+            deck_slot = request.get_json().get("deck_slot")
+            return jsonify(select_deck(game_id, user_uuid, deck_slot, self.games)), 200
+        except ValueError as e: return jsonify({"error": str(e)}), 401
+        except Exception as e: return jsonify({"error": str(e)}), 400
 
     def play_turn(self, game_id):
-        token_header = request.headers.get("Authorization")
         try:
-            user_uuid, username = validate_user_token(token_header)
-        except ValueError as e:
-            return jsonify({"error": str(e)}), 401
-
-        data = request.get_json()
-        card = data.get("card")
-        
-        if not card:
-            return jsonify({"error": "card is required"}), 400
-
-        try:
-            result = submit_card(game_id, user_uuid, card, self.games)
-            return jsonify(result), 200
-        except ValueError as e:
-            return jsonify({"error": str(e)}), 404
+            user_uuid, _ = validate_user_token(request.headers.get("Authorization"))
+            card = request.get_json().get("card")
+            return jsonify(submit_card(game_id, user_uuid, card, self.games)), 200
+        except ValueError as e: return jsonify({"error": str(e)}), 400
         
     def get_hand(self, game_id):
-        token_header = request.headers.get("Authorization")
         try:
-            user_uuid, username = validate_user_token(token_header)
-        except ValueError as e:
-            return jsonify({"error": str(e)}), 401
-            
-        try:
-            hand = get_player_hand(game_id, user_uuid, self.games)
-            return jsonify(hand), 200 
-        except ValueError as e:
-            return jsonify({"error": str(e)}), 404
-
+            user_uuid, _ = validate_user_token(request.headers.get("Authorization"))
+            return jsonify(get_player_hand(game_id, user_uuid, self.games)), 200
+        except ValueError as e: return jsonify({"error": str(e)}), 400
+    
     def get_state(self, game_id):
+        # State potrebbe essere pubblico o protetto, qui lo proteggiamo per sicurezza
         try:
-            state = get_game_state(game_id, self.games)
-            return jsonify(state)
-        except ValueError as e:
-            return jsonify({"error": str(e)}), 404
+            user_uuid, _ = validate_user_token(request.headers.get("Authorization"))
+            return jsonify(get_game_state(game_id, self.games)), 200
+        except ValueError as e: return jsonify({"error": str(e)}), 400
+
+    def join_matchmaking(self):
+        try:
+            user_uuid, username = validate_user_token(request.headers.get("Authorization"))
+            result = process_matchmaking_request(user_uuid, username, self.games)
+            return jsonify(result), 200
+        except ValueError as e: return jsonify({"error": str(e)}), 401
+        except Exception as e: return jsonify({"error": str(e)}), 500
+
+    def status_matchmaking(self):
+        try:
+            user_uuid, username = validate_user_token(request.headers.get("Authorization"))
+            result = check_matchmaking_status(user_uuid)
+            return jsonify(result), 200
+        except ValueError as e: return jsonify({"error": str(e)}), 401
+
+    def leave_matchmaking(self):
+        try:
+            user_uuid, username = validate_user_token(request.headers.get("Authorization"))
+            return jsonify(remove_from_matchmaking(user_uuid)), 200
+        except ValueError as e: return jsonify({"error": str(e)}), 401
 
 controller = GameController()
 
-game_blueprint.add_url_rule("/start", view_func=controller.start_game, methods=["POST"])
+game_blueprint.add_url_rule("/match/join", view_func=controller.join_matchmaking, methods=["POST"])
+game_blueprint.add_url_rule("/match/status", view_func=controller.status_matchmaking, methods=["GET"])
+game_blueprint.add_url_rule("/match/leave", view_func=controller.leave_matchmaking, methods=["POST"])
 game_blueprint.add_url_rule("/deck/<game_id>", view_func=controller.choose_deck, methods=["POST"])
 game_blueprint.add_url_rule("/play/<game_id>", view_func=controller.play_turn, methods=["POST"])
 game_blueprint.add_url_rule("/hand/<game_id>", view_func=controller.get_hand, methods=["GET"])
