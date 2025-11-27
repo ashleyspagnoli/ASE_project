@@ -551,6 +551,12 @@ def change_email(
                 detail="Old email does not match our records."
             )
 
+        # Check if the new email is already in use
+        if USERS_COLLECTION.find_one({"email": new_email}):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="New email is already registered."
+            )
         
         result = USERS_COLLECTION.update_one(
             {"username": current_user.username},
