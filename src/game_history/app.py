@@ -14,6 +14,7 @@ try:
     db = client.history
     matches_collection = db.matches
     leaderboard_collection = db.leaderboard
+    leaderboard_collection.create_index([("points", -1)])
     print(f"Successfully connected to MongoDB", flush=True)
 except Exception as e:
     print(f"Error: Could not connect to MongoDB, {e}", flush=True)
@@ -38,12 +39,12 @@ def get_usernames_by_ids(user_ids):
         return {}
 
     # Deduplicate and drop falsy values while preserving order
-    deduped_ids = list(dict.fromkeys([uid for uid in user_ids if uid]))
+    user_ids = list(user_ids)
     try:
         # requests will serialize list params as repeated query params
         resp = requests.get(
             USERNAMES_BY_IDS_URL,
-            params={'id_list': deduped_ids},
+            params={'id_list': user_ids},
             timeout=3,
             verify=False
         )
@@ -51,7 +52,7 @@ def get_usernames_by_ids(user_ids):
             data = resp.json() or []
             mapping = {item.get('id'): item.get('username') for item in data if isinstance(item, dict)}
             # Ensure all ids present in mapping
-            for uid in deduped_ids:
+            for uid in user_ids:
                 mapping.setdefault(uid, "Unknown user")
             return mapping
         else:
@@ -152,16 +153,29 @@ def list_matches():
         return jsonify({"error": str(e)}), 401
     
     try:
-        # Find matches where the player is either player1 or player2
-        query = { '$or': [ { 'player1': player_uuid }, { 'player2': player_uuid } ] }
-        # Sort by timestamp
-        cursor = matches_collection.find(query).sort('started_at', -1).skip(page*PAGE_SIZE).limit(PAGE_SIZE)
-        matches = list(cursor)
+        pipeline = [
+            # 1. Filter by player
+            { '$match': { '$or': [{ 'player1': player_uuid }, { 'player2': player_uuid }] } },
+
+            # 2. Sort by starting time
+            { '$sort': { 'started_at': -1 } },
+            
+            # 3. Pagination
+            { '$skip': page * PAGE_SIZE },
+            { '$limit': PAGE_SIZE }
+        ]
+        cursor = matches_collection.aggregate(pipeline)
+
+        start_rank = (page * PAGE_SIZE) + 1
+        matches = []
+        for index, doc in enumerate(cursor):
+            doc['row_number'] = start_rank + index
+            matches.append(doc)
         
         # Batch fetch usernames for all involved players
-        all_ids = []
+        all_ids = {}
         for m in matches:
-            all_ids.extend([m.get('player1'), m.get('player2')])
+            all_ids.update({m.get('player1'), m.get('player2')})
         id_to_username = get_usernames_by_ids(all_ids)
         
         for m in matches:
@@ -176,40 +190,39 @@ def list_matches():
         return jsonify({'error': 'Failed to retrieve matches'}), 500
 
 
-# Get details of a match (GET /match/<match_id>)
-# @app.route('/match/<match_id>', methods=['GET'])
-# def match_details(match_id):
-#     try:
-#         match = matches_collection.find_one({'_id': match_id})
-        
-#         if not match:
-#             return jsonify({'error': 'Match not found'}), 404
-        
-#         # Batch fetch the two usernames in one request
-#         ids = [match.get('player1'), match.get('player2')]
-#         id_to_username = get_usernames_by_ids(ids)
-        
-#         match['player1_name'] = id_to_username.get(match.get('player1'), match.get('player1') or "Unknown user")
-#         match['player2_name'] = id_to_username.get(match.get('player2'), match.get('player2') or "Unknown user")
-        
-#         return jsonify(match)
-#     except Exception as e:
-#         print(f"Error in match_details: {e}", flush=True)
-#         return jsonify({'error': 'Failed to retrieve match details'}), 500
-
-
 # Get leaderboard (GET /leaderboard)
 @app.route('/leaderboard', methods=['GET'])
 def leaderboard():
     """
     Retrieves the pre-computed leaderboard, replacing player UUID '_id' with 'username'.
     """
+    page = request.args.get('page', default=0, type=int) #It's a int -> doesn't need to be sanitized
     try:
         # Fetch all entries sorted by points desc
-        raw_entries = list(leaderboard_collection.find().sort('points', -1))
-        # Extract player UUIDs
-        ids = [doc.get('_id') for doc in raw_entries]
-        id_to_username = get_usernames_by_ids(ids)
+
+        pipeline = [
+            # 1. Sort by starting time
+            { '$sort': { 'points': -1 } },
+            
+            # 2. Pagination
+            { '$skip': page * PAGE_SIZE },
+            { '$limit': PAGE_SIZE }
+        ]
+        cursor = leaderboard_collection.aggregate(pipeline)
+        raw_entries = list(cursor)
+
+        start_rank = (page * PAGE_SIZE) + 1
+        matches = []
+        for index, doc in raw_entries:
+            doc['row_number'] = start_rank + index
+            matches.append(doc)
+        
+        # Batch fetch usernames for all involved players
+        all_ids = {}
+        for m in matches:
+            all_ids.add(m.get('_id'))
+        id_to_username = get_usernames_by_ids(all_ids)
+
 
         # Build response replacing _id with username
         response = []
@@ -223,6 +236,57 @@ def leaderboard():
         print(f"Error in leaderboard: {e}", flush=True)
         return jsonify({'error': 'Failed to retrieve leaderboard'}), 500
 
+# Get leaderboard page where user is located and redirects to leaderboard (GET /myleaderboard)
+# @app.route('/myleaderboard', methods=['GET'])
+# def my_leaderboard():
+#     """
+#     Finds the rank of the user and redirects to the correct leaderboard page.
+#     """
+
+#     token_header = request.headers.get("Authorization")
+#     try:
+#         player_uuid, username = validate_user_token(token_header)
+#     except ValueError as e:
+#         return jsonify({"error": str(e)}), 401
+
+#     try:
+#         # 1. Get the current user's stats to find their score
+#         user_doc = leaderboard_collection.find_one({'_id': player_uuid})
+        
+#         if not user_doc:
+#             return jsonify({'error': 'User not found in leaderboard'}), 404
+            
+#         user_points = user_doc.get('points', 0)
+
+#         # 2. Calculate Rank (Count how many people are ahead of this user)
+#         # We must use the SAME sorting logic as the main leaderboard.
+#         # Logic: Count documents where points are strictly greater than user_points
+#         # OR points are equal, but _id is "smaller" (for tie-breaking).
+        
+#         count_query = {
+#             '$or': [
+#                 {'points': {'$gt': user_points}},
+#                 {
+#                     'points': user_points,
+#                     '_id': {'$lt': user_id} # Secondary sort key (deterministic tie-breaker)
+#                 }
+#             ]
+#         }
+        
+#         # This count is the number of people BEFORE the user. 
+#         # e.g., if 5 people are better, the user is at index 5 (0-indexed).
+#         position_index = leaderboard_collection.count_documents(count_query)
+
+#         # 3. Calculate Page
+#         # integer division finds the page index (0-based)
+#         target_page = position_index // PAGE_SIZE
+
+#         # 4. Redirect
+#         return redirect(url_for('leaderboard', page=target_page))
+
+#     except Exception as e:
+#         print(f"Error in myleaderboard: {e}", flush=True)
+#         return jsonify({'error': 'Failed to calculate rank'}), 500
 
 if __name__ == '__main__':
     # Check if DB is connected before running

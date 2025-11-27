@@ -8,7 +8,7 @@ servers:
     description: "Relative server path"
 
 paths:
-  /match:
+  /addmatch:
     post:
       summary: "Add a new match"
       description: "Records the details of a completed match and updates the leaderboard."
@@ -46,55 +46,36 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /matches/{player_uuid}:
+  /matches:
     get:
-      summary: "List all matches for a user"
-      description: "Retrieves a list of all matches (both as player 1 and player 2) for a specific player."
+      summary: "List matches for the authenticated user"
+      description: "Retrieves the latest matches for the user identified by the bearer token. Matches are returned in pages of 10 items sorted by start time (descending)."
       parameters:
-        - in: path
-          name: player_uuid
+        - in: header
+          name: Authorization
           required: true
           schema:
             type: "string"
-            format: "uuid"
-          description: "The UUID of the player"
+          description: "Bearer token issued by user-manager"
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: "integer"
+            minimum: 0
+            default: 0
+          description: "Zero-based page index (10 matches per page)"
       responses:
         '200':
-          description: "A list of matches for the player"
+          description: "A list of matches for the authenticated player"
           content:
             application/json:
               schema:
                 type: "array"
                 items:
                   $ref: "#/components/schemas/MatchResponse"
-        '500':
-          description: "Database error"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-
-  /match/{match_id}:
-    get:
-      summary: "Get details of a specific match"
-      description: "Retrieves the full details for a single match, including player names."
-      parameters:
-        - in: path
-          name: match_id
-          required: true
-          schema:
-            type: "string"
-            format: "uuid"
-          description: "The UUID of the match"
-      responses:
-        '200':
-          description: "Details of the specified match"
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/MatchResponse"
-        '404':
-          description: "Match not found"
+        '401':
+          description: "Missing or invalid token"
           content:
             application/json:
               schema:
@@ -109,7 +90,16 @@ paths:
   /leaderboard:
     get:
       summary: "Get the game leaderboard"
-      description: "Retrieves the pre-computed leaderboard, sorted by wins (descending) and then points (descending)."
+      description: "Retrieves the pre-computed leaderboard, sorted by total points (descending)."
+      parameters:
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: "integer"
+            minimum: 0
+            default: 0
+          description: "Zero-based page index (10 entries per page)"
       responses:
         '200':
           description: "The current leaderboard"
@@ -161,6 +151,14 @@ components:
           type: "integer"
           description: "Points awarded to player 2 (optional)"
           default: 0
+        started_at:
+          type: "integer"
+          description: "Unix timestamp representing when the match started (optional)"
+          default: 0
+        ended_at:
+          type: "integer"
+          description: "Unix timestamp representing when the match ended (optional)"
+          default: 0
       example:
         player1: "a1a1a1a1-b2b2-c3c3-d4d4-e5e5e5e5e5e5"
         player2: "f6f6f6f6-g7g7-h8h8-i9i9-j0j0j0j0j0j0"
@@ -168,22 +166,18 @@ components:
         log: ["move1", "move2", "player 1 wins"]
         points1: 10
         points2: -5
+        started_at: 1700000000
+        ended_at: 1700000123
 
     MatchBase:
       type: "object"
       properties:
-        id:
-          type: "string"
-          format: "uuid"
-          description: "The unique ID of the match"
         player1:
           type: "string"
-          format: "uuid"
-          description: "UUID of the first player"
+          description: "Display name of the first player"
         player2:
           type: "string"
-          format: "uuid"
-          description: "UUID of the second player"
+          description: "Display name of the second player"
         winner:
           type: "string"
           enum: ["1", "2", "draw"]
@@ -195,49 +189,67 @@ components:
           type: "integer"
         points2:
           type: "integer"
-        timestamp:
+        started_at:
           type: "integer"
-          description: "Timestamp of when the match was recorded"
+          description: "Unix timestamp representing when the match started"
+        ended_at:
+          type: "integer"
+          description: "Unix timestamp representing when the match ended"
 
     MatchResponse:
       type: "object"
       description: "Full match details as returned by the API"
-      allOf:
-        - $ref: "#/components/schemas/MatchBase"
+      required:
+        - _id
+        - player1
+        - player2
+        - winner
       properties:
         _id:
           type: "string"
-          description: "MongoDB document ID"
-        player1_name:
+          description: "Match identifier assigned by the service"
+        player1:
           type: "string"
-          description: "Username of player 1 (fetched from user-manager)"
-        player2_name:
+          description: "Display name of player 1"
+        player2:
           type: "string"
-          description: "Username of player 2 (fetched from user-manager)"
+          description: "Display name of player 2"
+        winner:
+          type: "string"
+          enum: ["1", "2", "draw"]
+        log:
+          type: "array"
+          items:
+            type: "string"
+        points1:
+          type: "integer"
+        points2:
+          type: "integer"
+        started_at:
+          type: "integer"
+          description: "Unix timestamp representing when the match started"
+        ended_at:
+          type: "integer"
+          description: "Unix timestamp representing when the match ended"
+        row_number:
+          type: "integer"
+          description: "1-based position of the match within the paginated results"
       example:
-        id: "a1b2c3d4-e5f6-7890-a1b2-c3d4e5f67890"
-        player1: "a1a1a1a1-b2b2-c3c3-d4d4-e5e5e5e5e5e5"
-        player2: "f6f6f6f6-g7g7-h8h8-i9i9-j0j0j0j0j0j0"
+        _id: "a1b2c3d4-e5f6-7890-a1b2-c3d4e5f67890"
+        player1: "PlayerOne"
+        player2: "PlayerTwo"
         winner: "1"
         log: ["move1", "move2"]
         points1: 10
         points2: -5
-        timestamp: -1
-        _id: "60d5f1b2c3d4e5f6a1b2c3d4"
-        player1_name: "PlayerOne"
-        player2_name: "PlayerTwo"
+        started_at: 1700000000
+        ended_at: 1700000123
+        row_number: 1
 
     LeaderboardEntry:
       type: "object"
       description: "A single player's entry on the leaderboard"
       properties:
-        _id:
-          type: "string"
-          description: "MongoDB document ID"
-        uuid:
-          type: "string"
-          format: "uuid"
-          description: "Player's unique ID"
         username:
           type: "string"
           description: "Player's username"
@@ -254,8 +266,6 @@ components:
           type: "integer"
           description: "Total number of draws"
       example:
-        _id: "60d5f1b2c3d4e5f6a1b2c3d5"
-        uuid: "a1a1a1a1-b2b2-c3c3-d4d4-e5e5e5e5e5e5"
         username: "PlayerOne"
         points: 150
         wins: 15
