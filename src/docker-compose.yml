@@ -37,6 +37,8 @@ services:
     secrets:
       - collection_cert
       - collection_key
+    environment:
+      USER_MANAGER_URL: "https://user-manager:5000"
 
   user-db:
     image: mongo:latest

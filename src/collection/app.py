@@ -2,7 +2,7 @@ from flask import Flask, jsonify, request
 from pymongo import MongoClient
 from bson import ObjectId
 import json
-
+from utilities import require_auth, validate_user_token
 app = Flask(__name__)
 
 # connect to MongoDB
@@ -11,7 +11,6 @@ try:
     db = client['card_game']
     decks_collection = db['decks']
     print("Connected to MongoDB")
-
 except Exception as e:
     print(f"MongoDB connection error: {e}")
 
@@ -26,7 +25,9 @@ def serialize_deck(deck):
         deck['_id'] = str(deck['_id'])
     return deck
 
-# GET /collection - Get all cards (id and image)
+# PUBLIC ROUTES 
+
+# GET /collection/cards - Get all cards (id and image)
 @app.route('/collection/cards', methods=['GET'])
 def get_collection():
     try:
@@ -40,7 +41,6 @@ def get_collection():
             'data': filtered_cards,
             'total': len(filtered_cards)
         }), 200
-    
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -54,15 +54,21 @@ def get_card(card_id):
             return jsonify({'success': True, 'data': card}), 200
         else:
             return jsonify({'success': False, 'error': 'Card not found'}), 404
-    
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+# PROTECTED ROUTES
+
 # GET /decks - Get all user's decks
 @app.route('/collection/decks', methods=['GET'])
-def get_decks():
+@require_auth
+def get_decks(user_id, username):
+    """
+    Ottiene tutti i mazzi dell'utente autenticato.
+    user_id e username vengono iniettati automaticamente dal decorator.
+    """
     try:
-        user_id = request.args.get('userId')
+        # Usa l'user_id dal token, non dal query parameter
         user_decks = list(decks_collection.find({'userId': user_id}))
         for deck in user_decks:
             serialize_deck(deck)
@@ -71,16 +77,18 @@ def get_decks():
             'data': user_decks,
             'total': len(user_decks)
         }), 200
-    
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# POST /collection/create - Create a new deck
+# POST /collection/decks - Create a new deck - PROTETTA
 @app.route('/collection/decks', methods=['POST'])
-def create_deck():
+@require_auth
+def create_deck(user_id, username):
+    """
+    Crea un nuovo mazzo per l'utente autenticato.
+    """
     try:
         data = request.json
-        user_id = data.get('userId')
         deck_slot = data.get('deckSlot')
         deck_name = data.get('deckName')
         selected_cards = data.get('cards', [])
@@ -113,11 +121,11 @@ def create_deck():
             if total_points > 15:
                 return jsonify({'success': False, 'error': f'Suit {suit} has {total_points} points (max 15)'}), 400
 
-        # replace existing deck in the same slot
+        # replace existing deck in the same slot - USA user_id DAL TOKEN
         decks_collection.delete_one({'userId': user_id, 'slot': deck_slot})
 
         new_deck = {
-            'userId': user_id,
+            'userId': user_id,  # <-- USA user_id DAL TOKEN
             'slot': deck_slot,
             'name': deck_name,
             'cards': selected_cards
@@ -130,16 +138,18 @@ def create_deck():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# DELETE /collection/{deckId} - Delete a deck
+# DELETE /collection/decks/{deckId} - Delete a deck - PROTETTA
 @app.route('/collection/decks/<deck_id>', methods=['DELETE'])
-def delete_deck(deck_id):
+@require_auth
+def delete_deck(user_id, username, deck_id):
+    """
+    Elimina un mazzo dell'utente autenticato.
+    """
     try:
-        user_id = request.args.get('userId')
-        
-        # check if deck exists
+        # check if deck exists AND belongs to the authenticated user
         deck = decks_collection.find_one({'_id': ObjectId(deck_id), 'userId': user_id})
         if not deck:
-            return jsonify({'success': False, 'error': 'Deck not found'}), 404
+            return jsonify({'success': False, 'error': 'Deck not found or access denied'}), 404
         
         # delete the deck
         decks_collection.delete_one({'_id': ObjectId(deck_id)})
@@ -147,22 +157,18 @@ def delete_deck(deck_id):
     
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
-    
-    
-    
+
+# GET /collection/decks/user/{user_id}/slot/{slot_number} - INTERNA (per game-engine)
 @app.route('/collection/decks/user/<user_id>/slot/<int:slot_number>', methods=['GET'])
 def get_deck_by_slot(user_id, slot_number):
     """
-    Restituisce un singolo mazzo per un utente e uno slot, 
-    popolando i dati delle carte e aggiungendo il Joker.
-    Questo endpoint è pensato per essere usato dal Game Engine.
+    Endpoint INTERNO usato dal game-engine per recuperare un mazzo.
+    NON richiede autenticazione perché è chiamato tra microservizi.
     """
     try:
-        # 1. Carica il dizionario di tutte le carte per una ricerca veloce
         all_cards = load_cards()
         cards_dict = {c['id']: c for c in all_cards}
 
-        # 2. Trova il mazzo nel database
         deck = decks_collection.find_one({
             'userId': user_id, 
             'slot': slot_number
@@ -171,21 +177,18 @@ def get_deck_by_slot(user_id, slot_number):
         if not deck:
             return jsonify({'success': False, 'error': 'Deck not found in this slot'}), 404
 
-        # 3. "Popola" le carte: trasforma la lista di ID in una lista di oggetti carta
         populated_cards = []
-        for card_id in deck.get('cards', []): # deck['cards'] è una lista di 8 ID
+        for card_id in deck.get('cards', []):
             if card_id in cards_dict:
-                # Aggiungi solo i campi che servono al game-engine (value, suit)
                 card_data = cards_dict[card_id]
                 populated_cards.append({
-                    "value": card_data.get("value"), #
+                    "value": card_data.get("value"),
                     "suit": card_data.get("suit")
                 })
-            
-        # 4. Aggiungi il Joker (richiesto dal game-engine)
+        
+        # Add Joker
         populated_cards.append({"value": "JOKER", "suit": "none"})
 
-        # 5. Verifica che il mazzo sia completo (8 + 1 Joker)
         if len(populated_cards) != 9:
             app.logger.error(f"Deck {deck['_id']} for user {user_id} is incomplete. Found {len(populated_cards)-1} cards.")
             return jsonify({'success': False, 'error': 'Deck data is corrupt or incomplete'}), 500
