@@ -5,4 +5,4 @@ RUN pip install -r requirements.txt
 COPY collection/app.py .
 COPY cards/ ./cards/
 EXPOSE 5000
-CMD ["flask", "run", "--host=0.0.0.0", "--port=5000"]
+CMD flask run --cert=/run/secrets/collection_cert --key=/run/secrets/collection_key --host=0.0.0.0 --port=5000

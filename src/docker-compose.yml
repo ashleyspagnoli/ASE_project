@@ -34,6 +34,9 @@ services:
       - 5003:5000
     depends_on:
       - db-decks
+    secrets:
+      - collection_cert
+      - collection_key
 
   user-db:
     image: mongo:latest
@@ -135,3 +138,7 @@ secrets:
     file: ./certs/game_history/key.pem
   history_cert:
     file: ./certs/game_history/cert.pem
+  collection_cert:
+    file: ./collection/collectioncert.pem
+  collection_key:
+    file: ./collection/collectionkey.pem
