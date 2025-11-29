@@ -11,7 +11,7 @@ services:
     environment:
       GAME_ENGINE: "http://game_engine:5000/game"
       GAME_HISTORY_URL: "http://game_history:5000/addmatch"
-      COLLECTION_URL: "http://collection:5000/collection"
+      COLLECTION_URL: "https://collection:5000/collection"
       # --- MODIFICA 2: Aggiungi l'URL per il servizio utenti ---
       # Deve essere HTTPS e sulla porta INTERNA 5000 (come da comando uvicorn)
       USER_MANAGER_URL: "https://user-manager:5000" 
