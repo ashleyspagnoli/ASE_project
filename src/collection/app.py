@@ -27,15 +27,12 @@ def serialize_deck(deck):
 
 # PUBLIC ROUTES 
 
-# GET /collection/cards - Get all cards (id and image)
+# GET /collection/cards - Get all cards ids
 @app.route('/collection/cards', methods=['GET'])
 def get_collection():
     try:
         cards = load_cards()
-        filtered_cards = [
-            {'id': card['id'], 'image': card['image']}
-            for card in cards
-        ]
+        filtered_cards = [ {'id': card['id']} for card in cards ]
         return jsonify({
             'success': True,
             'data': filtered_cards,

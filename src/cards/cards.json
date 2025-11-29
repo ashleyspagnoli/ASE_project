@@ -3,371 +3,318 @@
     "id": "hA",
     "suit": "hearts",
     "value": "A",
-    "points": 7,
-    "image": "/images/hearts/A.png"
+    "points": 7
   },
   {
     "id": "h2",
     "suit": "hearts",
     "value": "2",
-    "points": 2,
-    "image": "/images/hearts/2.png"
+    "points": 2
   },
   {
     "id": "h3",
     "suit": "hearts",
     "value": "3",
-    "points": 3,
-    "image": "/images/hearts/3.png"
+    "points": 3
   },
   {
     "id": "h4",
     "suit": "hearts",
     "value": "4",
-    "points": 4,
-    "image": "/images/hearts/4.png"
+    "points": 4
   },
   {
     "id": "h5",
     "suit": "hearts",
     "value": "5",
-    "points": 5,
-    "image": "/images/hearts/5.png"
+    "points": 5
   },
   {
     "id": "h6",
     "suit": "hearts",
     "value": "6",
-    "points": 6,
-    "image": "/images/hearts/6.png"
+    "points": 6
   },
   {
     "id": "h7",
     "suit": "hearts",
     "value": "7",
-    "points": 7,
-    "image": "/images/hearts/7.png"
+    "points": 7
   },
   {
     "id": "h8",
     "suit": "hearts",
     "value": "8",
-    "points": 8,
-    "image": "/images/hearts/8.png"
+    "points": 8
   },
   {
     "id": "h9",
     "suit": "hearts",
     "value": "9",
-    "points": 9,
-    "image": "/images/hearts/9.png"
+    "points": 9
   },
   {
     "id": "h10",
     "suit": "hearts",
     "value": "10",
-    "points": 10,
-    "image": "/images/hearts/10.png"
+    "points": 10
   },
   {
     "id": "hJ",
     "suit": "hearts",
     "value": "J",
-    "points": 11,
-    "image": "/images/hearts/J.png"
+    "points": 11
   },
   {
     "id": "hQ",
     "suit": "hearts",
     "value": "Q",
-    "points": 12,
-    "image": "/images/hearts/Q.png"
+    "points": 12
   },
   {
     "id": "hK",
     "suit": "hearts",
     "value": "K",
-    "points": 13,
-    "image": "/images/hearts/K.png"
+    "points": 13
   },
   {
     "id": "dA",
     "suit": "diamonds",
     "value": "A",
-    "points": 7,
-    "image": "/images/diamonds/A.png"
+    "points": 7
   },
   {
     "id": "d2",
     "suit": "diamonds",
     "value": "2",
-    "points": 2,
-    "image": "/images/diamonds/2.png"
+    "points": 2
   },
   {
     "id": "d3",
     "suit": "diamonds",
     "value": "3",
-    "points": 3,
-    "image": "/images/diamonds/3.png"
+    "points": 3
   },
   {
     "id": "d4",
     "suit": "diamonds",
     "value": "4",
-    "points": 4,
-    "image": "/images/diamonds/4.png"
+    "points": 4
   },
   {
     "id": "d5",
     "suit": "diamonds",
     "value": "5",
-    "points": 5,
-    "image": "/images/diamonds/5.png"
+    "points": 5
   },
   {
     "id": "d6",
     "suit": "diamonds",
     "value": "6",
-    "points": 6,
-    "image": "/images/diamonds/6.png"
+    "points": 6
   },
   {
     "id": "d7",
     "suit": "diamonds",
     "value": "7",
-    "points": 7,
-    "image": "/images/diamonds/7.png"
+    "points": 7
   },
   {
     "id": "d8",
     "suit": "diamonds",
     "value": "8",
-    "points": 8,
-    "image": "/images/diamonds/8.png"
+    "points": 8
   },
   {
     "id": "d9",
     "suit": "diamonds",
     "value": "9",
-    "points": 9,
-    "image": "/images/diamonds/9.png"
+    "points": 9
   },
   {
     "id": "d10",
     "suit": "diamonds",
     "value": "10",
-    "points": 10,
-    "image": "/images/diamonds/10.png"
+    "points": 10
   },
   {
     "id": "dJ",
     "suit": "diamonds",
     "value": "J",
-    "points": 11,
-    "image": "/images/diamonds/J.png"
+    "points": 11
   },
   {
     "id": "dQ",
     "suit": "diamonds",
     "value": "Q",
-    "points": 12,
-    "image": "/images/diamonds/Q.png"
+    "points": 12
   },
   {
     "id": "dK",
     "suit": "diamonds",
     "value": "K",
-    "points": 13,
-    "image": "/images/diamonds/K.png"
+    "points": 13
   },
   {
     "id": "cA",
     "suit": "clubs",
     "value": "A",
-    "points": 7,
-    "image": "/images/clubs/A.png"
+    "points": 7
   },
   {
     "id": "c2",
     "suit": "clubs",
     "value": "2",
-    "points": 2,
-    "image": "/images/clubs/2.png"
+    "points": 2
   },
   {
     "id": "c3",
     "suit": "clubs",
     "value": "3",
-    "points": 3,
-    "image": "/images/clubs/3.png"
+    "points": 3
   },
   {
     "id": "c4",
     "suit": "clubs",
     "value": "4",
-    "points": 4,
-    "image": "/images/clubs/4.png"
+    "points": 4
   },
   {
     "id": "c5",
     "suit": "clubs",
     "value": "5",
-    "points": 5,
-    "image": "/images/clubs/5.png"
+    "points": 5
   },
   {
     "id": "c6",
     "suit": "clubs",
     "value": "6",
-    "points": 6,
-    "image": "/images/clubs/6.png"
+    "points": 6
   },
   {
     "id": "c7",
     "suit": "clubs",
     "value": "7",
-    "points": 7,
-    "image": "/images/clubs/7.png"
+    "points": 7
   },
   {
     "id": "c8",
     "suit": "clubs",
     "value": "8",
-    "points": 8,
-    "image": "/images/clubs/8.png"
+    "points": 8
   },
   {
     "id": "c9",
     "suit": "clubs",
     "value": "9",
-    "points": 9,
-    "image": "/images/clubs/9.png"
+    "points": 9
   },
   {
     "id": "c10",
     "suit": "clubs",
     "value": "10",
-    "points": 10,
-    "image": "/images/clubs/10.png"
+    "points": 10
   },
   {
     "id": "cJ",
     "suit": "clubs",
     "value": "J",
-    "points": 11,
-    "image": "/images/clubs/J.png"
+    "points": 11
   },
   {
     "id": "cQ",
     "suit": "clubs",
     "value": "Q",
-    "points": 12,
-    "image": "/images/clubs/Q.png"
+    "points": 12
   },
   {
     "id": "cK",
     "suit": "clubs",
     "value": "K",
-    "points": 13,
-    "image": "/images/clubs/K.png"
+    "points": 13
   },
   {
     "id": "sA",
     "suit": "spades",
     "value": "A",
-    "points": 7,
-    "image": "/images/spades/A.png"
+    "points": 7
   },
   {
     "id": "s2",
     "suit": "spades",
     "value": "2",
-    "points": 2,
-    "image": "/images/spades/2.png"
+    "points": 2
   },
   {
     "id": "s3",
     "suit": "spades",
     "value": "3",
-    "points": 3,
-    "image": "/images/spades/3.png"
+    "points": 3
   },
   {
     "id": "s4",
     "suit": "spades",
     "value": "4",
-    "points": 4,
-    "image": "/images/spades/4.png"
+    "points": 4 
   },
   {
     "id": "s5",
     "suit": "spades",
     "value": "5",
-    "points": 5,
-    "image": "/images/spades/5.png"
-  },
+    "points": 5
+ },
   {
     "id": "s6",
     "suit": "spades",
     "value": "6",
-    "points": 6,
-    "image": "/images/spades/6.png"
+    "points": 6
   },
   {
     "id": "s7",
     "suit": "spades",
     "value": "7",
-    "points": 7,
-    "image": "/images/spades/7.png"
+    "points": 7
   },
   {
     "id": "s8",
     "suit": "spades",
     "value": "8",
-    "points": 8,
-    "image": "/images/spades/8.png"
+    "points": 8
   },
   {
     "id": "s9",
     "suit": "spades",
     "value": "9",
-    "points": 9,
-    "image": "/images/spades/9.png"
+    "points": 9
   },
   {
     "id": "s10",
     "suit": "spades",
     "value": "10",
-    "points": 10,
-    "image": "/images/spades/10.png"
+    "points": 10
   },
   {
     "id": "sJ",
     "suit": "spades",
     "value": "J",
-    "points": 11,
-    "image": "/images/spades/J.png"
+    "points": 11
   },
   {
     "id": "sQ",
     "suit": "spades",
     "value": "Q",
-    "points": 12,
-    "image": "/images/spades/Q.png"
+    "points": 12
   },
   {
     "id": "sK",
     "suit": "spades",
     "value": "K",
-    "points": 13,
-    "image": "/images/spades/K.png"
+    "points": 13
   },
   {
     "id": "JOKER",
     "suit": "none",
     "value": "JOKER",
-    "points": 0,
-    "image": "/images/joker/joker.png"
+    "points": 0
   }
 ]
