@@ -24,7 +24,7 @@ services:
     ports:
       - 5002:5000
     depends_on:
-      - db-games
+      - db-history
       - user-manager
 
   collection:
@@ -85,11 +85,6 @@ services:
     volumes:
       - history-data:/data/db
 
-  db-games:
-    image: mongo:latest
-    volumes:
-      - games-data:/data/db
-
   db-decks:
     image: mongo:latest
     volumes:
@@ -123,7 +118,6 @@ services:
 
 volumes:
   history-data:
-  games-data:
   decks-data:
   user_mongo_data:
 

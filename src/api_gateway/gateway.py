@@ -1,5 +1,6 @@
 import users
 import game_engine
+import history
 from fastapi import FastAPI
 
 
@@ -13,3 +14,5 @@ app = FastAPI(
 app.include_router(users.router, prefix="/users")
 # Game Engine routes
 app.include_router(game_engine.router, prefix="/game", tags=["Game"])
+# History routes
+app.include_router(history.router, prefix="/history", tags=["History"])
