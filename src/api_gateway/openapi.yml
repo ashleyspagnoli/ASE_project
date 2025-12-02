@@ -1,0 +1,739 @@
+openapi: 3.0.3
+info:
+  title: Card Game API Gateway
+  description: |
+    API Gateway for the Card Game microservices platform. This gateway provides unified access to:
+    - User authentication and management
+    - Game engine (matchmaking and gameplay)
+    - Collection service (deck and card management)
+    - Game history and leaderboard
+    
+    All requests are proxied to the appropriate backend microservice.
+  version: 1.0.0
+  contact:
+    name: ASE Project Team
+    email: aseproject@unipi.it
+
+servers:
+  - url: https://localhost:8443
+    description: Local development server (HTTPS)
+
+tags:
+  - name: Authentication
+    description: User authentication endpoints
+  - name: Users
+    description: User management and profile operations
+  - name: Game
+    description: Game engine, matchmaking, and gameplay
+  - name: Collection
+    description: Card collection and deck management
+  - name: History
+    description: Match history and leaderboard
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token obtained from /users/login or /users/token
+
+  schemas:
+    UserRegister:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          example: newuser
+          description: Unique username for the account
+        password:
+          type: string
+          minLength: 3
+          example: strongpassword
+          description: Account password
+        email:
+          type: string
+          format: email
+          example: user@example.com
+          description: User email address
+
+    UserLogin:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          example: user123
+        password:
+          type: string
+          example: password123
+
+    TokenResponse:
+      type: object
+      properties:
+        token:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+        user_id:
+          type: string
+          example: 507f1f77bcf86cd799439011
+
+    MatchJoinResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [waiting, matched]
+          example: matched
+        game_id:
+          type: string
+          example: 550e8400-e29b-41d4-a716-446655440000
+        message:
+          type: string
+          example: Match found!
+
+    DeckSelectionRequest:
+      type: object
+      required:
+        - deck_slot
+      properties:
+        deck_slot:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 1
+          description: Deck slot number (1-5)
+
+    CardPlayRequest:
+      type: object
+      required:
+        - card
+      properties:
+        card:
+          type: object
+          properties:
+            value:
+              type: string
+              example: "A"
+            suit:
+              type: string
+              enum: [hearts, diamonds, clubs, spades, none]
+              example: hearts
+
+    GameStateResponse:
+      type: object
+      properties:
+        player1:
+          type: string
+        player2:
+          type: string
+        scores:
+          type: object
+          additionalProperties:
+            type: integer
+        current_round:
+          type: integer
+        winner:
+          type: string
+          nullable: true
+
+    DeckCreateRequest:
+      type: object
+      required:
+        - userId
+        - deckSlot
+        - deckName
+        - cards
+      properties:
+        userId:
+          type: string
+          example: user123
+        deckSlot:
+          type: integer
+          minimum: 1
+          maximum: 5
+          example: 1
+        deckName:
+          type: string
+          example: My Battle Deck
+        cards:
+          type: array
+          items:
+            type: string
+          minItems: 8
+          maxItems: 8
+          example: ["h2", "h3", "d2", "d3", "c2", "c3", "s2", "s3"]
+
+    CardInfo:
+      type: object
+      properties:
+        id:
+          type: string
+          example: hA
+        image:
+          type: string
+          example: /images/hearts/A.png
+
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+          example: Resource not found
+        error:
+          type: string
+          example: Invalid request
+
+paths:
+  # ==================== AUTHENTICATION & USERS ====================
+  /users/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new user
+      description: Create a new user account with username, password, and optional email
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegister'
+      responses:
+        '201':
+          description: User successfully registered
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: User registered successfully
+        '400':
+          description: Invalid input or user already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/login:
+    post:
+      tags:
+        - Authentication
+      summary: Login with username and password
+      description: Authenticate user and receive JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserLogin'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /users/token:
+    post:
+      tags:
+        - Authentication
+      summary: Get token using form data
+      description: Alternative login endpoint using form-encoded data
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              required:
+                - username
+                - password
+              properties:
+                username:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Token generated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenResponse'
+
+  /users/validate-token:
+    get:
+      tags:
+        - Users
+      summary: Validate JWT token
+      description: Check if the provided JWT token is valid
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: token_str
+          in: query
+          required: false
+          schema:
+            type: string
+          description: Token to validate (can also be provided in Authorization header)
+      responses:
+        '200':
+          description: Token is valid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  valid:
+                    type: boolean
+                  user_id:
+                    type: string
+        '401':
+          description: Invalid or expired token
+
+  /users/modify/change-username:
+    patch:
+      tags:
+        - Users
+      summary: Change username
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - new_username
+              properties:
+                new_username:
+                  type: string
+      responses:
+        '200':
+          description: Username updated successfully
+
+  /users/modify/change-password:
+    patch:
+      tags:
+        - Users
+      summary: Change password
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - old_password
+                - new_password
+              properties:
+                old_password:
+                  type: string
+                new_password:
+                  type: string
+      responses:
+        '200':
+          description: Password updated successfully
+
+  /users/modify/change-email:
+    patch:
+      tags:
+        - Users
+      summary: Change email address
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - new_email
+              properties:
+                new_email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Email updated successfully
+
+  # ==================== GAME ENGINE ====================
+  /game/match/join:
+    post:
+      tags:
+        - Game
+      summary: Join matchmaking queue
+      description: Join the matchmaking queue to find an opponent
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Matchmaking response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchJoinResponse'
+        '401':
+          description: Unauthorized - valid JWT required
+
+  /game/match/status:
+    get:
+      tags:
+        - Game
+      summary: Check matchmaking status
+      description: Check if a match has been found
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Matchmaking status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MatchJoinResponse'
+
+  /game/deck/{game_id}:
+    post:
+      tags:
+        - Game
+      summary: Select deck for game
+      description: Choose which deck to use for the current game
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: game_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: Game ID from matchmaking
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeckSelectionRequest'
+      responses:
+        '200':
+          description: Deck selected successfully
+        '404':
+          description: Game or deck not found
+
+  /game/hand/{game_id}:
+    get:
+      tags:
+        - Game
+      summary: Get player's hand
+      description: Retrieve the cards currently in the player's hand
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: game_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Player's hand
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    value:
+                      type: string
+                    suit:
+                      type: string
+
+  /game/play/{game_id}:
+    post:
+      tags:
+        - Game
+      summary: Play a card
+      description: Submit a card to play in the current round
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: game_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CardPlayRequest'
+      responses:
+        '200':
+          description: Card played successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum: [waiting, resolved, finished]
+                  message:
+                    type: string
+                  scores:
+                    type: object
+
+  /game/state/{game_id}:
+    get:
+      tags:
+        - Game
+      summary: Get game state
+      description: Retrieve the current state of the game
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: game_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Current game state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GameStateResponse'
+
+  # ==================== COLLECTION ====================
+  /collection/cards:
+    get:
+      tags:
+        - Collection
+      summary: Get all available cards
+      description: Retrieve list of all cards with their IDs and images
+      responses:
+        '200':
+          description: List of all cards
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CardInfo'
+                  total:
+                    type: integer
+
+  /collection/cards/{card_id}:
+    get:
+      tags:
+        - Collection
+      summary: Get card details
+      description: Get detailed information about a specific card
+      parameters:
+        - name: card_id
+          in: path
+          required: true
+          schema:
+            type: string
+          example: hA
+      responses:
+        '200':
+          description: Card details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      id:
+                        type: string
+                      suit:
+                        type: string
+                      value:
+                        type: string
+                      points:
+                        type: integer
+        '404':
+          description: Card not found
+
+  /collection/decks:
+    get:
+      tags:
+        - Collection
+      summary: Get user's decks
+      description: Retrieve all decks owned by the authenticated user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of user's decks
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      type: object
+                  total:
+                    type: integer
+
+    post:
+      tags:
+        - Collection
+      summary: Create a new deck
+      description: |
+        Create a new deck with 8 cards following these rules:
+        - Exactly 8 cards (2 per suit)
+        - Maximum 15 points per suit
+        - Valid card IDs from the collection
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DeckCreateRequest'
+      responses:
+        '201':
+          description: Deck created successfully
+        '400':
+          description: Invalid deck composition
+
+  /collection/decks/{deck_id}:
+    delete:
+      tags:
+        - Collection
+      summary: Delete a deck
+      description: Remove a deck from user's collection
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: deck_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Deck deleted successfully
+        '404':
+          description: Deck not found
+
+  # ==================== HISTORY ====================
+  /history/addmatch:
+    post:
+      tags:
+        - History
+      summary: Add match to history
+      description: Record a completed match (typically called by game engine)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                game_id:
+                  type: string
+                player1:
+                  type: string
+                player2:
+                  type: string
+                winner:
+                  type: string
+                scores:
+                  type: object
+      responses:
+        '201':
+          description: Match recorded successfully
+
+  /history/matches:
+    get:
+      tags:
+        - History
+      summary: Get match history
+      description: Retrieve match history for the authenticated user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of matches
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    game_id:
+                      type: string
+                    player1:
+                      type: string
+                    player2:
+                      type: string
+                    winner:
+                      type: string
+                    timestamp:
+                      type: string
+                      format: date-time
+
+  /history/leaderboard:
+    get:
+      tags:
+        - History
+      summary: Get leaderboard
+      description: Retrieve the global leaderboard with player rankings
+      responses:
+        '200':
+          description: Leaderboard data
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    username:
+                      type: string
+                    wins:
+                      type: integer
+                    losses:
+                      type: integer
+                    total_games:
+                      type: integer
