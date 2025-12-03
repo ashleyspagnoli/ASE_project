@@ -16,29 +16,6 @@ class ApiResult:
 
 # --- FUNZIONI DI SERVIZIO ---
 
-async def api_validate_token_internal(CURRENT_USER_STATE: UserState):
-    """Versione interna per validare il token dopo il login e recuperare l'username."""
-    token = CURRENT_USER_STATE.token
-    if not token:
-        return None
-        
-    async with httpx.AsyncClient(verify=False) as client:
-        try:
-            validate_url = f"{API_GATEWAY_URL}/users/validate-token"
-            response = await client.get(
-                validate_url,
-                headers={"Authorization": f"Bearer {token}"},
-            )
-            response.raise_for_status() 
-            
-            data = response.json()
-            # AGGIORNAMENTO DELLO STATO GLOBALE con i dati validati
-            return data
-
-        except (httpx.HTTPStatusError, httpx.RequestError):
-            return None # Token non valido o servizio non raggiungibile
-
-
 async def api_login(username, password,CURRENT_USER_STATE: UserState):
     async with httpx.AsyncClient(verify=False) as client:
         try:
