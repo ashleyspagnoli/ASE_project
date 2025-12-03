@@ -1,15 +1,9 @@
 from fastapi import APIRouter, Request
 from utils import forward_request
 
-HISTORY_URL = 'http://game_history:5000'
+HISTORY_URL = 'https://game_history:5000'
 
 router = APIRouter()
-
-@router.post('/addmatch', tags=['History'])
-async def history_add_match(request: Request):
-    URL = HISTORY_URL + '/addmatch'
-    body = await request.json()
-    return await forward_request(request, URL, body_data=body, is_json=True)
 
 @router.get('/matches', tags=['History'])
 async def history_matches(request: Request):

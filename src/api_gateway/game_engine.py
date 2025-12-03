@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request
 from utils import forward_request
 
 
-GAME_URL = 'http://game_engine:5000'  # URL interno del microservizio Game Engine
+GAME_URL = 'https://game_engine:5000'  # URL interno del microservizio Game Engine
 
 router = APIRouter()
 
