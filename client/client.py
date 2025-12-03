@@ -3,6 +3,7 @@ from rich.console import Console
 import time
 from client_app.profilescreen import schermata_profilo
 from client_app.authentication import flusso_autenticazione
+from client_app.leaderboard import schermata_leaderboard
 
 console = Console()
 
@@ -35,7 +36,7 @@ def menu_principale_gioco(): # Rimosso 'user'
         console.print(f"[bold purple]You are logged as : {username}[/]")
         azione = questionary.select(
             "What do you want to do?",
-            choices=["Play a Match","Decks", "Profile", "Logout", "Quit"]
+            choices=["Play a Match","Decks", "Profile", "Leaderboard" , "Logout", "Quit"]
         ).ask()
         
         if azione == "Logout":
@@ -48,7 +49,11 @@ def menu_principale_gioco(): # Rimosso 'user'
             schermata_profilo(console,CURRENT_USER_STATE) # Rimosso 'user'
             if not CURRENT_USER_STATE.token:
                 return True # Forza il logout se il token è stato rimosso durante la modifica del profilo
-        
+            
+        elif azione == "Leaderboard":
+            schermata_leaderboard(console)
+            time.sleep(2)
+
         elif azione == "Decks":
             console.print("[bold green]Decks feature is under development![/]")
             time.sleep(2)
