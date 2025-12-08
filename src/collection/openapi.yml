@@ -11,7 +11,7 @@ paths:
   /collection/cards:
     get:
       summary: Get all available cards
-      description: Returns all available cards with their id and image.
+      description: Returns all available cards with their id.
       responses:
         '200':
           description: Collection retrieved successfully
@@ -31,9 +31,6 @@ paths:
                         id:
                           type: string
                           example: "hA"
-                        image:
-                          type: string
-                          example: "images/hearts/A.png"
                   total:
                     type: integer
                     example: 52
@@ -71,15 +68,10 @@ paths:
 
   /collection/decks:
     get:
-      summary: Get all decks for a user
-      description: Returns all decks created by a given user.
-      parameters:
-        - name: userId
-          in: query
-          required: true
-          schema:
-            type: string
-            example: "user123"
+      summary: Get all decks for authenticated user
+      description: Returns all decks created by the authenticated user.
+      security:
+        - BearerAuth: []
       responses:
         '200':
           description: Decks retrieved successfully
@@ -90,6 +82,7 @@ paths:
                 properties:
                   success:
                     type: boolean
+                    example: true
                   data:
                     type: array
                     items:
@@ -97,17 +90,21 @@ paths:
                   total:
                     type: integer
                     example: 2
+        '401':
+          description: Unauthorized - Invalid or missing token
         '500':
           description: Server error
 
     post:
       summary: Create or replace a deck
       description: >
-        Creates and validates a new deck for a user.  
+        Creates and validates a new deck for the authenticated user.  
         - Must contain exactly 8 cards.  
         - Exactly 2 cards per suit.  
         - Each suit must not exceed 15 total points.  
         - Replaces any existing deck in the same slot.
+      security:
+        - BearerAuth: []
       requestBody:
         required: true
         content:
@@ -115,16 +112,14 @@ paths:
             schema:
               type: object
               required:
-                - userId
                 - deckSlot
                 - deckName
                 - cards
               properties:
-                userId:
-                  type: string
-                  example: "user123"
                 deckSlot:
                   type: integer
+                  minimum: 1
+                  maximum: 5
                   example: 1
                 deckName:
                   type: string
@@ -133,6 +128,8 @@ paths:
                   type: array
                   items:
                     type: string
+                  minItems: 8
+                  maxItems: 8
                   example: ["hA", "h5", "d5", "dK", "c7", "c8", "sA", "s5"]
       responses:
         '201':
@@ -152,26 +149,24 @@ paths:
                     $ref: '#/components/schemas/Deck'
         '400':
           description: Invalid input data
+        '401':
+          description: Unauthorized - Invalid or missing token
         '500':
           description: Server error
 
   /collection/decks/{deckId}:
     delete:
       summary: Delete a deck
-      description: Deletes a deck for the specified user.
+      description: Deletes a deck owned by the authenticated user.
+      security:
+        - BearerAuth: []
       parameters:
         - name: deckId
           in: path
           required: true
           schema:
             type: string
-            example: "64f3b2d8e0d3f1b78c92e3f0"
-        - name: userId
-          in: query
-          required: true
-          schema:
-            type: string
-            example: "user123"
+          example: "64f3b2d8e0d3f1b78c92e3f0"
       responses:
         '200':
           description: Deck deleted successfully
@@ -186,12 +181,77 @@ paths:
                   message:
                     type: string
                     example: Deck deleted successfully
+        '401':
+          description: Unauthorized - Invalid or missing token
         '404':
-          description: Deck not found
+          description: Deck not found or access denied
         '500':
           description: Server error
 
+  /collection/decks/user/{userId}/slot/{slotNumber}:
+    get:
+      summary: Get deck by user and slot (Internal API)
+      description: >
+        Internal endpoint used by game-engine to retrieve a specific deck.
+        Returns the deck with populated card data (value, suit) and adds a JOKER card.
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "user123"
+        - name: slotNumber
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        '200':
+          description: Deck retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        value:
+                          type: string
+                          example: "A"
+                        suit:
+                          type: string
+                          example: "hearts"
+                    example:
+                      - { "value": "A", "suit": "hearts" }
+                      - { "value": "5", "suit": "hearts" }
+                      - { "value": "5", "suit": "diamonds" }
+                      - { "value": "K", "suit": "diamonds" }
+                      - { "value": "7", "suit": "clubs" }
+                      - { "value": "8", "suit": "clubs" }
+                      - { "value": "A", "suit": "spades" }
+                      - { "value": "5", "suit": "spades" }
+                      - { "value": "JOKER", "suit": "none" }
+        '404':
+          description: Deck not found in this slot
+        '500':
+          description: Server error or corrupt deck data
+
 components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token di autenticazione JWT
+
   schemas:
     Card:
       type: object
@@ -223,6 +283,8 @@ components:
           example: "user123"
         slot:
           type: integer
+          minimum: 1
+          maximum: 5
           example: 1
         name:
           type: string
@@ -231,4 +293,6 @@ components:
           type: array
           items:
             type: string
-            example: "hA"
+          minItems: 8
+          maxItems: 8
+          example: ["hA", "h5", "d5", "dK", "c7", "c8", "sA", "s5"]
