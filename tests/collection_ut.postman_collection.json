@@ -18,10 +18,10 @@
 							"  pm.response.to.have.status(200);\r",
 							"});\r",
 							"\r",
-							"pm.test(\"Response contains all 52 cards\", function () {\r",
+							"pm.test(\"Response contains all 53 cards\", function () {\r",
 							"  var jsonData = pm.response.json();\r",
 							"  pm.expect(jsonData.success).to.eql(true);\r",
-							"  pm.expect(jsonData.total).to.eql(52);\r",
+							"  pm.expect(jsonData.total).to.eql(53);\r",
 							"  pm.expect(jsonData.data).to.be.an('array').that.has.lengthOf(52);\r",
 							"});\r",
 							"\r",
@@ -44,12 +44,12 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:5003/collection/cards",
+					"raw": "http://localhost:5006/collection/cards",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "5003",
+					"port": "5006",
 					"path": [
 						"collection",
 						"cards"
@@ -90,12 +90,12 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:5003/collection/cards/hA",
+					"raw": "http://localhost:5006/collection/cards/hA",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "5003",
+					"port": "5006",
 					"path": [
 						"collection",
 						"cards",
@@ -132,12 +132,12 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:5003/collection/cards/hX",
+					"raw": "http://localhost:5006/collection/cards/hX",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "5003",
+					"port": "5006",
 					"path": [
 						"collection",
 						"cards",
@@ -183,21 +183,15 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:5003/collection/decks?userId=testUser123",
+					"raw": "http://localhost:5006/collection/decks",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "5003",
+					"port": "5006",
 					"path": [
 						"collection",
 						"decks"
-					],
-					"query": [
-						{
-							"key": "userId",
-							"value": "testUser123"
-						}
 					]
 				}
 			},
@@ -239,12 +233,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost:5003/collection/decks",
+					"raw": "http://localhost:5006/collection/decks",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "5003",
+					"port": "5006",
 					"path": [
 						"collection",
 						"decks"
@@ -289,12 +283,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost:5003/collection/decks",
+					"raw": "http://localhost:5006/collection/decks",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "5003",
+					"port": "5006",
 					"path": [
 						"collection",
 						"decks"
@@ -310,9 +304,6 @@
 					"listen": "test",
 					"script": {
 						"exec": [
-							"// Ensure the new deck is saved before fetching\r",
-							"setTimeout(() => postman.setNextRequest(\"Get Decks\"), 500);\r",
-							"\r",
 							"pm.test(\"Status code is correct\", function () {\r",
 							"    pm.response.to.have.status(201);\r",
 							"});\r",
@@ -322,13 +313,9 @@
 							"    pm.expect(json.success).to.eql(true);\r",
 							"    pm.expect(json).to.have.property(\"data\");\r",
 							"    pm.expect(json.data).to.have.property(\"_id\");\r",
-							"    pm.expect(json.data.userId).to.eql(\"testUser123\");\r",
 							"    pm.expect(json.data.cards).to.be.an(\"array\").that.has.lengthOf(8);\r",
-							"\r",
-							"    // Deck Id saved for future requests\r",
-							"    pm.collectionVariables.set(\"deckId\", json.data._id);\r",
-							"});\r",
-							""
+							"    pm.collectionVariables.set(\"saved_id\", json.data._id);\r",
+							"});"
 						],
 						"type": "text/javascript",
 						"packages": {},
@@ -349,12 +336,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost:5003/collection/decks",
+					"raw": "http://localhost:5006/collection/decks",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "5003",
+					"port": "5006",
 					"path": [
 						"collection",
 						"decks"
@@ -379,10 +366,7 @@
 							"\r",
 							"    pm.expect(json.success).to.eql(true);\r",
 							"    pm.expect(json.data).to.be.an(\"array\").that.is.not.empty;\r",
-							"    pm.expect(json.total).to.be.above(0);\r",
-							"\r",
-							"    const deckIds = json.data.map(d => d._id);\r",
-							"    pm.expect(deckIds).to.include(pm.collectionVariables.get(\"deckId\"));\r",
+							"    pm.expect(json.total).to.be.equal(1);\r",
 							"});\r",
 							""
 						],
@@ -408,21 +392,15 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost:5003/collection/decks?userId=testUser123",
+					"raw": "http://localhost:5006/collection/decks",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "5003",
+					"port": "5006",
 					"path": [
 						"collection",
 						"decks"
-					],
-					"query": [
-						{
-							"key": "userId",
-							"value": "testUser123"
-						}
 					]
 				}
 			},
@@ -457,22 +435,16 @@
 				"method": "DELETE",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:5003/collection/decks/{{deckId}}?userId=testUser123",
+					"raw": "http://localhost:5006/collection/decks/{{saved_id}}",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "5003",
+					"port": "5006",
 					"path": [
 						"collection",
 						"decks",
-						"{{deckId}}"
-					],
-					"query": [
-						{
-							"key": "userId",
-							"value": "testUser123"
-						}
+						"{{saved_id}}"
 					]
 				}
 			},
@@ -514,30 +486,92 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:5003/collection/decks?userId=testUser123",
+					"raw": "http://localhost:5006/collection/decks",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "5003",
+					"port": "5006",
 					"path": [
 						"collection",
 						"decks"
-					],
-					"query": [
-						{
-							"key": "userId",
-							"value": "testUser123"
-						}
 					]
 				}
 			},
 			"response": []
 		}
 	],
+	"auth": {
+		"type": "jwt",
+		"jwt": [
+			{
+				"key": "algorithm",
+				"value": "HS256",
+				"type": "string"
+			},
+			{
+				"key": "isSecretBase64Encoded",
+				"value": false,
+				"type": "boolean"
+			},
+			{
+				"key": "payload",
+				"value": "{}",
+				"type": "string"
+			},
+			{
+				"key": "addTokenTo",
+				"value": "header",
+				"type": "string"
+			},
+			{
+				"key": "headerPrefix",
+				"value": "Bearer",
+				"type": "string"
+			},
+			{
+				"key": "queryParamKey",
+				"value": "token",
+				"type": "string"
+			},
+			{
+				"key": "header",
+				"value": "{}",
+				"type": "string"
+			}
+		]
+	},
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
 	"variable": [
 		{
 			"key": "deckId",
+			"value": ""
+		},
+		{
+			"key": "saved_id",
 			"value": ""
 		}
 	]

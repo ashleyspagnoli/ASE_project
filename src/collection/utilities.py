@@ -38,7 +38,7 @@ def validate_user_token(token_header: str):
         print(f"Errore validazione token: {e}")
         raise ValueError("Token non valido o servizio utenti irraggiungibile")
 
-
+mock_token_validator = None
 def require_auth(f):
     """
     Decorator per proteggere le route Flask.
@@ -47,6 +47,11 @@ def require_auth(f):
     """
     @wraps(f)
     def decorated_function(*args, **kwargs):
+        
+        if mock_token_validator:
+            user_id, username = mock_token_validator()
+            return f(user_id=user_id, username=username, *args, **kwargs)
+        
         auth_header = request.headers.get('Authorization')
         
         try:

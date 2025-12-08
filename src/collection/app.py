@@ -3,16 +3,31 @@ from pymongo import MongoClient
 from bson import ObjectId
 import json
 from utilities import require_auth, validate_user_token
+
 app = Flask(__name__)
 
-# connect to MongoDB
-try:
-    client = MongoClient('mongodb://db-decks:27017/')
-    db = client['card_game']
-    decks_collection = db['decks']
-    print("Connected to MongoDB")
-except Exception as e:
-    print(f"MongoDB connection error: {e}")
+mock_db_conn = None
+_decks_collection = None
+
+# Funzione per ottenere i decks dell'utente
+def get_decks_collection():
+    global _decks_collection
+    
+    if mock_db_conn:
+        return mock_db_conn()
+    
+    # connessione a MongoDB
+    if _decks_collection is None:
+        try:
+            client = MongoClient('mongodb://db-decks:27017/')
+            db = client['card_game']
+            _decks_collection = db['decks']
+            print("Connected to MongoDB")
+        except Exception as e:
+            print(f"MongoDB connection error: {e}")
+            raise
+    
+    return _decks_collection
 
 # load cards from JSON file
 def load_cards():
@@ -30,6 +45,9 @@ def serialize_deck(deck):
 # GET /collection/cards - Get all cards ids
 @app.route('/collection/cards', methods=['GET'])
 def get_collection():
+    """
+    Ottiene tutte le carte disponibili.
+    """
     try:
         cards = load_cards()
         filtered_cards = [ {'id': card['id']} for card in cards ]
@@ -44,6 +62,9 @@ def get_collection():
 # GET /collection/{cardId} - Get details of a single card
 @app.route('/collection/cards/<card_id>', methods=['GET'])
 def get_card(card_id):
+    """
+    Ottiene tutti i dettagli di una singola carta.
+    """"
     try:
         cards = load_cards()
         card = next((c for c in cards if c['id'] == card_id), None)
@@ -62,10 +83,9 @@ def get_card(card_id):
 def get_decks(user_id, username):
     """
     Ottiene tutti i mazzi dell'utente autenticato.
-    user_id e username vengono iniettati automaticamente dal decorator.
     """
     try:
-        # Usa l'user_id dal token, non dal query parameter
+        decks_collection = get_decks_collection()
         user_decks = list(decks_collection.find({'userId': user_id}))
         for deck in user_decks:
             serialize_deck(deck)
@@ -85,12 +105,13 @@ def create_deck(user_id, username):
     Crea un nuovo mazzo per l'utente autenticato.
     """
     try:
+        decks_collection = get_decks_collection()
         data = request.json
         deck_slot = data.get('deckSlot')
         deck_name = data.get('deckName')
         selected_cards = data.get('cards', [])
 
-        # validations (slot, name, card count)
+        # validazioni (slot, name, card count)
         if not deck_slot or deck_slot not in [1, 2, 3, 4, 5]:
             return jsonify({'success': False, 'error': 'Deck slot must be between 1 and 5'}), 400
         if not deck_name or len(deck_name.strip()) == 0:
@@ -98,19 +119,19 @@ def create_deck(user_id, username):
         if len(selected_cards) != 8:
             return jsonify({'success': False, 'error': 'You must select exactly 8 cards'}), 400
 
-        # load and validate selected cards
+        # carica e valida le carte selezionate
         all_cards = load_cards()
         cards_dict = {c['id']: c for c in all_cards}
         suits_count = {'hearts': [], 'diamonds': [], 'clubs': [], 'spades': []}
 
-        # correct ids
+        # id corretti
         for card_id in selected_cards:
             if card_id not in cards_dict:
                 return jsonify({'success': False, 'error': f'Invalid card: {card_id}'}), 400
             card = cards_dict[card_id]
             suits_count[card['suit']].append(card)
 
-        # 2 cards per suit and max 15 points per suit
+        # 2 carte per seme e max 15 punti per seme
         for suit, cards in suits_count.items():
             if len(cards) != 2:
                 return jsonify({'success': False, 'error': f'Must select exactly 2 cards per suit (suit {suit}: {len(cards)} cards)'}), 400
@@ -118,11 +139,11 @@ def create_deck(user_id, username):
             if total_points > 15:
                 return jsonify({'success': False, 'error': f'Suit {suit} has {total_points} points (max 15)'}), 400
 
-        # replace existing deck in the same slot - USA user_id DAL TOKEN
+        # rimpiazza il mazzo esistente nello slot se presente
         decks_collection.delete_one({'userId': user_id, 'slot': deck_slot})
 
         new_deck = {
-            'userId': user_id,  # <-- USA user_id DAL TOKEN
+            'userId': user_id,
             'slot': deck_slot,
             'name': deck_name,
             'cards': selected_cards
@@ -143,13 +164,13 @@ def delete_deck(user_id, username, deck_id):
     Elimina un mazzo dell'utente autenticato.
     """
     try:
-        # check if deck exists AND belongs to the authenticated user
-        deck = decks_collection.find_one({'_id': ObjectId(deck_id), 'userId': user_id})
+        # controllo sull'esistenza del deck e appartenenza all'utente
+        deck = decks_collection.find_one({'_id': query_id, 'userId': user_id}) 
         if not deck:
             return jsonify({'success': False, 'error': 'Deck not found or access denied'}), 404
         
-        # delete the deck
-        decks_collection.delete_one({'_id': ObjectId(deck_id)})
+        # elimina il deck
+        decks_collection.delete_one({'_id': query_id})
         return jsonify({'success': True, 'message': 'Deck deleted successfully'}), 200
     
     except Exception as e:
@@ -160,9 +181,9 @@ def delete_deck(user_id, username, deck_id):
 def get_deck_by_slot(user_id, slot_number):
     """
     Endpoint INTERNO usato dal game-engine per recuperare un mazzo.
-    NON richiede autenticazione perché è chiamato tra microservizi.
     """
     try:
+        decks_collection = get_decks_collection()
         all_cards = load_cards()
         cards_dict = {c['id']: c for c in all_cards}
 
@@ -183,7 +204,7 @@ def get_deck_by_slot(user_id, slot_number):
                     "suit": card_data.get("suit")
                 })
         
-        # Add Joker
+        # aggiunta joker
         populated_cards.append({"value": "JOKER", "suit": "none"})
 
         if len(populated_cards) != 9:
