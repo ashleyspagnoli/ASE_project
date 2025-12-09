@@ -4,6 +4,7 @@ import time
 from client_app.profilescreen import schermata_profilo
 from client_app.authentication import flusso_autenticazione
 from client_app.leaderboard import schermata_leaderboard
+from client_app.cardcollection import schermata_cardcollection
 
 console = Console()
 
@@ -51,12 +52,10 @@ def menu_principale_gioco(): # Rimosso 'user'
                 return True # Forza il logout se il token è stato rimosso durante la modifica del profilo
             
         elif azione == "Leaderboard":
-            schermata_leaderboard(console)
-            time.sleep(2)
+            schermata_leaderboard(console,CURRENT_USER_STATE)
 
         elif azione == "Decks":
-            console.print("[bold green]Decks feature is under development![/]")
-            time.sleep(2)
+            schermata_cardcollection(console,CURRENT_USER_STATE)
 
         elif azione == "Play a Match":
             console.print("[bold green]Play feature is under development![/]")

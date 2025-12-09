@@ -176,3 +176,76 @@ async def api_change_username(new_username,CURRENT_USER_STATE: UserState):
             
         except httpx.RequestError:
             return ApiResult(success=False, message="Servizio di autenticazione non raggiungibile.")
+
+async def api_get_leaderboard(page:int, CURRENT_USER_STATE: UserState):
+    token = CURRENT_USER_STATE.token # Lettura dal globale
+    
+    async with httpx.AsyncClient(verify=False) as client:
+        try:
+            leaderboard_url = f"{API_GATEWAY_URL}/history/leaderboard"
+            headers = {"Authorization": f"Bearer {token}"}
+            
+            response = await client.get(
+                leaderboard_url,
+                headers=headers,
+                params={"page": page}
+            )
+            
+            response.raise_for_status() 
+            data = response.json()
+            return data  # Ritorna i dati della leaderboard
+    
+        except httpx.HTTPStatusError as e:
+            # Qui rilanciamo gli errori generici del servizio
+            return None
+            
+        except httpx.RequestError:
+            return None
+        
+async def api_get_card_collection(CURRENT_USER_STATE: UserState):
+    token = CURRENT_USER_STATE.token # Lettura dal globale
+    
+    async with httpx.AsyncClient(verify=False) as client:
+        try:
+            collection_url = f"{API_GATEWAY_URL}/collection/cards"
+            headers = {"Authorization": f"Bearer {token}"}
+            
+            response = await client.get(
+                collection_url,
+                headers=headers,
+            )
+            
+            response.raise_for_status() 
+            data = response.json()
+            return data  # Ritorna i dati della card collection
+    
+        except httpx.HTTPStatusError as e:
+            # Qui rilanciamo gli errori generici del servizio
+            return None
+            
+        except httpx.RequestError:
+            return None
+        
+async def api_get_deck_collection(CURRENT_USER_STATE: UserState):
+    token = CURRENT_USER_STATE.token # Lettura dal globale
+    
+    async with httpx.AsyncClient(verify=False) as client:
+        try:
+            collection_url = f"{API_GATEWAY_URL}/collection/decks"
+            headers = {"Authorization": f"Bearer {token}"}
+            
+            response = await client.get(
+                collection_url,
+                headers=headers,
+            )
+            
+            response.raise_for_status() 
+            data = response.json()
+            return data  # Ritorna i dati della deck collection
+    
+        except httpx.HTTPStatusError as e:
+            # Qui rilanciamo gli errori generici del servizio
+            return None
+            
+        except httpx.RequestError:
+            return None
