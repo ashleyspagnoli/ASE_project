@@ -6,13 +6,15 @@ import uuid
 import json
 import os
 import urllib3
+import pika
 
 # Disabilita warning per certificati self-signed interni
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-GAME_HISTORY_URL = os.environ.get("GAME_HISTORY_URL", "http://game_history:5000/addmatch")
-COLLECTION_URL = os.environ.get("COLLECTION_URL", "http://collection:5000/collection")
+GAME_HISTORY_URL = os.environ.get("GAME_HISTORY_URL", "https://game_history:5000/addmatch")
+COLLECTION_URL = os.environ.get("COLLECTION_URL", "https://collection:5000/collection")
 USER_MANAGER_URL = os.environ.get("USER_MANAGER_URL", "https://user_manager:5000")
+RABBITMQ_HOST = os.environ.get("RABBITMQ_HOST", "rabbitmq")
 
 
 # --- STRUTTURE DATI PER MATCHMAKING REST ---
@@ -390,7 +392,7 @@ def get_game_state(game_id, games):
 # ------------------------------------------------------------
 def _save_match_to_history(game: Game):
     """
-    Invia l'esito della partita al servizio Game History in modo Sincrono.
+    Invia l'esito della partita al servizio Game History in modo Asincrono tramite RabbitMQ.
     """
     
     winner_index = "draw" # Default
@@ -416,13 +418,22 @@ def _save_match_to_history(game: Game):
     }
 
     try:
-        # CHIAMATA SINCRONA
-        response = requests.post(GAME_HISTORY_URL, json=payload, timeout=5)
-        response.raise_for_status() 
-        print(f"Match {game.game_id} salvato con successo su Game History.")
+        connection = pika.BlockingConnection(pika.ConnectionParameters(host=RABBITMQ_HOST))
+        channel = connection.channel()
+        channel.queue_declare(queue='game_history_queue', durable=True)
+        
+        channel.basic_publish(
+            exchange='',
+            routing_key='game_history_queue',
+            body=json.dumps(payload),
+            properties=pika.BasicProperties(
+                delivery_mode=2,  # make message persistent
+            ))
+        connection.close()
+        print(f"Match {game.game_id} inviato a RabbitMQ.", flush=True)
     
-    except requests.RequestException as e:
-        print(f"ERRORE CRITICO: Impossibile salvare la partita {game.game_id} su Game History: {e}")
+    except Exception as e:
+        print(f"ERRORE CRITICO: Impossibile inviare la partita {game.game_id} a RabbitMQ: {e}", flush=True)
         
         
 # ------------------------------------------------------------

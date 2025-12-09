@@ -8,13 +8,18 @@ services:
       - game_history
       - collection
       - user-manager  # <-- MODIFICA 1: Aggiungi questa dipendenza
+      - rabbitmq
+    secrets:
+      - game_engine_cert
+      - game_engine_key
     environment:
-      GAME_ENGINE: "http://game_engine:5000/game"
-      GAME_HISTORY_URL: "http://game_history:5000/addmatch"
+      GAME_ENGINE: "https://game_engine:5000/game"
+      GAME_HISTORY_URL: "https://game_history:5000/addmatch"
       COLLECTION_URL: "https://collection:5000/collection"
       # --- MODIFICA 2: Aggiungi l'URL per il servizio utenti ---
       # Deve essere HTTPS e sulla porta INTERNA 5000 (come da comando uvicorn)
       USER_MANAGER_URL: "https://user-manager:5000" 
+      RABBITMQ_HOST: "rabbitmq"
 
   game_history:
     build: ./game_history
@@ -26,6 +31,9 @@ services:
     depends_on:
       - db-history
       - user-manager
+      - rabbitmq
+    environment:
+      RABBITMQ_HOST: "rabbitmq"
 
   collection:
     build:
@@ -115,6 +123,17 @@ services:
         "/run/secrets/api_gateway_cert"
       ]
 
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
 
 volumes:
   history-data:
@@ -138,3 +157,7 @@ secrets:
     file: ./collection/collectioncert.pem
   collection_key:
     file: ./collection/collectionkey.pem
+  game_engine_cert:
+    file: ./game_engine/secrets/cert.pem
+  game_engine_key:
+    file: ./game_engine/secrets/key.pem

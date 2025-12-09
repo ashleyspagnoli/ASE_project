@@ -4,6 +4,8 @@ import uuid
 import requests
 import json
 import os
+import pika
+import threading
 
 app = Flask(__name__)
 
@@ -26,6 +28,7 @@ PAGE_SIZE = 10
 # Use environment variables or default to 'user-manager'
 USER_MANAGER_URL = os.environ.get('USER_MANAGER_URL', 'https://user-manager:5000')
 USERNAMES_BY_IDS_URL = f'{USER_MANAGER_URL}/utenti/usernames-by-ids'
+RABBITMQ_HOST = os.environ.get("RABBITMQ_HOST", "rabbitmq")
 
 
 # Helper to get usernames for a list of UUIDs in one request
@@ -89,15 +92,12 @@ def update_leaderboard_stats(player_uuid, points, is_win, is_loss, is_draw):
         print(f"Error: Failed to update leaderboard for {player_uuid}. {e}", flush=True)
 
 
-# Add a new match (POST /match)
-@app.route('/addmatch', methods=['POST'])
-def add_match():
-    data = request.json
+def process_match_data(data):
     if not data or 'player1' not in data or 'player2' not in data or 'winner' not in data:
-        return jsonify({'error': 'Missing required match data'}), 400
+        print("Error: Missing required match data", flush=True)
+        return False
 
     match_id = str(uuid.uuid4())
-
     match = {
         '_id': match_id,
         'player1': data['player1'],
@@ -134,11 +134,60 @@ def add_match():
             is_loss=(winner == '1'),
             is_draw=(winner == 'draw')
         )
-
-        return jsonify({'status': 'ok', 'match_id': match_id}), 201
+        print(f"Match {match_id} processed successfully.", flush=True)
+        return True
     
     except Exception as e:
-        print(f"Error in add_match: {e}", flush=True)
+        print(f"Error processing match: {e}", flush=True)
+        return False
+
+import time
+
+def consume_game_history():
+    print("Starting RabbitMQ consumer thread...", flush=True)
+    while True:
+        try:
+            print(f"Connecting to RabbitMQ at {RABBITMQ_HOST}...", flush=True)
+            connection = pika.BlockingConnection(pika.ConnectionParameters(host=RABBITMQ_HOST))
+            channel = connection.channel()
+            channel.queue_declare(queue='game_history_queue', durable=True)
+
+            def callback(ch, method, properties, body):
+                print("Received match data from RabbitMQ", flush=True)
+                try:
+                    data = json.loads(body)
+                    if process_match_data(data):
+                        ch.basic_ack(delivery_tag=method.delivery_tag)
+                    else:
+                        # Log error but ack to avoid infinite loop if data is bad
+                        print("Failed to process match data, acking anyway to clear queue", flush=True)
+                        ch.basic_ack(delivery_tag=method.delivery_tag)
+                except Exception as e:
+                    print(f"Error processing message: {e}", flush=True)
+                    ch.basic_ack(delivery_tag=method.delivery_tag)
+
+            channel.basic_qos(prefetch_count=1)
+            channel.basic_consume(queue='game_history_queue', on_message_callback=callback)
+
+            print('Waiting for messages. To exit press CTRL+C', flush=True)
+            channel.start_consuming()
+        except pika.exceptions.AMQPConnectionError as e:
+            print(f"RabbitMQ connection failed: {e}. Retrying in 5 seconds...", flush=True)
+            time.sleep(5)
+        except Exception as e:
+            print(f"Error in RabbitMQ consumer: {e}. Retrying in 5 seconds...", flush=True)
+            time.sleep(5)
+
+# Start consumer in a background thread
+threading.Thread(target=consume_game_history, daemon=True).start()
+
+# Add a new match (POST /match)
+@app.route('/addmatch', methods=['POST'])
+def add_match():
+    data = request.json
+    if process_match_data(data):
+        return jsonify({'status': 'ok'}), 201
+    else:
         return jsonify({'error': 'Failed to add match'}), 500
 
 
@@ -293,7 +342,10 @@ if __name__ == '__main__':
     if not db:
         print("Fatal: MongoDB connection not established. Exiting.", flush=True)
     else:
-        app.run(host='0.0.0.0', port=5001, debug=True)
+        import ssl
+        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        context.load_cert_chain('/run/secrets/history_cert', '/run/secrets/history_key')
+        app.run(host='0.0.0.0', port=5000, debug=True, ssl_context=context)
 
 
 
