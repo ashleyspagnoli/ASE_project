@@ -64,7 +64,7 @@ def get_collection():
 def get_card(card_id):
     """
     Ottiene tutti i dettagli di una singola carta.
-    """"
+    """
     try:
         cards = load_cards()
         card = next((c for c in cards if c['id'] == card_id), None)
