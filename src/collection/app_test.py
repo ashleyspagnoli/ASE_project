@@ -73,3 +73,8 @@ main_app.mock_db_conn = mock_db_conn
 
 # Configura l'app per i test
 flask_app = main_app.app
+
+
+# Per test: 
+# docker build -f collection/Dockerfile_test -t collection-test .
+# docker run -d -p 5006:5000 collection-test

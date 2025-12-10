@@ -1,8 +1,9 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_from_directory
 from pymongo import MongoClient
 from bson import ObjectId
 import json
 from utilities import require_auth, validate_user_token
+import os
 
 app = Flask(__name__)
 
@@ -56,6 +57,40 @@ def get_collection():
             'data': filtered_cards,
             'total': len(filtered_cards)
         }), 200
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# GET /collection/cards/<card_id>/image - Get a card image
+@app.route('/collection/cards/<card_id>/image', methods=['GET'])
+def get_card_image(card_id):
+    """
+    Restituisce l'immagine di una carta dato il suo ID.
+    """
+    try:
+        cards = load_cards()
+        card = next((c for c in cards if c['id'] == card_id), None)
+        
+        if not card:
+            return jsonify({'success': False, 'error': 'Card not found'}), 404
+        
+        image_path = card.get('image')
+        
+        if not image_path:
+            return jsonify({'success': False, 'error': 'Image path not found'}), 404
+        
+        relative_path = image_path.lstrip('/')
+        full_path = os.path.join('cards', relative_path)
+        full_path = os.path.abspath(full_path)
+        directory = os.path.dirname(full_path)
+        filename = os.path.basename(full_path)
+        
+        if not os.path.exists(full_path):
+            return jsonify({'success': False, 'error': 'Image file not found on disk'}), 404
+        
+        return send_from_directory(directory, filename, mimetype='image/png')
+        
+    except FileNotFoundError:
+        return jsonify({'success': False, 'error': 'Image file not found'}), 404
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -165,12 +200,13 @@ def delete_deck(user_id, username, deck_id):
     """
     try:
         # controllo sull'esistenza del deck e appartenenza all'utente
-        deck = decks_collection.find_one({'_id': query_id, 'userId': user_id}) 
+        decks_collection = get_decks_collection()
+        deck = decks_collection.find_one({'_id': deck_id, 'userId': user_id}) 
         if not deck:
             return jsonify({'success': False, 'error': 'Deck not found or access denied'}), 404
         
         # elimina il deck
-        decks_collection.delete_one({'_id': query_id})
+        decks_collection.delete_one({'_id': deck_id})
         return jsonify({'success': True, 'message': 'Deck deleted successfully'}), 200
     
     except Exception as e:

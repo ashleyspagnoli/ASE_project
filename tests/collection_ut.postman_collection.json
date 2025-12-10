@@ -22,14 +22,13 @@
 							"  var jsonData = pm.response.json();\r",
 							"  pm.expect(jsonData.success).to.eql(true);\r",
 							"  pm.expect(jsonData.total).to.eql(53);\r",
-							"  pm.expect(jsonData.data).to.be.an('array').that.has.lengthOf(52);\r",
+							"  pm.expect(jsonData.data).to.be.an('array').that.has.lengthOf(53);\r",
 							"});\r",
 							"\r",
-							"pm.test(\"Each card has id and image\", function () {\r",
+							"pm.test(\"Each card has id\", function () {\r",
 							"  var cards = pm.response.json().data;\r",
 							"  cards.forEach(function(card) {\r",
 							"    pm.expect(card).to.have.property(\"id\");\r",
-							"    pm.expect(card).to.have.property(\"image\");\r",
 							"  });\r",
 							"});\r",
 							""
@@ -142,6 +141,50 @@
 						"collection",
 						"cards",
 						"hX"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "image",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is correct\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"method": "GET",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "http://localhost:5006/collection/cards/JOKER/image",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5006",
+					"path": [
+						"collection",
+						"cards",
+						"JOKER",
+						"image"
 					]
 				}
 			},

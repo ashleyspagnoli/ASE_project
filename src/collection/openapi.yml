@@ -37,6 +37,51 @@ paths:
         '500':
           description: Server error
 
+  /collection/cards/{cardId}/image:
+    get:
+      summary: Get card image
+      description: Returns the PNG image of a specific card.
+      parameters:
+        - name: cardId
+          in: path
+          required: true
+          schema:
+            type: string
+          example: "JOKER"
+      responses:
+        '200':
+          description: Card image retrieved successfully
+          content:
+            image/png:
+              schema:
+                type: string
+                format: binary
+        '404':
+          description: Card not found or image file not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+                    example: "Card not found"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  error:
+                    type: string
+
   /collection/cards/{cardId}:
     get:
       summary: Get a single card
