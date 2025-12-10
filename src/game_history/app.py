@@ -6,29 +6,45 @@ import json
 import os
 import pika
 import threading
+import time
 
 app = Flask(__name__)
 
-# --- MongoDB Connection ---
-try:
-    client = MongoClient(f"mongodb://db-history:27017/", serverSelectionTimeoutMS=5000)
-    client.server_info() # Force connection check
-    db = client.history
-    matches_collection = db.matches
-    leaderboard_collection = db.leaderboard
-    leaderboard_collection.create_index([("points", -1)])
-    print(f"Successfully connected to MongoDB", flush=True)
-except Exception as e:
-    print(f"Error: Could not connect to MongoDB, {e}", flush=True)
-    exit()
-
 PAGE_SIZE = 10
 
-# --- User Service Connection ---
-# Use environment variables or default to 'user-manager'
+# --- User Service ---
 USER_MANAGER_URL = os.environ.get('USER_MANAGER_URL', 'https://user-manager:5000')
 USERNAMES_BY_IDS_URL = f'{USER_MANAGER_URL}/utenti/usernames-by-ids'
+
+# --- RabbitMQ broker ---
 RABBITMQ_HOST = os.environ.get("RABBITMQ_HOST", "rabbitmq")
+
+# --- MongoDB Connection ---
+mock_db_connection = None
+_db = None
+def get_db():
+    global _db
+    if mock_db_connection:
+        return mock_db_connection()
+    if _db is None:
+        try:
+            client = MongoClient(f"mongodb://db-history:27017/", serverSelectionTimeoutMS=5000)
+            _db = client.history
+            print(f"Successfully connected to MongoDB", flush=True)
+        except Exception as e:
+            print(f"Error: Could not connect to MongoDB, {e}", flush=True)
+            exit()
+        return _db
+
+def get_matches_collection():
+    db = get_db()
+    return db.matches
+
+def get_leaderboard_collection():
+    db = get_db()
+    coll = db.leaderboard
+    coll.create_index([("points", -1)]) #Should do at least once, done at each startup since microservices are immutable
+    return coll
 
 
 # Helper to get usernames for a list of UUIDs in one request
@@ -63,19 +79,15 @@ def get_usernames_by_ids(user_ids):
     except requests.exceptions.ConnectionError as e:
         print(f"Warning: Could not connect to user-manager at {USERNAMES_BY_IDS_URL}. {e}", flush=True)
     except Exception as e:
-        print(f"Warning: Error fetching usernames for ids {deduped_ids}. {e}", flush=True)
+        print(f"Warning: Error fetching usernames for ids {user_ids}. {e}", flush=True)
 
-    return {uid: "Unknown user" for uid in deduped_ids}
+    return {uid: "Unknown user" for uid in user_ids}
 
 # Helper for atomic leaderboard updates
 def update_leaderboard_stats(player_uuid, points, is_win, is_loss, is_draw):
     """
     Atomically updates a single player's stats in the leaderboard collection.
     """
-    if leaderboard_collection is None:
-        print(f"Error: leaderboard_collection not initialized. Skipping update for {player_uuid}.", flush=True)
-        return
-
     try:
         query = {'_id': player_uuid}
         update = {
@@ -87,6 +99,7 @@ def update_leaderboard_stats(player_uuid, points, is_win, is_loss, is_draw):
             }
         }
         # upsert=True creates the document if it doesn't exist, default numbers are 0
+        leaderboard_collection = get_leaderboard_collection()
         leaderboard_collection.update_one(query, update, upsert=True)
     except Exception as e:
         print(f"Error: Failed to update leaderboard for {player_uuid}. {e}", flush=True)
@@ -112,6 +125,7 @@ def process_match_data(data):
     
     try:
         # --- 1. Insert the new match ---
+        matches_collection = get_matches_collection()
         matches_collection.insert_one(match)
 
         # --- 2. Atomically update leaderboard ---
@@ -140,8 +154,6 @@ def process_match_data(data):
     except Exception as e:
         print(f"Error processing match: {e}", flush=True)
         return False
-
-import time
 
 def consume_game_history():
     print("Starting RabbitMQ consumer thread...", flush=True)
@@ -182,13 +194,13 @@ def consume_game_history():
 threading.Thread(target=consume_game_history, daemon=True).start()
 
 # Add a new match (POST /match)
-@app.route('/addmatch', methods=['POST'])
-def add_match():
-    data = request.json
-    if process_match_data(data):
-        return jsonify({'status': 'ok'}), 201
-    else:
-        return jsonify({'error': 'Failed to add match'}), 500
+# @app.route('/addmatch', methods=['POST'])
+# def add_match():
+#     data = request.json
+#     if process_match_data(data):
+#         return jsonify({'status': 'ok'}), 201
+#     else:
+#         return jsonify({'error': 'Failed to add match'}), 500
 
 
 # List all matches for a user (GET /matches/<player_uuid>)
@@ -213,6 +225,7 @@ def list_matches():
             { '$skip': page * PAGE_SIZE },
             { '$limit': PAGE_SIZE }
         ]
+        matches_collection = get_matches_collection()
         cursor = matches_collection.aggregate(pipeline)
 
         start_rank = (page * PAGE_SIZE) + 1
@@ -257,6 +270,7 @@ def leaderboard():
             { '$skip': page * PAGE_SIZE },
             { '$limit': PAGE_SIZE }
         ]
+        leaderboard_collection = get_leaderboard_collection()
         cursor = leaderboard_collection.aggregate(pipeline)
         raw_entries = list(cursor)
 
@@ -285,68 +299,14 @@ def leaderboard():
         print(f"Error in leaderboard: {e}", flush=True)
         return jsonify({'error': 'Failed to retrieve leaderboard'}), 500
 
-# Get leaderboard page where user is located and redirects to leaderboard (GET /myleaderboard)
-# @app.route('/myleaderboard', methods=['GET'])
-# def my_leaderboard():
-#     """
-#     Finds the rank of the user and redirects to the correct leaderboard page.
-#     """
 
-#     token_header = request.headers.get("Authorization")
-#     try:
-#         player_uuid, username = validate_user_token(token_header)
-#     except ValueError as e:
-#         return jsonify({"error": str(e)}), 401
-
-#     try:
-#         # 1. Get the current user's stats to find their score
-#         user_doc = leaderboard_collection.find_one({'_id': player_uuid})
-        
-#         if not user_doc:
-#             return jsonify({'error': 'User not found in leaderboard'}), 404
-            
-#         user_points = user_doc.get('points', 0)
-
-#         # 2. Calculate Rank (Count how many people are ahead of this user)
-#         # We must use the SAME sorting logic as the main leaderboard.
-#         # Logic: Count documents where points are strictly greater than user_points
-#         # OR points are equal, but _id is "smaller" (for tie-breaking).
-        
-#         count_query = {
-#             '$or': [
-#                 {'points': {'$gt': user_points}},
-#                 {
-#                     'points': user_points,
-#                     '_id': {'$lt': user_id} # Secondary sort key (deterministic tie-breaker)
-#                 }
-#             ]
-#         }
-        
-#         # This count is the number of people BEFORE the user. 
-#         # e.g., if 5 people are better, the user is at index 5 (0-indexed).
-#         position_index = leaderboard_collection.count_documents(count_query)
-
-#         # 3. Calculate Page
-#         # integer division finds the page index (0-based)
-#         target_page = position_index // PAGE_SIZE
-
-#         # 4. Redirect
-#         return redirect(url_for('leaderboard', page=target_page))
-
-#     except Exception as e:
-#         print(f"Error in myleaderboard: {e}", flush=True)
-#         return jsonify({'error': 'Failed to calculate rank'}), 500
 
 if __name__ == '__main__':
     # Check if DB is connected before running
     if not db:
         print("Fatal: MongoDB connection not established. Exiting.", flush=True)
     else:
-        import ssl
-        context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        context.load_cert_chain('/run/secrets/history_cert', '/run/secrets/history_key')
-        app.run(host='0.0.0.0', port=5000, debug=True, ssl_context=context)
-
+        app.run(host='0.0.0.0', port=5001, debug=True)
 
 
 # ------------------------------------------------------------

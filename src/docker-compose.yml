@@ -2,13 +2,15 @@ services:
   
   game_engine:
     build: ./game_engine
-    ports:
-      - "5001:5000"
     depends_on:
-      - game_history
-      - collection
-      - user-manager  # <-- MODIFICA 1: Aggiungi questa dipendenza
-      - rabbitmq
+      game_history:
+        condition: service_started
+      collection:
+        condition: service_started
+      user-manager:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     secrets:
       - game_engine_cert
       - game_engine_key
@@ -26,20 +28,19 @@ services:
     secrets:
       - history_key
       - history_cert
-    ports:
-      - 5002:5000
     depends_on:
-      - db-history
-      - user-manager
-      - rabbitmq
+      db-history:
+        condition: service_started
+      user-manager:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
     environment:
       RABBITMQ_HOST: "rabbitmq"
 
   collection:
     build:
       dockerfile: collection/Dockerfile
-    ports:
-      - 5003:5000
     depends_on:
       - db-decks
     secrets:
@@ -51,9 +52,7 @@ services:
   user-db:
     image: mongo:latest
     container_name: user_auth_db
-    restart: always 
-    ports:
-      - "27017:27017" 
+    restart: always
     volumes:
       - user_mongo_data:/data/db 
     environment:
@@ -65,8 +64,6 @@ services:
     build: 
       context: ./user-manager
     container_name: user_manager_service
-    ports:
-      - "5004:5000" # Porta esterna 5004, porta interna 5000
     depends_on:
       - user-db
     environment:
@@ -126,8 +123,7 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - "127.0.0.1:15672:15672" #Expose the management UI url only to localhost, we can see data passing through rabbitmq but the port is not exposed to external network
     healthcheck:
       test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
       interval: 10s
