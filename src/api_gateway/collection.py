@@ -10,6 +10,11 @@ async def get_collection(request: Request):
     URL = COLLECTION_URL + '/collection/cards'
     return await forward_request(request, URL, body_data=None)
 
+@router.get('/cards/{card_id}/image', tags=['Collection'])
+async def get_card_image(card_id: str, request: Request):
+    URL = COLLECTION_URL + f'/collection/cards/{card_id}/image'
+    return await forward_request(request, URL, body_data=None)
+
 @router.get('/cards/{card_id}', tags=['Collection'])
 async def get_card(card_id: str, request: Request):
     URL = COLLECTION_URL + f'/collection/cards/{card_id}'
