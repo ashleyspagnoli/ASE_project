@@ -8,7 +8,6 @@ from logic import (
     validate_user_token,
     process_matchmaking_request,
     check_matchmaking_status,
-    remove_from_matchmaking
 )
 
 game_blueprint = Blueprint("game_engine", __name__)
@@ -76,17 +75,10 @@ class GameController:
             return jsonify(result), 200
         except ValueError as e: return jsonify({"error": str(e)}), 401
 
-    def leave_matchmaking(self):
-        try:
-            user_uuid, username = validate_user_token(request.headers.get("Authorization"))
-            return jsonify(remove_from_matchmaking(user_uuid)), 200
-        except ValueError as e: return jsonify({"error": str(e)}), 401
-
 controller = GameController()
 
 game_blueprint.add_url_rule("/match/join", view_func=controller.join_matchmaking, methods=["POST"])
 game_blueprint.add_url_rule("/match/status", view_func=controller.status_matchmaking, methods=["GET"])
-game_blueprint.add_url_rule("/match/leave", view_func=controller.leave_matchmaking, methods=["POST"])
 game_blueprint.add_url_rule("/deck/<game_id>", view_func=controller.choose_deck, methods=["POST"])
 game_blueprint.add_url_rule("/play/<game_id>", view_func=controller.play_turn, methods=["POST"])
 game_blueprint.add_url_rule("/hand/<game_id>", view_func=controller.get_hand, methods=["GET"])

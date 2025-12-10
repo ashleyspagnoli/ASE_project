@@ -72,28 +72,6 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /match/leave:
-    post:
-      summary: Leave matchmaking queue
-      description: Removes the player from the matchmaking queue.
-      tags:
-        - Matchmaking
-      security:
-        - bearerAuth: []
-      responses:
-        '200':
-          description: Successfully left the queue.
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    example: "cancelled"
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
   /deck/{game_id}:
     post:
       summary: Select deck slot

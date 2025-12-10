@@ -139,11 +139,6 @@ def check_matchmaking_status(user_uuid):
 
     return {"status": "error", "message": "Non sei in coda."}
 
-def remove_from_matchmaking(user_uuid):
-    global matchmaking_queue
-    matchmaking_queue = [p for p in matchmaking_queue if p['uuid'] != user_uuid]
-    return {"status": "cancelled"}
-
 
 # ------------------------------------------------------------
 # 🃏 Deck Selection
