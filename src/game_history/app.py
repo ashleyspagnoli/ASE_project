@@ -15,17 +15,15 @@ PAGE_SIZE = 10
 # --- User Service ---
 USER_MANAGER_URL = os.environ.get('USER_MANAGER_URL', 'https://user-manager:5000')
 USERNAMES_BY_IDS_URL = f'{USER_MANAGER_URL}/utenti/usernames-by-ids'
+USER_MANAGER_CERT = os.environ.get('USER_MANAGER_CERT', '/run/secrets/history_key')
 
 # --- RabbitMQ broker ---
 RABBITMQ_HOST = os.environ.get("RABBITMQ_HOST", "rabbitmq")
 
 # --- MongoDB Connection ---
-mock_db_connection = None
 _db = None
-def get_db():
+def get_db(): # Lazily load DB, this function will never be called if get_leaderboard and get_matches get mocked
     global _db
-    if mock_db_connection:
-        return mock_db_connection()
     if _db is None:
         try:
             client = MongoClient(f"mongodb://db-history:27017/", serverSelectionTimeoutMS=5000)
@@ -43,11 +41,12 @@ def get_matches_collection():
 def get_leaderboard_collection():
     db = get_db()
     coll = db.leaderboard
-    coll.create_index([("points", -1)]) #Should do at least once, done at each startup since microservices are immutable
+    coll.create_index([("points", -1)]) #For improved efficiency, should do at least once, done at each startup since microservices are immutable
     return coll
 
 
 # Helper to get usernames for a list of UUIDs in one request
+mock_usernames_by_ids = None
 def get_usernames_by_ids(user_ids):
     """
     Fetch usernames for a list of user IDs via the user-manager endpoint
@@ -56,32 +55,37 @@ def get_usernames_by_ids(user_ids):
     """
     if not user_ids:
         return {}
-
-    # Deduplicate and drop falsy values while preserving order
+    # Turn input into list
     user_ids = list(user_ids)
-    try:
-        # requests will serialize list params as repeated query params
-        resp = requests.get(
-            USERNAMES_BY_IDS_URL,
-            params={'id_list': user_ids},
-            timeout=3,
-            verify=False
-        )
-        if resp.status_code == 200:
-            data = resp.json() or []
-            mapping = {item.get('id'): item.get('username') for item in data if isinstance(item, dict)}
-            # Ensure all ids present in mapping
-            for uid in user_ids:
-                mapping.setdefault(uid, "Unknown user")
-            return mapping
-        else:
-            print(f"Warning: usernames-by-ids returned {resp.status_code}: {resp.text}", flush=True)
-    except requests.exceptions.ConnectionError as e:
-        print(f"Warning: Could not connect to user-manager at {USERNAMES_BY_IDS_URL}. {e}", flush=True)
-    except Exception as e:
-        print(f"Warning: Error fetching usernames for ids {user_ids}. {e}", flush=True)
+    
+    if mock_usernames_by_ids:
+        data = mock_usernames_by_ids(user_ids)
+    else:
+        try:
+            # requests will serialize list params as repeated query params
+            resp = requests.get(
+                USERNAMES_BY_IDS_URL,
+                params={'id_list': user_ids},
+                timeout=3,
+                verify=USER_MANAGER_CERT
+            )
+            if resp.status_code == 200:
+                data = resp.json() or []
+            else:
+                print(f"Error: usernames-by-ids returned {resp.status_code}: {resp.text}", flush=True)
+                data = []
+        except requests.exceptions.ConnectionError as e:
+            print(f"Warning: Could not connect to user-manager at {USERNAMES_BY_IDS_URL}. {e}", flush=True)
+            data = []
+        except Exception as e:
+            print(f"Warning: Error fetching usernames for ids {user_ids}. {e}", flush=True)
+            data = []
 
-    return {uid: "Unknown user" for uid in user_ids}
+    mapping = {item.get('id'): item.get('username') for item in data if isinstance(item, dict)}
+    # Ensure all ids present in mapping
+    for uid in user_ids:
+        mapping.setdefault(uid, "Unknown user")
+    return mapping
 
 # Helper for atomic leaderboard updates
 def update_leaderboard_stats(player_uuid, points, is_win, is_loss, is_draw):
@@ -202,6 +206,26 @@ threading.Thread(target=consume_game_history, daemon=True).start()
 #     else:
 #         return jsonify({'error': 'Failed to add match'}), 500
 
+mock_matches = None
+def get_matches(player_uuid, page):
+    if mock_matches:
+        return mock_matches(player_uuid, page)
+    pipeline = [
+        # 1. Filter by player
+        { '$match': { '$or': [{ 'player1': player_uuid }, { 'player2': player_uuid }] } },
+
+        # 2. Sort by starting time
+        { '$sort': { 'started_at': -1 } },
+        
+        # 3. Pagination
+        { '$skip': page * PAGE_SIZE },
+        { '$limit': PAGE_SIZE }
+    ]
+    matches_collection = get_matches_collection()
+    cursor = matches_collection.aggregate(pipeline)
+    return list(cursor)
+    
+    
 
 # List all matches for a user (GET /matches/<player_uuid>)
 @app.route('/matches', methods=['GET'])
@@ -214,23 +238,10 @@ def list_matches():
         return jsonify({"error": str(e)}), 401
     
     try:
-        pipeline = [
-            # 1. Filter by player
-            { '$match': { '$or': [{ 'player1': player_uuid }, { 'player2': player_uuid }] } },
-
-            # 2. Sort by starting time
-            { '$sort': { 'started_at': -1 } },
-            
-            # 3. Pagination
-            { '$skip': page * PAGE_SIZE },
-            { '$limit': PAGE_SIZE }
-        ]
-        matches_collection = get_matches_collection()
-        cursor = matches_collection.aggregate(pipeline)
-
+        raw_entries = get_matches(player_uuid, page)
         start_rank = (page * PAGE_SIZE) + 1
         matches = []
-        for index, doc in enumerate(cursor):
+        for index, doc in enumerate(raw_entries):
             doc['row_number'] = start_rank + index
             matches.append(doc)
         
@@ -252,6 +263,22 @@ def list_matches():
         return jsonify({'error': 'Failed to retrieve matches'}), 500
 
 
+mock_leaderboard = None
+def get_leaderboard(page):
+    if mock_leaderboard:
+        return mock_leaderboard(page)
+    pipeline = [
+        # 1. Sort by starting time
+        { '$sort': { 'points': -1 } },
+        
+        # 2. Pagination
+        { '$skip': page * PAGE_SIZE },
+        { '$limit': PAGE_SIZE }
+    ]
+    leaderboard_collection = get_leaderboard_collection()
+    cursor = leaderboard_collection.aggregate(pipeline)
+    return list(cursor)
+
 # Get leaderboard (GET /leaderboard)
 @app.route('/leaderboard', methods=['GET'])
 def leaderboard():
@@ -261,19 +288,7 @@ def leaderboard():
     page = request.args.get('page', default=0, type=int) #It's a int -> doesn't need to be sanitized
     try:
         # Fetch all entries sorted by points desc
-
-        pipeline = [
-            # 1. Sort by starting time
-            { '$sort': { 'points': -1 } },
-            
-            # 2. Pagination
-            { '$skip': page * PAGE_SIZE },
-            { '$limit': PAGE_SIZE }
-        ]
-        leaderboard_collection = get_leaderboard_collection()
-        cursor = leaderboard_collection.aggregate(pipeline)
-        raw_entries = list(cursor)
-
+        raw_entries = get_leaderboard(page)
         start_rank = (page * PAGE_SIZE) + 1
         matches = []
         for index, doc in raw_entries:
@@ -302,16 +317,13 @@ def leaderboard():
 
 
 if __name__ == '__main__':
-    # Check if DB is connected before running
-    if not db:
-        print("Fatal: MongoDB connection not established. Exiting.", flush=True)
-    else:
-        app.run(host='0.0.0.0', port=5001, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
 
 
 # ------------------------------------------------------------
-# 🔐 User Token Validation (copied from game_engine)
+# 🔐 User Token Validation
 #------------------------------------------------------------
+mock_user_validator = None
 def validate_user_token(token_header: str):
     """
     Contatta l'user-manager (in HTTPS) per validare un token JWT.
@@ -325,6 +337,9 @@ def validate_user_token(token_header: str):
     if not token_header:
         raise ValueError("Header 'Authorization' mancante.")
 
+    if mock_user_validator:
+        return mock_user_validator(token_header)
+    
     # Il token_header è "Bearer eyJ...". Dobbiamo estrarre solo il token "eyJ..."
     try:
         token_type, token = token_header.split(" ")
@@ -342,7 +357,7 @@ def validate_user_token(token_header: str):
             validate_url,
             params={"token_str": token},
             timeout=5,
-            verify=False  # <-- IMPORTANTE: Ignora la verifica del certificato SSL
+            verify=USER_MANAGER_CERT  # <-- IMPORTANTE: Ignora la verifica del certificato SSL
         )
 
         # Se l'user-manager risponde 401, 403, 404, ecc., solleva un errore
@@ -352,13 +367,13 @@ def validate_user_token(token_header: str):
 
         # L'endpoint /users/validate-token restituisce 'id' e 'username'
         user_uuid = user_data.get("id")
-        username = user_data.get("username")
+        #username = user_data.get("username")
 
-        if not user_uuid or not username:
+        if not user_uuid:
             raise ValueError("Dati utente incompleti dal servizio di validazione")
 
-        print(f"[Game-Engine] Token validato con successo per l'utente: {username} ({user_uuid})")
-        return user_uuid, username
+        print(f"Token validato con successo per l'utente: {user_uuid}", flush=True)
+        return user_uuid
 
     except requests.RequestException as e:
         # Errore di connessione o risposta 4xx/5xx dal servizio utenti
