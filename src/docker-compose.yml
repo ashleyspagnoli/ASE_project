@@ -71,7 +71,6 @@ services:
       - user-db
     environment:
       MONGO_URI: mongodb://user_admin:secure_password_user@user-db:27017/user_auth_db?authSource=admin
-      SECRET_KEY: "GUERRA_ASE_SECRET_KEY"
       ALGORITHM: "HS256"
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
 
@@ -81,11 +80,31 @@ services:
     secrets:
       - user_manager_cert
       - user_manager_key
+      - user_db_encryption_secret_key
+      - jwt_secret_key
 
     command: 
       uvicorn main:app --host 0.0.0.0 --port 5000 
       --ssl-keyfile /run/secrets/user_manager_key 
       --ssl-certfile /run/secrets/user_manager_cert
+
+  user-editor:
+    build:
+      context: ./user-editor
+    container_name: user_editor_service
+    ports:
+      - "5005:5000"
+    depends_on:
+      - user-manager
+    environment:
+      USER_MANAGER_URL: "https://user-manager:5000"
+    secrets:
+      - user_editor_cert
+      - user_editor_key
+    command:
+      uvicorn main:app --host 0.0.0.0 --port 5000 
+      --ssl-keyfile /run/secrets/user_editor_key 
+      --ssl-certfile /run/secrets/user_editor_cert
 
   # (Mantenuti i tuoi db-history, db-games, db-decks)
   db-history:
@@ -148,6 +167,14 @@ secrets:
     file: ./user-manager/secrets/cert.pem  
   user_manager_key:
     file: ./user-manager/secrets/key.pem
+  user_editor_cert:
+    file: ./user-editor/secrets/cert.pem
+  user_editor_key:
+    file: ./user-editor/secrets/key.pem
+  user_db_encryption_secret_key:
+    file: ./user-manager/secrets/encryption_key.txt
+  jwt_secret_key:
+    file: ./user-manager/secrets/jwt_secret_key.txt
   history_key:
     file: ./certs/game_history/key.pem
   history_cert:
