@@ -52,17 +52,6 @@ services:
     environment:
       USER_MANAGER_URL: "https://user-manager:5000"
 
-  user-db:
-    image: mongo:latest
-    container_name: user_auth_db
-    restart: always
-    volumes:
-      - user_mongo_data:/data/db 
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: user_admin
-      MONGO_INITDB_ROOT_PASSWORD: secure_password_user
-      MONGO_INITDB_DATABASE: user_auth_db
-      
   user-manager:
     build: 
       context: ./user-manager
@@ -106,6 +95,19 @@ services:
       --ssl-keyfile /run/secrets/user_editor_key 
       --ssl-certfile /run/secrets/user_editor_cert
 
+  user-db:
+    image: mongo:latest
+    container_name: user_auth_db
+    restart: always 
+    ports:
+      - "27017:27017" 
+    volumes:
+      - user_mongo_data:/data/db 
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: user_admin
+      MONGO_INITDB_ROOT_PASSWORD: secure_password_user
+      MONGO_INITDB_DATABASE: user_auth_db
+      
   # (Mantenuti i tuoi db-history, db-games, db-decks)
   db-history:
     image: mongo:latest
@@ -163,10 +165,10 @@ secrets:
     file: ./api_gateway/secrets/api_gateway_cert.pem  
   api_gateway_key:
     file: ./api_gateway/secrets/api_gateway_key.pem 
-  user_manager_cert:
-    file: ./user-manager/secrets/cert.pem  
   user_manager_key:
     file: ./user-manager/secrets/key.pem
+  user_manager_cert:
+    file: ./user-manager/secrets/cert.pem
   user_editor_cert:
     file: ./user-editor/secrets/cert.pem
   user_editor_key:
