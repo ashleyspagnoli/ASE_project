@@ -27,7 +27,7 @@ def validate_user_token(token_header: str):
             validate_url,
             headers={"Authorization": f"Bearer {token}"},
             timeout=5,
-            verify=False
+            verify='/run/secrets/user_manager_cert'
         )
         response.raise_for_status()
         user_data = response.json()
