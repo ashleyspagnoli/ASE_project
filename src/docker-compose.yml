@@ -167,6 +167,8 @@ secrets:
     file: ./api_gateway/secrets/api_gateway_key.pem 
   user_manager_key:
     file: ./user-manager/secrets/key.pem
+  user_manager_cert:
+    file: ./user-manager/secrets/cert.pem
   user_editor_cert:
     file: ./user-editor/secrets/cert.pem
   user_editor_key:
