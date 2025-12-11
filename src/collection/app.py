@@ -254,7 +254,4 @@ def get_deck_by_slot(user_id, slot_number):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
-    import ssl
-    context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    context.load_cert_chain('/run/secrets/collection_cert', '/run/secrets/collection_key')
-    app.run(debug=True, host='0.0.0.0', port=5000, ssl_context=context)
+    app.run(debug=True, host='0.0.0.0', port=5000)
