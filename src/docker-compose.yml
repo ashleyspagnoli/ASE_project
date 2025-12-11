@@ -167,26 +167,26 @@ secrets:
   api_gateway_key:
     file: ./api_gateway/secrets/api_gateway_key.pem 
   user_manager_key:
-    file: ./user-manager/secrets/key.pem
+    file: ./certs/user-manager/key.pem
   user_manager_cert:
-    file: ./user-manager/secrets/cert.pem
+    file: ./certs/user-manager/cert.pem
   user_editor_cert:
-    file: ./user-editor/secrets/cert.pem
+    file: ./certs/user-editor/cert.pem
   user_editor_key:
-    file: ./user-editor/secrets/key.pem
+    file: ./certs/user-editor/key.pem
   user_db_encryption_secret_key:
-    file: ./user-manager/secrets/encryption_key.txt
+    file: ./certs/user-manager/encryption_key.txt
   jwt_secret_key:
-    file: ./user-manager/secrets/jwt_secret_key.txt
+    file: ./certs/user-manager/jwt_secret_key.txt
   history_key:
     file: ./certs/game_history/key.pem
   history_cert:
     file: ./certs/game_history/cert.pem
   collection_cert:
-    file: ./collection/collectioncert.pem
+    file: ./certs/collection/cert.pem
   collection_key:
-    file: ./collection/collectionkey.pem
+    file: ./certs/collection/key.pem
   game_engine_cert:
-    file: ./game_engine/secrets/cert.pem
+    file: ./certs/game_engine/cert.pem
   game_engine_key:
-    file: ./game_engine/secrets/key.pem
+    file: ./certs/game_engine/key.pem
