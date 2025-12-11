@@ -10,37 +10,50 @@ from os import environ
 from bson import ObjectId
 from datetime import datetime, timedelta
 from typing import Optional, List 
+from fastapi import Header
+from jose.exceptions import JWTError as PyJWTError
 
+from crypto import encrypt_data, decrypt_data, load_secret_key
+
+from fastapi.middleware.cors import CORSMiddleware
 # JWT and Hashing Libraries
 from jose import JWTError, jwt
 from passlib.context import CryptContext
+import hashlib
+
+def hash_search_key(data: str) -> str:
+    """Generates a SHA-256 hash of the lowercase input string for consistent searching.
+     This helps in avoiding storing plain text sensitive data while allowing lookups like email and username.
+     """
+    return hashlib.sha256(data.lower().encode('utf-8')).hexdigest()
 
 # --- CONFIGURATION: DATABASE AND SECURITY ---
+
 
 # DB configuration (read from environment or use default)
 DB_NAME = "user_auth_db" 
 DEFAULT_MONGO_URI = f"mongodb://user_admin:secure_password_user@localhost:27017/{DB_NAME}?authSource=admin"
 MONGO_URI = environ.get("MONGO_URI", DEFAULT_MONGO_URI) 
 
+
 # JWT Configuration (read from environment)
-SECRET_KEY = environ.get("SECRET_KEY", "default_secret_key_weak")
+SECRET_KEY = load_secret_key("/run/secrets/jwt_secret_key", default="default_secret_key_weak")
 ALGORITHM = environ.get("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", 30)) 
+
 
 # Database Connection Initialization
 try:
     client = MongoClient(MONGO_URI)
     db = client.get_database(DB_NAME) 
-    
     ITEMS_COLLECTION = db["elementi"] 
     USERS_COLLECTION = db["utenti"] 
-    
     client.server_info() 
-
     print(f"Successfully connected to DB: {DB_NAME}")
 except Exception as e:
     print(f"CRITICAL MongoDB connection error: {e}")
     raise ConnectionError(f"Cannot connect to MongoDB: {e}")
+
 
 # Context for password hashing
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
@@ -54,33 +67,21 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# --- PYDANTIC DATA MODELS ---
 
+# ---------------------------------------------------- PYDANTIC DATA MODELS ---------------------------------------
 
 class UserBase(BaseModel):
     """Base schema containing only the username."""
     username: str = Field(..., description="Unique username.")
 
-
-
-
-
 class UserInDB(UserBase):
     """Internal schema for user data manipulation at the database level."""
     hashed_password: str
     email: str 
-    is_verified: Optional[bool] = False
-    role: Optional[str] = "user"
     id: Optional[str] = None
+    hashed_username: str
+    hashed_email: str
 
-class UserOut(UserBase):
-    """Schema for detailed user output, primarily for admin use."""
-    id: Optional[str] = Field(None, description="Unique database ID.")
-    email: str
-    is_verified: bool = Field(..., description="Email verification status.")
-    role: str = Field(..., description="User role (e.g., 'user', 'admin').")
-    hashed_password: str = Field(..., description="Password hash (admin view only).")
-    
 class UsernameMapping(BaseModel):
     """Schema for public user information."""
     id: str = Field(..., description="Unique user ID.") 
@@ -103,42 +104,46 @@ class UserIdMapping(BaseModel):
     id: str = Field(..., description="Unique user ID (ObjectId).")
 
 
-# --- SECURITY FUNCTIONS (PASSWORD HASHING & JWT) ---
+# ------------------------------------------------ SECURITY FUNCTIONS (PASSWORD HASHING & JWT) ------------------------------
 
-def verify_password(plain_password, hashed_password):
-    """Verifies a plain password against the stored hash."""
-    return pwd_context.verify(plain_password, hashed_password)
+
+#--- PASSWORD HASHING AND VERIFICATION ---
 
 def get_password_hash(password):
     """Returns the Argon2 hash of a plain password."""
     return pwd_context.hash(password)
 
+def verify_password(plain_password, hashed_password):
+    """Verifies a plain password against the stored hash."""
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+#--- JWT TOKEN CREATION AND USER RETRIEVAL ---
+
 def create_access_token(data: dict):
     """Creates a JWT token, ensuring 'sub' and 'exp' claims are included."""
     to_encode = data.copy()
-    
     # Ensure 'sub' claim exists (standard JWT practice used by get_current_user)
     if "sub" not in to_encode and "username" in to_encode:
-        to_encode["sub"] = to_encode["username"]
-        
-    # Set expiration time
+        to_encode["sub"] = to_encode["username"]    
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
-    
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
+
 def get_user(username: str):
     """Retrieves user data from MongoDB based on username."""
-    user_doc = USERS_COLLECTION.find_one({"username": username})
+    hashed_username=hash_search_key(username)
+    user_doc = USERS_COLLECTION.find_one({"hashed_username": hashed_username})
     if user_doc:
         return UserInDB(
             id=str(user_doc['_id']),
-            username=user_doc['username'], 
-            email=user_doc.get('email', f"{user_doc['username']}@fallback.com"), 
+            username=decrypt_data(user_doc['username']), 
+            email=decrypt_data(user_doc['email']),
             hashed_password=user_doc['hashed_password'],
-            is_verified=user_doc.get('is_verified', False), 
-            role=user_doc.get('role', 'user')
+            hashed_username=user_doc['hashed_username'],
+            hashed_email=user_doc['hashed_email'],
         )
     return None
 
@@ -147,16 +152,46 @@ def authenticate_user(username: str, password: str):
     user = get_user(username)
     if not user:
         return False
-    
-    if not user.is_verified:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account not verified. Check your email."
-        )
-    
     if not verify_password(password, user.hashed_password):
         return False
     return user
+
+
+def verify_internal_token(authorization: str = Header(..., alias="Authorization")):
+    """
+    Dipendenza FastAPI per validare il token JWT Service-to-Service (S2S).
+    Verifica che il chiamante sia un servizio interno autorizzato (Microservizio Editor).
+    """
+    
+    # 1. Parsing dell'Header: Atteso formato "Bearer [token]"
+    if not authorization or ' ' not in authorization:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, 
+            detail="Authorization header missing or invalid format."
+        )
+        
+    try:
+        scheme, token = authorization.split(' ', 1)
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authorization scheme.")
+        
+    if scheme.lower() != 'bearer':
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication scheme (Expected Bearer).")
+
+    # 2. Decodifica e Validazione
+    try:
+        # Usa la chiave segreta specifica per i servizi interni
+        payload=jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        
+    except PyJWTError as e:
+        # Cattura errori di firma non valida, token scaduto, ecc.
+        print(f"Internal Token Error: {e}")
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid internal service token.")
+    
+    # Se il token è valido e autorizzato, la funzione ritorna senza sollevare eccezioni.
+    
+    user = get_user(payload.get("sub"))
+    return user 
 
 # --- DEPENDENCY: GET CURRENT USER FROM JWT TOKEN ---
 
@@ -187,6 +222,19 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 # OAuth2 Standard Token Endpoint (For Swagger UI and standard clients)
 
+origins = [
+    "https://localhost:5005",
+    "https://localhost:5004",]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,             # Specifica le origini autorizzate
+    allow_credentials=True,            # Consente i cookie (non cruciale qui, ma buona pratica)
+    allow_methods=["*"],               # Consente tutti i metodi (GET, POST, OPTIONS, ecc.)
+    allow_headers=["*"],               # Consente tutti gli header (incluso 'Authorization' o 'Content-Type')
+)
+
+
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 
 def get_current_user(token: str = Depends(oauth2_scheme)):
@@ -194,7 +242,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Invalid credentials",
-        headers={"WWW-Authenticate": "Bearer"},
+        headers={"Authenticate": "Bearer"},
     )
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -210,11 +258,6 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     if user is None:
         raise credentials_exception
         
-    if not user.is_verified:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account not verified. Token unusable."
-        )
         
     return user
 
@@ -305,29 +348,60 @@ def register_user(user_in: UserCreate):
     """
     if get_user(user_in.username):
         raise HTTPException(status_code=400, detail="Username already registered")
-        
-    if USERS_COLLECTION.find_one({"email": user_in.email}):
-        raise HTTPException(status_code=400, detail="Email already registered")
-        
+    
     hashed_password = get_password_hash(user_in.password)
-    
+    hashed_username=hash_search_key(user_in.username)
+    hashed_email=hash_search_key(user_in.email)
+
+    if USERS_COLLECTION.find_one({"hashed_username": hashed_username}):
+        raise HTTPException(status_code=400, detail="Username already registered")
+
+    if USERS_COLLECTION.find_one({"hashed_email": hashed_email}):
+        raise HTTPException(status_code=400, detail="Email already registered")
+
     user_data = {
-        "username": user_in.username,
-        "email": user_in.email, 
+        "username": encrypt_data(user_in.username),
+        "email": encrypt_data(user_in.email), 
         "hashed_password": hashed_password,
-        "is_verified": True, 
-        "role": "admin" if user_in.username == "admin" else "user" 
+        "hashed_username": hashed_username,
+        "hashed_email": hashed_email,
     }
-    
-    result = USERS_COLLECTION.insert_one(user_data)
-    userid = str(result.inserted_id)
+    print(user_data)
+
+    USERS_COLLECTION.insert_one(user_data)
     
     return {
         "message": "Registration successful.", 
         "username": user_in.username,
     }
 
-# --- ENDPOINTS: INTERNAL ID/USERNAME RESOLUTION ---
+def get_user_from_local_token(token: str = Depends(oauth2_scheme)) -> UserInDB:
+    """
+    Dipendenza L O C A L E che decodifica il JWT e recupera l'utente dal DB.
+    NON FA CHIAMATE HTTP.
+    """
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials locally.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        # Assumiamo che l'identificatore sia nel campo 'username' o 'sub'
+        identifier: str = payload.get("username")
+        if identifier is None:
+            raise credentials_exception
+            
+    except PyJWTError:
+        raise credentials_exception
+        
+    # La funzione get_user(identifier) cerca l'utente cifrato nel DB e lo decripta
+    user = get_user(identifier) 
+    
+    if user is None:
+        raise credentials_exception
+        
+    return user
 
 @app.get(
     "/users/validate-token", 
@@ -335,13 +409,14 @@ def register_user(user_in: UserCreate):
     tags=["Internal Services"],
     summary="[INTERNAL] Validate a JWT token and return user data."
 )
-def validate_token(current_user: UserInDB = Depends(get_current_user)):
+def validate_token(current_user: UserInDB = Depends(get_user_from_local_token)):
     """
     Used by other microservices to validate a JWT and retrieve the user's ID and username.
     """
+    print(f"Validating token for user: {current_user.username}")
     return UsernameMapping(id=current_user.id, username=current_user.username)
 
-
+# --- ENDPOINTS: INTERNAL ID/USERNAME RESOLUTION ---
 
 @app.get(
     "/users/usernames-by-ids", 
@@ -416,190 +491,7 @@ def get_ids_by_usernames(
     return results
 
 
-# --- EXTERNAL: USER EDITOR ---
-
-class UsernameUpdate(BaseModel):
-    new_username: str = Field(..., min_length=1, description="Il nuovo username desiderato")
-
-
-@app.patch(
-    "/users/modify/change-username",
-    status_code=status.HTTP_200_OK,
-    tags=["User Editor"],
-    summary="Change username"
-)
-# 1. Rimuovi `new_username: str` dai parametri
-# 2. Usa un modello Pydantic (update_data) per i dati del body
-# 3. Imposta la dipendenza `current_user` per iniettare l'oggetto UserInDB
-def change_username(
-    update_data: UsernameUpdate, # Dati dal body JSON
-    current_user: UserInDB = Depends(get_current_user) # Oggetto utente iniettato
-):
-    """
-    Permette agli utenti autenticati di cambiare il proprio username.
-    Ritorna 200 OK e invalida il token attuale.
-    """
-    
-    old_username = current_user.username
-    new_username = update_data.new_username # Ottieni il nuovo username dal body
-    
-    # La validazione del token è implicita: se non è valido, Depends(get_current_user)
-    # solleva un 401/403 prima che questa funzione inizi.
-    
-    # 1. Controlla se il nuovo username è già in uso
-    if get_user(new_username):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Username already taken."
-        )
-    
-    # 2. Previene la modifica se lo username è lo stesso
-    if old_username == new_username:
-        return {"message": "Il nuovo username è identico a quello attuale."}
-
-    # 3. Aggiorna l'utente nel database
-    result = USERS_COLLECTION.update_one(
-        # Filtra sull'username fornito dalla dipendenza (quello attuale)
-        {"username": old_username}, 
-        {"$set": {"username": new_username}}
-    )
-    
-    if result.modified_count == 1:
-        # Messaggio di successo (l'utente dovrà rifare il login)
-        return {
-            "message": "Username changed successfully. Here is the new token, repeat the login.",
-            "old_username": old_username,
-            "new_username": new_username,
-            "new_token": create_access_token(
-                data={"username": new_username, "id": current_user.id} # Il login va eseguito di nuovo dopo il cambio di username
-            )
-        }
-    else:
-        # Questo non dovrebbe accadere se il controllo `if old_username == new_username` fallisce
-        # e l'utente esiste.
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to change username due to internal error."
-        )
-
-class PasswordUpdate(BaseModel):
-    new_password: str = Field(..., min_length=3, description="New desired password")  # FAI CONTROLLI SUALLA SICREZZA DELLA PASSWORD
-    old_password: str = Field(..., description="Current password for verification")
-
-
-@app.patch(
-    "/users/modify/change-password",
-    status_code=status.HTTP_200_OK,
-    tags=["User Editor"],
-    summary="Change user password"
-)
-
-def change_password(
-        update_data: PasswordUpdate,
-        current_user: UserInDB = Depends(get_current_user)
-        ):
-        """
-        Allows authenticated users to change their password.
-        """
-        old_password = update_data.old_password
-        new_password = update_data.new_password
-        if not verify_password(old_password, current_user.hashed_password):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Old password is incorrect."
-            )
-        
-        hashed_password = get_password_hash(new_password)
-        
-        result = USERS_COLLECTION.update_one(
-            {"username": current_user.username},
-            {"$set": {"hashed_password": hashed_password}}
-        )
-        
-        if result.modified_count == 1:
-            return {"message": "Password changed successfully."}
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to change password. Please try again."
-            )
-
-
-class UpdateEmail(BaseModel):
-    old_email: str = Field(..., min_length=1, description="Current email address for verification")
-    new_email: str = Field(..., min_length=1, description="New desired email address")
-
-@app.patch(
-    "/users/modify/change-email",
-    status_code=status.HTTP_200_OK,
-    tags=["User Editor"],
-    summary="Change user email"
-)
-def change_email(
-        new_email_data: UpdateEmail,
-        current_user: UserInDB = Depends(get_current_user)
-        ):
-        """
-        Allows authenticated users to change their email.
-        """
-        
-        new_email = new_email_data.new_email
-        old_email = new_email_data.old_email
-        if old_email != current_user.email:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Old email does not match our records."
-            )
-
-        # Check if the new email is already in use
-        if USERS_COLLECTION.find_one({"email": new_email}):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="New email is already registered."
-            )
-        
-        result = USERS_COLLECTION.update_one(
-            {"username": current_user.username},
-            {"$set": {"email": new_email}}
-        )
-        
-        if result.modified_count == 1:
-            return {"message": "Email changed successfully."}
-        else:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to change email. Please try again."
-            )
-
-
-
 # --- ENDPOINTS: ADMIN AND PROTECTED ACCESS ---
-
-
-
-@app.get(
-    "/devs/dev-all-users", 
-    response_model=List[UserOut],
-    tags=["Administration (Debug)"],
-    summary="[DEBUG] Get all users (including password hash)"
-)
-def get_all_users_for_devs():
-    """
-    WARNING: Unprotected debug/admin endpoint. Returns ALL user data. Must be removed in production!
-    """
-    users_list: List[UserOut] = []
-    
-    for user_doc in USERS_COLLECTION.find():
-        users_list.append(UserOut(
-            id=str(user_doc["_id"]),
-            username=user_doc["username"],
-            email=user_doc.get("email", "EMAIL_MISSING"),
-            is_verified=user_doc.get("is_verified", False),
-            role=user_doc.get("role", "user"),
-            hashed_password=user_doc.get("hashed_password", "HASH_MISSING")
-        ))
-        
-    return users_list
 
 @app.delete(
     "/devs/admin-clear-users", 
@@ -607,19 +499,13 @@ def get_all_users_for_devs():
     tags=["Administration (Protected)"],
     summary="[ADMIN] Delete all non-admin users"
 )
-def clear_all_users_except_admin(current_user: UserInDB = Depends(get_current_user)):
+def clear_all_users_except_admin():
     """
-    WARNING: Destructive endpoint. Deletes all accounts whose role is NOT 'admin'.
-    Requires a valid JWT with 'admin' role.
+    WARNING: Destructive endpoint. Deletes all accounts which username is not 'momo'.
     """
-    if current_user.role != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied. Only administrators can perform this operation."
-        )
-
     try:
-        result = USERS_COLLECTION.delete_many({"role": {"$ne": "admin"}})
+        result = USERS_COLLECTION.delete_many({"username": {"$ne": "admin"}})
+        
     except Exception as e:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Database error during deletion: {e}")
 
@@ -630,32 +516,111 @@ def clear_all_users_except_admin(current_user: UserInDB = Depends(get_current_us
 
 @app.get(
     "/devs/admin-all-users", 
-    response_model=List[UserOut],
+    response_model=List[UserInDB],
     tags=["Administration (Protected)"],
-    summary="[ADMIN] Get all users (including password hash) with protection"
+    summary="[ADMIN] Get all users (including password hash) with protection",
 )
-def get_all_users_for_admin(current_user: UserInDB = Depends(get_current_user)):
+def get_all_users_for_admin():
     """
     Returns all user data, including sensitive fields. 
     Requires a valid JWT with 'admin' role.
     """
-    if current_user.role != "admin":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied. Only administrators can view all users."
-        )
+    
 
-    users_list: List[UserOut] = []
+    users_list: List[UserInDB] = []
     
     for user_doc in USERS_COLLECTION.find():
-        users_list.append(UserOut(
+        users_list.append(UserInDB(
             id=str(user_doc["_id"]),
-            username=user_doc["username"],
-            email=user_doc.get("email", "EMAIL_MISSING"), 
-            is_verified=user_doc.get("is_verified", False),
-            role=user_doc.get("role", "user"),
-            hashed_password=user_doc.get("hashed_password", "HASH_MISSING")
+            username=decrypt_data(user_doc["username"]),
+            email=decrypt_data(user_doc["email"]),
+            hashed_password=user_doc["hashed_password"],
+            hashed_username=user_doc["hashed_username"],
+            hashed_email=user_doc["hashed_email"],   
         ))
         
     return users_list
 
+
+
+class UserUpdateInternal(BaseModel):
+    """Payload interno per aggiornare solo i campi necessari.
+    L'ID è essenziale per trovare l'elemento da aggiornare."""
+    username: Optional[str] = None
+    old_email: Optional[str] = None
+    new_email: Optional[str] = None
+    new_password: Optional[str] = None # Solo se la password cambia
+    old_password: Optional[str] = None # Solo se la password cambia
+
+# =================================================================
+# 3. LOGICA CENTRALIZZATA DI AGGIORNAMENTO DB
+# =================================================================
+
+@app.post("/internal/update-user", status_code=status.HTTP_200_OK, tags=["Internal DB Access"], dependencies=[Depends(verify_internal_token)])
+def update_user_in_db(update_data: UserUpdateInternal, currentuser:UserInDB=Depends(get_current_user)):
+    """
+    Endpoint interno che gestisce l'aggiornamento, la crittografia/hashing,
+    e il salvataggio dei dati utente.
+    """
+    user_id = currentuser.id
+    print(f"Updating user with ID: {user_id}")
+    # 1. Trova l'utente attuale per ottenere i dati esistenti e l'ObjectId
+    try:
+        user_object_id = ObjectId(user_id)
+    except:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user ID format.")
+
+    current_record = USERS_COLLECTION.find_one({"_id": user_object_id})
+    if not current_record:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+        
+    # 2. Prepara il dizionario con gli aggiornamenti
+    update_fields = {}
+    
+    # --- Gestione Username ---
+    if update_data.username:
+        encrypted_new_username = encrypt_data(update_data.username)
+        hashed_new_username = hash_search_key(update_data.username)
+        # Check duplicati (importante)
+        if USERS_COLLECTION.find_one({"hashed_username": hashed_new_username}):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already taken.")
+            
+        update_fields["username"] = encrypted_new_username
+        update_fields["hashed_username"] = hashed_new_username
+        
+    # --- Gestione Email ---
+    if update_data.new_email:
+        encrypted_new_email = encrypt_data(update_data.new_email)
+        hashed_new_email = hash_search_key(update_data.new_email)
+        #Check vecchia email
+        if decrypt_data(current_record["email"]) != update_data.old_email:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Old email does not match current email.")
+        # Check duplicati
+        if USERS_COLLECTION.find_one({"hashed_email": hashed_new_email}):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered.")
+            
+        update_fields["email"] = encrypted_new_email
+        update_fields["hashed_email"] = hashed_new_email
+        
+    # --- Gestione Password ---
+    if update_data.new_password:
+
+        if not verify_password(update_data.old_password, current_record["hashed_password"]):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Old password is incorrect.")
+        
+        update_fields["hashed_password"] = get_password_hash(update_data.new_password)
+        
+    if not update_fields:
+        return {"message": "Nessun campo da aggiornare."}
+        
+    # 3. Esegue l'aggiornamento
+    result = USERS_COLLECTION.update_one(
+        {"_id": user_object_id},
+        {"$set": update_fields}
+    )
+    
+    if result.modified_count == 1:
+        return {"message": "User attributes updated successfully."}
+    else:
+        # Questo può accadere se, ad esempio, i dati sono identici
+        return {"message": "User record was not modified (data was already the same or concurrent update occurred)."}

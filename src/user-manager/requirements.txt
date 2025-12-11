@@ -13,3 +13,5 @@ pytest
 pytest-asyncio
 httpx
 pytest-mock
+cryptography
+hashlib 

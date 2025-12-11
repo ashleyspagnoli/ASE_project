@@ -1,0 +1,11 @@
+fastapi
+pydantic
+uvicorn[standard] # [standard] ensures SSL/TLS support
+requests
+pymongo
+python-dotenv
+pytest
+pytest-asyncio
+httpx
+pytest-mock
+cryptography

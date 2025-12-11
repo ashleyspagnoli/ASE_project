@@ -1,0 +1,82 @@
+# shared_utils.py
+
+from pydantic import BaseModel, Field
+from passlib.context import CryptContext
+from typing import Optional, Any
+import jwt
+from datetime import datetime, timedelta
+from os import environ
+
+# Configurazione Condivisa
+SECRET_KEY = environ.get("SECRET_KEY", "default_secret_key_weak")
+ALGORITHM = environ.get("ALGORITHM", "HS256")
+pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
+
+# --- FUNZIONI DI SICUREZZA ---
+
+def get_password_hash(password: str) -> str:
+    """Restituisce l'hash Argon2 della password."""
+    return pwd_context.hash(password)
+
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    """Verifica una password in chiaro contro l'hash."""
+    return pwd_context.verify(plain_password, hashed_password)
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    """Crea un token JWT."""
+    to_encode = data.copy()
+    expire = datetime.utcnow() + (expires_delta or timedelta(minutes=15))
+    to_encode.update({"exp": expire})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+# --- MOCK Crittografia/Decrittografia (SOSTITUISCI CON LA TUA LOGICA REALE!) ---
+def encrypt_data(data: str) -> str:
+    """Funzione placeholder per crittografare i dati sensibili."""
+    if not data or data.startswith("ENC_"):
+        return data
+    return f"ENC_{data}_ENC"
+
+def decrypt_data(encrypted_data: str) -> str:
+    """Funzione placeholder per decrittografare i dati sensibili."""
+    if encrypted_data.startswith("ENC_") and encrypted_data.endswith("_ENC"):
+        return encrypted_data[4:-4]
+    return encrypted_data
+
+# --- MODELLI PYDANTIC COMUNI ---
+
+class UserBase(BaseModel):
+    """Schema base per i dati utente in chiaro."""
+    username: str
+    email: str
+
+class UserInDB(BaseModel):
+    """Schema interno che rappresenta l'utente recuperato dal DB."""
+    
+    # Campi memorizzati nel DB (crittografati/hash)
+    encrypted_username: str = Field(alias="username")
+    encrypted_email: str = Field(alias="email")
+    hashed_password: str
+    
+    # Altri campi
+    is_verified: Optional[bool] = False
+    role: Optional[str] = "user"
+    id: Optional[str] = None
+    
+    # Proprietà calcolate (DECRITTOGRAFATE)
+    @property
+    def username(self) -> str:
+        return decrypt_data(self.encrypted_username)
+
+    @property
+    def email(self) -> str:
+        return decrypt_data(self.encrypted_email)
+    
+    @classmethod
+    def from_mongo(cls, data: dict[str, Any]) -> "UserInDB":
+        if "_id" in data:
+            data["id"] = str(data.pop("_id"))
+        
+        # Rinominazione per Pydantic
+        data['encrypted_username'] = data.pop('username')
+        data['encrypted_email'] = data.pop('email')
+        return cls(**data)
