@@ -45,6 +45,7 @@ services:
       dockerfile: collection/Dockerfile
     depends_on:
       - db-decks
+      - user-manager
     secrets:
       - collection_cert
       - collection_key
