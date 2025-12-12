@@ -20,7 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 import hashlib
-
+import pytest
 def hash_search_key(data: str) -> str:
     """Generates a SHA-256 hash of the lowercase input string for consistent searching.
      This helps in avoiding storing plain text sensitive data while allowing lookups like email and username.
