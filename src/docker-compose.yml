@@ -163,30 +163,30 @@ volumes:
 
 secrets:
   api_gateway_cert:
-    file: ./api_gateway/secrets/api_gateway_cert.pem  
+    file: ./secrets/api_gateway/cert.pem
   api_gateway_key:
-    file: ./api_gateway/secrets/api_gateway_key.pem 
+    file: ./secrets/api_gateway/key.pem
   user_manager_key:
-    file: ./certs/user-manager/key.pem
+    file: ./secrets/user-manager/key.pem
   user_manager_cert:
-    file: ./certs/user-manager/cert.pem
+    file: ./secrets/user-manager/cert.pem
   user_editor_cert:
-    file: ./certs/user-editor/cert.pem
+    file: ./secrets/user-editor/cert.pem
   user_editor_key:
-    file: ./certs/user-editor/key.pem
+    file: ./secrets/user-editor/key.pem
   user_db_encryption_secret_key:
-    file: ./certs/user-manager/encryption_key.txt
+    file: ./secrets/user-manager/encryption_key.txt
   jwt_secret_key:
-    file: ./certs/user-manager/jwt_secret_key.txt
+    file: ./secrets/user-manager/jwt_secret_key.txt
   history_key:
-    file: ./certs/game_history/key.pem
+    file: ./secrets/game_history/key.pem
   history_cert:
-    file: ./certs/game_history/cert.pem
+    file: ./secrets/game_history/cert.pem
   collection_cert:
-    file: ./certs/collection/cert.pem
+    file: ./secrets/collection/cert.pem
   collection_key:
-    file: ./certs/collection/key.pem
+    file: ./secrets/collection/key.pem
   game_engine_cert:
-    file: ./certs/game_engine/cert.pem
+    file: ./secrets/game_engine/cert.pem
   game_engine_key:
-    file: ./certs/game_engine/key.pem
+    file: ./secrets/game_engine/key.pem
