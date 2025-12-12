@@ -79,9 +79,9 @@ def validate_user_token(token_header: str):
         # Invia la richiesta GET con il token come query parameter
         response = requests.get(
             validate_url,
-            params={"token_str": token},
+            headers={"Authorization": f"Bearer {token}"},
             timeout=5,
-            verify=USER_MANAGER_CERT  # <-- IMPORTANTE: Ignora la verifica del certificato SSL
+            verify=USER_MANAGER_CERT  # <-- verifica del certificato SSL
         )
 
         # Se l'user-manager risponde 401, 403, 404, ecc., solleva un errore
