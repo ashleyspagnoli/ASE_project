@@ -16,6 +16,8 @@ COLLECTION_URL = os.environ.get("COLLECTION_URL", "https://collection:5000/colle
 USER_MANAGER_URL = os.environ.get("USER_MANAGER_URL", "https://user_manager:5000")
 RABBITMQ_HOST = os.environ.get("RABBITMQ_HOST", "rabbitmq")
 RABBITMQ_PORT = int(os.environ.get("RABBITMQ_PORT", "5671"))
+RABBITMQ_USER = os.environ.get("RABBITMQ_USER", "rabbitmq_user")
+RABBITMQ_PASSWORD = os.environ.get("RABBITMQ_PASSWORD", "rabbitmq_password")
 RABBITMQ_CERT_PATH = "/run/secrets/rabbitmq_cert"
 
 
@@ -420,10 +422,12 @@ def _save_match_to_history(game: Game):
         ssl_context = ssl.create_default_context(cafile=RABBITMQ_CERT_PATH)
         ssl_context.check_hostname = True
         ssl_options = pika.SSLOptions(ssl_context, RABBITMQ_HOST)
+        credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
         connection_params = pika.ConnectionParameters(
             host=RABBITMQ_HOST,
             port=RABBITMQ_PORT,
-            ssl_options=ssl_options
+            ssl_options=ssl_options,
+            credentials=credentials
         )
         
         connection = pika.BlockingConnection(connection_params)

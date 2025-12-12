@@ -3,7 +3,7 @@ import json
 import time
 import threading
 import ssl
-from config import RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_CERT_PATH
+from config import RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_CERT_PATH, RABBITMQ_USER, RABBITMQ_PASSWORD
 from logic import process_match_data
 
 def consume_game_history():
@@ -16,10 +16,12 @@ def consume_game_history():
             ssl_context = ssl.create_default_context(cafile=RABBITMQ_CERT_PATH)
             ssl_context.check_hostname = True
             ssl_options = pika.SSLOptions(ssl_context, RABBITMQ_HOST)
+            credentials = pika.PlainCredentials(RABBITMQ_USER, RABBITMQ_PASSWORD)
             connection_params = pika.ConnectionParameters(
                 host=RABBITMQ_HOST,
                 port=RABBITMQ_PORT,
-                ssl_options=ssl_options
+                ssl_options=ssl_options,
+                credentials=credentials
             )
             
             connection = pika.BlockingConnection(connection_params)

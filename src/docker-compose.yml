@@ -23,6 +23,8 @@ services:
       USER_MANAGER_URL: "https://user-manager:5000" 
       RABBITMQ_HOST: "rabbitmq"
       RABBITMQ_PORT: "5671"
+      RABBITMQ_USER: "rabbitmq_user"
+      RABBITMQ_PASSWORD: "rabbitmq_password"
 
   game_history:
     build: ./game_history
@@ -41,6 +43,8 @@ services:
     environment:
       RABBITMQ_HOST: "rabbitmq"
       RABBITMQ_PORT: "5671"
+      RABBITMQ_USER: "rabbitmq_user"
+      RABBITMQ_PASSWORD: "rabbitmq_password"
 
   collection:
     build:
@@ -152,7 +156,10 @@ services:
     ports:
       - "127.0.0.1:15672:15672" #Expose the management UI url only to localhost, we can see data passing through rabbitmq but the port is not exposed to external network
     volumes:
-      - ./secrets/rabbitmq/rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+      - ./rabbitmq.conf:/etc/rabbitmq/rabbitmq.conf:ro
+    environment:
+      RABBITMQ_DEFAULT_USER: "rabbitmq_user"
+      RABBITMQ_DEFAULT_PASS: "rabbitmq_password"
     secrets:
       - rabbitmq_cert
       - rabbitmq_key

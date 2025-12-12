@@ -9,6 +9,8 @@ USER_MANAGER_CERT = os.environ.get('USER_MANAGER_CERT', '/run/secrets/user_manag
 # --- RabbitMQ broker (SSL always enabled) ---
 RABBITMQ_HOST = os.environ.get("RABBITMQ_HOST", "rabbitmq")
 RABBITMQ_PORT = int(os.environ.get("RABBITMQ_PORT", "5671"))
+RABBITMQ_USER = os.environ.get("RABBITMQ_USER", "rabbitmq_user")
+RABBITMQ_PASSWORD = os.environ.get("RABBITMQ_PASSWORD", "rabbitmq_password")
 RABBITMQ_CERT_PATH = "/run/secrets/rabbitmq_cert"
 
 # --- MongoDB ---
