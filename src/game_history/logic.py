@@ -74,10 +74,10 @@ def process_match_data(data):
         print(f"Error processing match: {e}", flush=True)
         return False
 
-mock_matches = None
+mock_get_matches = None
 def get_matches(player_uuid, page):
-    if mock_matches:
-        return mock_matches(player_uuid, page)
+    if mock_get_matches:
+        return mock_get_matches(player_uuid, page)
     pipeline = [
         # 1. Filter by player
         { '$match': { '$or': [{ 'player1': player_uuid }, { 'player2': player_uuid }] } },
@@ -93,10 +93,10 @@ def get_matches(player_uuid, page):
     cursor = matches_collection.aggregate(pipeline)
     return list(cursor)
 
-mock_leaderboard = None
+mock_get_leaderboard = None
 def get_leaderboard(page):
-    if mock_leaderboard:
-        return mock_leaderboard(page)
+    if mock_get_leaderboard:
+        return mock_get_leaderboard(page)
     pipeline = [
         # 1. Sort by higher points
         { '$sort': { 'points': -1 } },

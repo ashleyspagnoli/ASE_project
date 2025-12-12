@@ -6,8 +6,12 @@ import ssl
 from config import RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_CERT_PATH, RABBITMQ_USER, RABBITMQ_PASSWORD
 from logic import process_match_data
 
+
+mock_consumer = None
 def consume_game_history():
     print("Starting RabbitMQ consumer thread...", flush=True)
+    if mock_consumer:
+        exit()
     while True:
         try:
             print(f"Connecting to RabbitMQ at {RABBITMQ_HOST}:{RABBITMQ_PORT} via SSL...", flush=True)
