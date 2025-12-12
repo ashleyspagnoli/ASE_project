@@ -36,8 +36,8 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
     headers = {"Authorization": f"Bearer {token}"}
     
     try:
-        # Effettua la chiamata HTTP al servizio di autenticazione
-        response = requests.get(internal_endpoint, headers=headers, verify=False)
+        # Effettua la chiamata HTTPS al servizio di autenticazione
+        response = requests.get(internal_endpoint, headers=headers, verify=True)
         print(f"Auth Service response status: {response.status_code}")  
         # Solleva eccezione per codici di errore 4xx/5xx
         response.raise_for_status() 
@@ -65,7 +65,8 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, 
             detail=f"Auth Service error: {e.response.text}"
         )
-    except requests.exceptions.ConnectionError:
+    except requests.exceptions.ConnectionError as e:
+        print(f"DEBUG SSL ERROR: {e}")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, 
             detail="Cannot connect to Auth Service"
@@ -130,7 +131,7 @@ def _call_auth_service_update(payload: UserUpdateInternal):
             f"{AUTH_SERVICE_BASE_URL}/internal/update-user",
             json=payload,
             headers=headers,
-            verify=False
+            verify=True
             
         )
         response.raise_for_status() # Solleva eccezione per codici di errore 4xx/5xx

@@ -1,0 +1,17 @@
+# user-manager.cnf
+
+[ req ]
+prompt = no
+distinguished_name = dn 
+x509_extensions = req_ext 
+
+[ dn ]
+CN = user-manager                      
+emailAddress = your.email@unipi.it
+O = Unipi
+
+[ req_ext ]
+# L'URL Docker che l'Editor chiama è "user-manager"
+subjectAltName = DNS:user-manager, DNS:localhost
+keyUsage = digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth

@@ -1,0 +1,21 @@
+# user-editor.cnf
+
+[ req ]
+prompt = no
+distinguished_name = dn 
+x509_extensions = req_ext 
+
+[ dn ]
+CN = user-editor
+emailAddress = your.email@unipi.it
+O = Unipi
+OU = Informatica
+L = Pisa
+ST = Pisa
+C = IT
+
+[ req_ext ]
+# Estensioni per server web e hostname
+subjectAltName = DNS:user-editor, DNS:localhost
+keyUsage = digitalSignature, keyEncipherment
+extendedKeyUsage = serverAuth

@@ -261,6 +261,8 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         
     return user
 
+
+
 @app.post("/token", response_model=Token, tags=["Authentication and Users"], summary="OAuth2 Standard Token Exchange")
 def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     """
@@ -402,6 +404,8 @@ def get_user_from_local_token(token: str = Depends(oauth2_scheme)) -> UserInDB:
         raise credentials_exception
         
     return user
+
+
 
 @app.get(
     "/users/validate-token", 
