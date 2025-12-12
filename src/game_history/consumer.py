@@ -2,15 +2,27 @@ import pika
 import json
 import time
 import threading
-from config import RABBITMQ_HOST
+import ssl
+from config import RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_CERT_PATH
 from logic import process_match_data
 
 def consume_game_history():
     print("Starting RabbitMQ consumer thread...", flush=True)
     while True:
         try:
-            print(f"Connecting to RabbitMQ at {RABBITMQ_HOST}...", flush=True)
-            connection = pika.BlockingConnection(pika.ConnectionParameters(host=RABBITMQ_HOST))
+            print(f"Connecting to RabbitMQ at {RABBITMQ_HOST}:{RABBITMQ_PORT} via SSL...", flush=True)
+            
+            # Configure SSL connection (always enabled)
+            ssl_context = ssl.create_default_context(cafile=RABBITMQ_CERT_PATH)
+            ssl_context.check_hostname = True
+            ssl_options = pika.SSLOptions(ssl_context, RABBITMQ_HOST)
+            connection_params = pika.ConnectionParameters(
+                host=RABBITMQ_HOST,
+                port=RABBITMQ_PORT,
+                ssl_options=ssl_options
+            )
+            
+            connection = pika.BlockingConnection(connection_params)
             channel = connection.channel()
             channel.queue_declare(queue='game_history_queue', durable=True)
 

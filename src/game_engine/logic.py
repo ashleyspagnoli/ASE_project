@@ -15,6 +15,8 @@ GAME_HISTORY_URL = os.environ.get("GAME_HISTORY_URL", "https://game_history:5000
 COLLECTION_URL = os.environ.get("COLLECTION_URL", "https://collection:5000/collection")
 USER_MANAGER_URL = os.environ.get("USER_MANAGER_URL", "https://user_manager:5000")
 RABBITMQ_HOST = os.environ.get("RABBITMQ_HOST", "rabbitmq")
+RABBITMQ_PORT = int(os.environ.get("RABBITMQ_PORT", "5671"))
+RABBITMQ_CERT_PATH = "/run/secrets/rabbitmq_cert"
 
 
 # --- STRUTTURE DATI PER MATCHMAKING REST ---
@@ -413,7 +415,18 @@ def _save_match_to_history(game: Game):
     }
 
     try:
-        connection = pika.BlockingConnection(pika.ConnectionParameters(host=RABBITMQ_HOST))
+        # Configure SSL connection (always enabled)
+        import ssl
+        ssl_context = ssl.create_default_context(cafile=RABBITMQ_CERT_PATH)
+        ssl_context.check_hostname = True
+        ssl_options = pika.SSLOptions(ssl_context, RABBITMQ_HOST)
+        connection_params = pika.ConnectionParameters(
+            host=RABBITMQ_HOST,
+            port=RABBITMQ_PORT,
+            ssl_options=ssl_options
+        )
+        
+        connection = pika.BlockingConnection(connection_params)
         channel = connection.channel()
         channel.queue_declare(queue='game_history_queue', durable=True)
         
@@ -425,7 +438,7 @@ def _save_match_to_history(game: Game):
                 delivery_mode=2,  # make message persistent
             ))
         connection.close()
-        print(f"Match {game.game_id} inviato a RabbitMQ.", flush=True)
+        print(f"Match {game.game_id} inviato a RabbitMQ via SSL.", flush=True)
     
     except Exception as e:
         print(f"ERRORE CRITICO: Impossibile inviare la partita {game.game_id} a RabbitMQ: {e}", flush=True)
