@@ -16,6 +16,9 @@ class UserInDB(BaseModel):
 
 
 AUTH_SERVICE_BASE_URL = environ.get("AUTH_SERVICE_URL", "https://user-manager:5000") 
+AUTH_SERVICE_CERT_PATH = "/run/secrets/user_manager_cert"
+
+
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="https://localhost:5004/token") 
 
@@ -37,7 +40,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
     
     try:
         # Effettua la chiamata HTTPS al servizio di autenticazione
-        response = requests.get(internal_endpoint, headers=headers, verify=True)
+        response = requests.get(internal_endpoint, headers=headers, verify=AUTH_SERVICE_CERT_PATH)
         print(f"Auth Service response status: {response.status_code}")  
         # Solleva eccezione per codici di errore 4xx/5xx
         response.raise_for_status() 
@@ -131,7 +134,7 @@ def _call_auth_service_update(payload: UserUpdateInternal):
             f"{AUTH_SERVICE_BASE_URL}/internal/update-user",
             json=payload,
             headers=headers,
-            verify=True
+            verify=AUTH_SERVICE_CERT_PATH
             
         )
         response.raise_for_status() # Solleva eccezione per codici di errore 4xx/5xx

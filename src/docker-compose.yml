@@ -100,10 +100,12 @@ services:
     secrets:
       - user_editor_cert
       - user_editor_key
+      - user_manager_cert
     command:
       uvicorn user-editor.main:app --host 0.0.0.0 --port 5000 
       --ssl-keyfile /run/secrets/user_editor_key 
       --ssl-certfile /run/secrets/user_editor_cert
+
 
   user-db:
     image: mongo:latest
@@ -184,13 +186,13 @@ secrets:
   api_gateway_key:
     file: ./secrets/api_gateway/key.pem
   user_manager_key:
-    file: ./certs/user-manager/user-manager.key
+    file: ./secrets/user-manager/user-manager.key
   user_manager_cert:
-    file: ./certs/user-manager/user-manager.crt
+    file: ./secrets/user-manager/user-manager.crt
   user_editor_cert:
-    file: ./certs/user-editor/user-editor.crt
+    file: ./secrets/user-editor/user-editor.crt
   user_editor_key:
-    file: ./certs/user-editor/user-editor.key
+    file: ./secrets/user-editor/user-editor.key
   user_db_encryption_secret_key:
     file: ./secrets/user-manager/encryption_key.txt
   jwt_secret_key:
