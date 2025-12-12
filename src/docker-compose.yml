@@ -63,6 +63,8 @@ services:
     build: 
       context: ./user-manager
     container_name: user_manager_service
+    ports:
+      - "5004:5000"
     depends_on:
       - user-db
     environment:
@@ -86,7 +88,8 @@ services:
 
   user-editor:
     build:
-      context: ./user-editor
+      context: .
+      dockerfile: ./user-editor/Dockerfile 
     container_name: user_editor_service
     ports:
       - "5005:5000"
@@ -98,7 +101,7 @@ services:
       - user_editor_cert
       - user_editor_key
     command:
-      uvicorn main:app --host 0.0.0.0 --port 5000 
+      uvicorn user-editor.main:app --host 0.0.0.0 --port 5000 
       --ssl-keyfile /run/secrets/user_editor_key 
       --ssl-certfile /run/secrets/user_editor_cert
 
@@ -181,13 +184,13 @@ secrets:
   api_gateway_key:
     file: ./secrets/api_gateway/key.pem
   user_manager_key:
-    file: ./secrets/user-manager/key.pem
+    file: ./certs/user-manager/user-manager.key
   user_manager_cert:
-    file: ./secrets/user-manager/cert.pem
+    file: ./certs/user-manager/user-manager.crt
   user_editor_cert:
-    file: ./secrets/user-editor/cert.pem
+    file: ./certs/user-editor/user-editor.crt
   user_editor_key:
-    file: ./secrets/user-editor/key.pem
+    file: ./certs/user-editor/user-editor.key
   user_db_encryption_secret_key:
     file: ./secrets/user-manager/encryption_key.txt
   jwt_secret_key:
