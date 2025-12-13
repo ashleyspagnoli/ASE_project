@@ -29,6 +29,11 @@ def process_match_data(data):
         print("Error: Missing required match data", flush=True)
         return False
 
+    # Validate types to prevent NoSQL injection 
+    if not isinstance(data['player1'], str) or not isinstance(data['player2'], str) or not isinstance(data['winner'], str):
+        print("Error: Invalid data types in match data", flush=True)
+        return False
+
     match_id = str(uuid.uuid4())
     match = {
         '_id': match_id,
@@ -74,10 +79,8 @@ def process_match_data(data):
         print(f"Error processing match: {e}", flush=True)
         return False
 
-mock_get_matches = None
+
 def get_matches(player_uuid, page):
-    if mock_get_matches:
-        return mock_get_matches(player_uuid, page)
     pipeline = [
         # 1. Filter by player
         { '$match': { '$or': [{ 'player1': player_uuid }, { 'player2': player_uuid }] } },
@@ -93,10 +96,8 @@ def get_matches(player_uuid, page):
     cursor = matches_collection.aggregate(pipeline)
     return list(cursor)
 
-mock_get_leaderboard = None
+
 def get_leaderboard(page):
-    if mock_get_leaderboard:
-        return mock_get_leaderboard(page)
     pipeline = [
         # 1. Sort by higher points
         { '$sort': { 'points': -1 } },

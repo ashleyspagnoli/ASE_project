@@ -7,11 +7,9 @@ from config import RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_CERT_PATH, RABBITMQ_US
 from logic import process_match_data
 
 
-mock_consumer = None
+
 def consume_game_history():
     print("Starting RabbitMQ consumer thread...", flush=True)
-    if mock_consumer:
-        exit()
     while True:
         try:
             print(f"Connecting to RabbitMQ at {RABBITMQ_HOST}:{RABBITMQ_PORT} via SSL...", flush=True)
@@ -57,6 +55,7 @@ def consume_game_history():
         except Exception as e:
             print(f"Error in RabbitMQ consumer: {e}. Retrying in 5 seconds...", flush=True)
             time.sleep(5)
+
 
 def start_consumer():
     # Start consumer in a background thread

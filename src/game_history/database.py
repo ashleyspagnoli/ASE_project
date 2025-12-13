@@ -2,8 +2,11 @@ from pymongo import MongoClient
 from config import MONGO_URI
 
 # --- MongoDB Connection ---
+mock_get_db = None
 _db = None
 def get_db(): # Lazily load DB, this function will never be called if get_leaderboard and get_matches get mocked
+    if mock_get_db:
+        return mock_get_db()
     global _db
     if _db is None:
         try:

@@ -3,40 +3,46 @@ import json
 from config import USERNAMES_BY_IDS_URL, USER_MANAGER_CERT, USER_MANAGER_URL
 
 # Helper to get usernames for a list of UUIDs in one request
-mock_usernames_by_ids = None
+mock_get_usernames_by_ids = None
 def get_usernames_by_ids(user_ids):
     """
     Fetch usernames for a list of user IDs via the user-manager endpoint
     GET /utenti/usernames-by-ids?id_list=<id>&id_list=<id2> ...
+    """
+    if mock_get_usernames_by_ids:
+        return mock_get_usernames_by_ids(user_ids)
+
+    try:
+        # requests will serialize list params as repeated query params
+        resp = requests.get(
+            USERNAMES_BY_IDS_URL,
+            params={'id_list': user_ids},
+            timeout=5,
+            verify=USER_MANAGER_CERT
+        )
+        if resp.status_code == 200:
+            return resp.json() or []
+        else:
+            print(f"Error: usernames-by-ids returned {resp.status_code}: {resp.text}", flush=True)
+            return []
+    except requests.exceptions.ConnectionError as e:
+        print(f"Warning: Could not connect to user-manager at {USERNAMES_BY_IDS_URL}. {e}", flush=True)
+        return []
+    except Exception as e:
+        print(f"Warning: Error fetching usernames for ids {user_ids}. {e}", flush=True)
+        return []
+
+def associate_usernames_to_ids(user_ids):
+    """
+    Gets usernames using the get_username_by_ids function
     Returns a dict {id: username}
     """
     if not user_ids:
         return {}
     # Turn input into list
     user_ids = list(user_ids)
-    
-    if mock_usernames_by_ids:
-        data = mock_usernames_by_ids(user_ids)
-    else:
-        try:
-            # requests will serialize list params as repeated query params
-            resp = requests.get(
-                USERNAMES_BY_IDS_URL,
-                params={'id_list': user_ids},
-                timeout=3,
-                verify=USER_MANAGER_CERT
-            )
-            if resp.status_code == 200:
-                data = resp.json() or []
-            else:
-                print(f"Error: usernames-by-ids returned {resp.status_code}: {resp.text}", flush=True)
-                data = []
-        except requests.exceptions.ConnectionError as e:
-            print(f"Warning: Could not connect to user-manager at {USERNAMES_BY_IDS_URL}. {e}", flush=True)
-            data = []
-        except Exception as e:
-            print(f"Warning: Error fetching usernames for ids {user_ids}. {e}", flush=True)
-            data = []
+
+    data = get_usernames_by_ids(user_ids)
 
     mapping = {item.get('id'): item.get('username') for item in data if isinstance(item, dict)}
     # Ensure all ids present in mapping
@@ -44,10 +50,9 @@ def get_usernames_by_ids(user_ids):
         mapping.setdefault(uid, "Unknown user")
     return mapping
 
-# ------------------------------------------------------------
-# 🔐 User Token Validation
-#------------------------------------------------------------
-mock_user_validator = None
+
+# User Token Validation
+mock_validate_user_token = None
 def validate_user_token(token_header: str):
     """
     Contatta l'user-manager (in HTTPS) per validare un token JWT.
@@ -58,11 +63,12 @@ def validate_user_token(token_header: str):
     Restituisce (user_uuid, username) se il token è valido.
     Solleva ValueError se il token non è valido o il servizio non risponde.
     """
+
     if not token_header:
         raise ValueError("Header 'Authorization' mancante.")
-
-    if mock_user_validator:
-        return mock_user_validator(token_header)
+    
+    if mock_validate_user_token:
+        return mock_validate_user_token(token_header)
     
     # Il token_header è "Bearer eyJ...". Dobbiamo estrarre solo il token "eyJ..."
     try:
