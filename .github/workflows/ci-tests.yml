@@ -1,0 +1,91 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main, develop ]
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Generate self-signed certificates for testing
+        working-directory: ./src
+        run: |
+          mkdir -p secrets/{api_gateway,user-manager,user-editor,game_engine,game_history,collection,rabbitmq}
+          
+          # Generate certificates for each service
+          for service in api_gateway user-manager user-editor game_engine game_history collection rabbitmq; do
+            if [ "$service" = "user-manager" ] || [ "$service" = "user-editor" ]; then
+              openssl req -x509 -newkey rsa:4096 -keyout secrets/$service/${service}.key \
+                -out secrets/$service/${service}.crt -days 1 -nodes \
+                -subj "/C=US/ST=Test/L=Test/O=Test/CN=localhost"
+            else
+              openssl req -x509 -newkey rsa:4096 -keyout secrets/$service/key.pem \
+                -out secrets/$service/cert.pem -days 1 -nodes \
+                -subj "/C=US/ST=Test/L=Test/O=Test/CN=localhost"
+            fi
+          done
+          
+          # Generate encryption and JWT keys
+          python3 -c "import secrets; print(secrets.token_urlsafe(32))" > secrets/user-manager/encryption_key.txt
+          python3 -c "import secrets; print(secrets.token_urlsafe(32))" > secrets/user-manager/jwt_secret_key.txt
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Start services with docker-compose
+        working-directory: ./src
+        run: |
+          # Override Dockerfile_test for services that have them
+          docker-compose up -d --build
+          
+          # Wait for services to be healthy
+          echo "Waiting for services to start..."
+          sleep 30
+          
+          # Check service health
+          docker-compose ps
+
+      - name: Install Newman (Postman CLI)
+        run: npm install -g newman
+
+      - name: Run Postman integration tests
+        run: |
+          newman run tests/integration.postman_collection.json \
+            --env-var "gateway_url=https://localhost:8443" \
+            --insecure \
+            --reporters cli,json \
+            --reporter-json-export newman-results.json
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: newman-results
+          path: newman-results.json
+
+      - name: Show service logs on failure
+        if: failure()
+        working-directory: ./src
+        run: |
+          echo "=== API Gateway Logs ==="
+          docker-compose logs api-gateway
+          echo "=== Game Engine Logs ==="
+          docker-compose logs game_engine
+          echo "=== Collection Logs ==="
+          docker-compose logs collection
+          echo "=== User Manager Logs ==="
+          docker-compose logs user-manager
+          echo "=== Game History Logs ==="
+          docker-compose logs game_history
+
+      - name: Cleanup
+        if: always()
+        working-directory: ./src
+        run: docker-compose down -v

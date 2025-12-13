@@ -26,4 +26,4 @@ if __name__ == "__main__":
     import ssl
     context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     context.load_cert_chain('/run/secrets/game_engine_cert', '/run/secrets/game_engine_key')
-    app.run(host="0.0.0.0", port=5000, debug=True, ssl_context=context)
+    app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False, ssl_context=context)

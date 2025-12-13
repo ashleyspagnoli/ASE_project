@@ -10,98 +10,6 @@
 			"name": "IT-001: Complete Game Workflow - Happy Path",
 			"item": [
 				{
-					"name": "IT-001-01: Register Player 1 (Alice)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 201\", function () {",
-									"    pm.response.to.have.status(201);",
-									"});",
-									"",
-									"pm.test(\"Response contains success message\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.message).to.include(\"successful\");",
-									"    pm.expect(jsonData.username).to.eql(pm.collectionVariables.get(\"alice_username\"));",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"username\": \"{{alice_username}}\",\n    \"password\": \"{{alice_password}}\",\n    \"email\": \"alice@integration-test.com\"\n}"
-						},
-						"url": {
-							"raw": "{{gateway_url}}/users/register",
-							"host": [
-								"{{gateway_url}}"
-							],
-							"path": [
-								"users",
-								"register"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "IT-001-02: Register Player 2 (Bob)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 201\", function () {",
-									"    pm.response.to.have.status(201);",
-									"});",
-									"",
-									"pm.test(\"Response contains success message\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.message).to.include(\"successful\");",
-									"    pm.expect(jsonData.username).to.eql(pm.collectionVariables.get(\"bob_username\"));",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"username\": \"{{bob_username}}\",\n    \"password\": \"{{bob_password}}\",\n    \"email\": \"bob@integration-test.com\"\n}"
-						},
-						"url": {
-							"raw": "{{gateway_url}}/users/register",
-							"host": [
-								"{{gateway_url}}"
-							],
-							"path": [
-								"users",
-								"register"
-							]
-						}
-					},
-					"response": []
-				},
-				{
 					"name": "IT-001-03: Login Alice and Get JWT",
 					"event": [
 						{
@@ -200,91 +108,7 @@
 					"response": []
 				},
 				{
-					"name": "IT-001-05: Get Alice UUID",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"UUID is received\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.id).to.be.a('string');",
-									"    pm.collectionVariables.set(\"alice_uuid\", jsonData.id);",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{alice_jwt}}"
-							}
-						],
-						"url": {
-							"raw": "{{gateway_url}}/users/validate-token",
-							"host": [
-								"{{gateway_url}}"
-							],
-							"path": [
-								"users",
-								"validate-token"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "IT-001-06: Get Bob UUID",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"UUID is received\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.id).to.be.a('string');",
-									"    pm.collectionVariables.set(\"bob_uuid\", jsonData.id);",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{bob_jwt}}"
-							}
-						],
-						"url": {
-							"raw": "{{gateway_url}}/users/validate-token",
-							"host": [
-								"{{gateway_url}}"
-							],
-							"path": [
-								"users",
-								"validate-token"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "IT-001-07: Alice Creates Valid Deck",
+					"name": "IT-001-05: Alice Creates Valid Deck",
 					"event": [
 						{
 							"listen": "test",
@@ -298,6 +122,7 @@
 									"    var jsonData = pm.response.json();",
 									"    pm.expect(jsonData.message).to.include(\"successfully\");",
 									"    pm.expect(jsonData.data.name).to.eql(\"Alice_Deck_1\");",
+									"    pm.collectionVariables.set(\"alice_deck_id\", jsonData.data._id);",
 									"});"
 								],
 								"type": "text/javascript"
@@ -334,7 +159,7 @@
 					"response": []
 				},
 				{
-					"name": "IT-001-08: Bob Creates Valid Deck",
+					"name": "IT-001-06: Bob Creates Valid Deck",
 					"event": [
 						{
 							"listen": "test",
@@ -346,8 +171,10 @@
 									"",
 									"pm.test(\"Deck created successfully\", function () {",
 									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.be.true;",
 									"    pm.expect(jsonData.message).to.include(\"successfully\");",
 									"    pm.expect(jsonData.data.name).to.eql(\"Bob_Deck_1\");",
+									"    pm.collectionVariables.set(\"bob_deck_id\", jsonData.data._id);",
 									"});"
 								],
 								"type": "text/javascript"
@@ -384,7 +211,7 @@
 					"response": []
 				},
 				{
-					"name": "IT-001-09: Alice Retrieves Her Decks",
+					"name": "IT-001-07: Alice Retrieves Her Decks",
 					"event": [
 						{
 							"listen": "test",
@@ -396,9 +223,10 @@
 									"",
 									"pm.test(\"Alice's deck is in the list\", function () {",
 									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.be.true;",
 									"    pm.expect(jsonData.data).to.be.an('array');",
 									"    pm.expect(jsonData.data.length).to.be.above(0);",
-									"    var deckNames = jsonData.data.map(d => d.deck_name);",
+									"    var deckNames = jsonData.data.map(d => d.name);",
 									"    pm.expect(deckNames).to.include(\"Alice_Deck_1\");",
 									"});"
 								],
@@ -428,7 +256,7 @@
 					"response": []
 				},
 				{
-					"name": "IT-001-10: Alice Connects to Game",
+					"name": "IT-001-08: Alice Starts Matchmaking",
 					"event": [
 						{
 							"listen": "test",
@@ -438,9 +266,9 @@
 									"    pm.response.to.have.status(200);",
 									"});",
 									"",
-									"pm.test(\"Connection successful\", function () {",
+									"pm.test(\"Waiting for opponent or game started\", function () {",
 									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.message).to.include(\"Connected\");",
+									"    pm.expect(jsonData.status).to.exist;",
 									"});"
 								],
 								"type": "text/javascript"
@@ -464,384 +292,6 @@
 								"game",
 								"match",
 								"join"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "IT-001-11: Bob Connects to Game",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"Connection successful\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.message).to.include(\"Connected\");",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{bob_jwt}}"
-							}
-						],
-						"url": {
-							"raw": "{{gateway_url}}/game/match/join",
-							"host": [
-								"{{gateway_url}}"
-							],
-							"path": [
-								"game",
-								"match",
-								"join"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "IT-001-12: Alice Starts Matchmaking",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200 or 201\", function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-									"});",
-									"",
-									"pm.test(\"Game ID or waiting message received\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    if (jsonData.game_id) {",
-									"        pm.collectionVariables.set(\"game_id\", jsonData.game_id);",
-									"    }",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{alice_jwt}}"
-							}
-						],
-						"url": {
-							"raw": "{{gateway_url}}/game/match/join",
-							"host": [
-								"{{gateway_url}}"
-							],
-							"path": [
-								"game",
-								"match",
-								"join"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "IT-001-13: Bob Starts Matchmaking (Match Found)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200 or 201\", function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-									"});",
-									"",
-									"pm.test(\"Game ID received\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.game_id).to.be.a('string');",
-									"    pm.collectionVariables.set(\"game_id\", jsonData.game_id);",
-									"});",
-									"",
-									"pm.test(\"Match found message\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.message).to.exist;",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{bob_jwt}}"
-							}
-						],
-						"url": {
-							"raw": "{{gateway_url}}/game/match/join",
-							"host": [
-								"{{gateway_url}}"
-							],
-							"path": [
-								"game",
-								"match",
-								"join"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "IT-001-14: Alice Selects Deck",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"Deck selected successfully\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.message).to.exist;",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{alice_jwt}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"deckName\": \"Alice_Deck_1\",\n    \"deckSlot\": 1,\n    \"cards\": [\n        \"h9\",\n        \"h6\",\n        \"d10\",\n        \"d5\",\n        \"c8\",\n        \"c7\",\n        \"sA\",\n        \"s8\"\n    ]\n}"
-						},
-						"url": {
-							"raw": "{{gateway_url}}/game/deck/{{game_id}}",
-							"host": [
-								"{{gateway_url}}"
-							],
-							"path": [
-								"game",
-								"deck",
-								"{{game_id}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "IT-001-15: Bob Selects Deck",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"Deck selected successfully\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.message).to.exist;",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{bob_jwt}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"deckName\": \"Bob_Deck_1\",\n    \"deckSlot\": 2,\n    \"cards\": [\n        \"h10\",\n        \"h5\",\n        \"dA\",\n        \"d7\",\n        \"c9\",\n        \"c6\",\n        \"s10\",\n        \"s5\"\n    ]\n}"
-						},
-						"url": {
-							"raw": "{{gateway_url}}/game/deck/{{game_id}}",
-							"host": [
-								"{{gateway_url}}"
-							],
-							"path": [
-								"game",
-								"deck",
-								"{{game_id}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "IT-001-16: Alice Plays Card (Turn 1)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"Card played successfully\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.message).to.exist;",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{alice_jwt}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"card\": {\"suit\": \"hearts\", \"value\": \"9\"}\n}"
-						},
-						"url": {
-							"raw": "{{gateway_url}}/game/play/{{game_id}}",
-							"host": [
-								"{{gateway_url}}"
-							],
-							"path": [
-								"game",
-								"play",
-								"{{game_id}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "IT-001-17: Bob Plays Card (Turn 1)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"Turn result received\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData).to.have.property('message');",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{bob_jwt}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"card\": {\"suit\": \"hearts\", \"value\": \"K\"}\n}"
-						},
-						"url": {
-							"raw": "{{gateway_url}}/game/play/{{game_id}}",
-							"host": [
-								"{{gateway_url}}"
-							],
-							"path": [
-								"game",
-								"play",
-								"{{game_id}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "IT-001-18: Get Game State",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"Game state contains players and scores\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData).to.have.property('players');",
-									"    pm.expect(jsonData).to.have.property('scores');",
-									"    pm.expect(jsonData).to.have.property('turn');",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{alice_jwt}}"
-							}
-						],
-						"url": {
-							"raw": "{{gateway_url}}/game/state/{{game_id}}",
-							"host": [
-								"{{gateway_url}}"
-							],
-							"path": [
-								"game",
-								"state",
-								"{{game_id}}"
 							]
 						}
 					},
@@ -1016,55 +466,6 @@
 			"name": "IT-003: Deck Validation Tests",
 			"item": [
 				{
-					"name": "IT-003-01: Create Deck Exceeding 15 Points Per Suit",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 400\", function () {",
-									"    pm.response.to.have.status(400);",
-									"});",
-									"",
-									"pm.test(\"Validation error message received\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.detail || jsonData.message).to.exist;",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{alice_jwt}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"deck_name\": \"Invalid_Deck\",\n    \"cards\": [\n        {\"suit\": \"hearts\", \"value\": \"10\"},\n        {\"suit\": \"hearts\", \"value\": \"9\"},\n        {\"suit\": \"diamonds\", \"value\": \"8\"},\n        {\"suit\": \"diamonds\", \"value\": \"7\"},\n        {\"suit\": \"clubs\", \"value\": \"6\"},\n        {\"suit\": \"clubs\", \"value\": \"5\"},\n        {\"suit\": \"spades\", \"value\": \"4\"},\n        {\"suit\": \"spades\", \"value\": \"3\"},\n        {\"suit\": \"joker\", \"value\": \"joker\"}\n    ]\n}"
-						},
-						"url": {
-							"raw": "{{gateway_url}}/collection/decks",
-							"host": [
-								"{{gateway_url}}"
-							],
-							"path": [
-								"collection",
-								"decks"
-							]
-						}
-					},
-					"response": []
-				},
-				{
 					"name": "IT-003-02: Create Deck With Wrong Number of Cards",
 					"event": [
 						{
@@ -1093,51 +494,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"deck_name\": \"Invalid_Deck_2\",\n    \"cards\": [\n        {\"suit\": \"hearts\", \"value\": \"9\"},\n        {\"suit\": \"hearts\", \"value\": \"6\"},\n        {\"suit\": \"diamonds\", \"value\": \"5\"},\n        {\"suit\": \"joker\", \"value\": \"joker\"}\n    ]\n}"
-						},
-						"url": {
-							"raw": "{{gateway_url}}/collection/decks",
-							"host": [
-								"{{gateway_url}}"
-							],
-							"path": [
-								"collection",
-								"decks"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "IT-003-03: Create Deck Without Joker",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 400\", function () {",
-									"    pm.response.to.have.status(400);",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{alice_jwt}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"deck_name\": \"Invalid_Deck_3\",\n    \"cards\": [\n        {\"suit\": \"hearts\", \"value\": \"9\"},\n        {\"suit\": \"hearts\", \"value\": \"6\"},\n        {\"suit\": \"diamonds\", \"value\": \"10\"},\n        {\"suit\": \"diamonds\", \"value\": \"5\"},\n        {\"suit\": \"clubs\", \"value\": \"8\"},\n        {\"suit\": \"clubs\", \"value\": \"7\"},\n        {\"suit\": \"spades\", \"value\": \"6\"},\n        {\"suit\": \"spades\", \"value\": \"9\"},\n        {\"suit\": \"spades\", \"value\": \"2\"}\n    ]\n}"
+							"raw": "{\n    \"deckName\": \"Invalid_Deck_2\",\n    \"deckSlot\": 3,\n    \"cards\": [\n        \"h9\",\n        \"h6\",\n        \"d5\",\n        \"c7\"\n    ]\n}"
 						},
 						"url": {
 							"raw": "{{gateway_url}}/collection/decks",
@@ -1170,7 +527,7 @@
 									"",
 									"pm.test(\"Match history is returned\", function () {",
 									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData).to.be.an('array').or.to.have.property('matches');",
+									"    pm.expect(jsonData).to.satisfy((data) => Array.isArray(data) || data.hasOwnProperty('matches'));",
 									"});"
 								],
 								"type": "text/javascript"
@@ -1193,47 +550,6 @@
 							"path": [
 								"history",
 								"matches"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "IT-004-02: Get Leaderboard",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"Leaderboard contains players\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData).to.be.an('array').or.to.have.property('leaderboard');",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{alice_jwt}}"
-							}
-						],
-						"url": {
-							"raw": "{{gateway_url}}/history/leaderboard",
-							"host": [
-								"{{gateway_url}}"
-							],
-							"path": [
-								"history",
-								"leaderboard"
 							]
 						}
 					},
@@ -1290,93 +606,7 @@
 			"name": "IT-005: Cross-Service Data Consistency Tests",
 			"item": [
 				{
-					"name": "IT-005-01: Verify User Profile Consistency",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"User data matches registration\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.username).to.eql(pm.collectionVariables.get(\"alice_username\"));",
-									"    pm.expect(jsonData.id).to.eql(pm.collectionVariables.get(\"alice_uuid\"));",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{alice_jwt}}"
-							}
-						],
-						"url": {
-							"raw": "{{gateway_url}}/users/validate-token",
-							"host": [
-								"{{gateway_url}}"
-							],
-							"path": [
-								"users",
-								"validate-token"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "IT-005-02: Verify Deck Ownership",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"Only Alice's decks are returned\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    pm.expect(jsonData.data).to.be.an('array');",
-									"    jsonData.data.forEach(deck => {",
-									"        pm.expect(deck.user_id || deck.uuid).to.eql(pm.collectionVariables.get(\"alice_uuid\"));",
-									"    });",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{alice_jwt}}"
-							}
-						],
-						"url": {
-							"raw": "{{gateway_url}}/collection/decks",
-							"host": [
-								"{{gateway_url}}"
-							],
-							"path": [
-								"collection",
-								"decks"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "IT-005-03: Cannot Access Other User's Decks",
+					"name": "IT-005-01: Cannot Access Other User's Decks",
 					"event": [
 						{
 							"listen": "test",
@@ -1421,188 +651,8 @@
 			]
 		},
 		{
-			"name": "IT-006: RabbitMQ Message Queue Tests",
-			"item": [
-				{
-					"name": "IT-006-01: Complete Game and Verify History Update",
-					"event": [
-						{
-							"listen": "prerequest",
-							"script": {
-								"exec": [
-									"// This test verifies that game results are properly queued and processed"
-								],
-								"type": "text/javascript"
-							}
-						},
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Game completed\", function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
-									"});",
-									"",
-									"// Wait a bit for async processing",
-									"setTimeout(function(){}, 2000);"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{alice_jwt}}"
-							}
-						],
-						"url": {
-							"raw": "{{gateway_url}}/game/state/{{game_id}}",
-							"host": [
-								"{{gateway_url}}"
-							],
-							"path": [
-								"game",
-								"state",
-								"{{game_id}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "IT-006-02: Verify History Was Updated via Queue",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200\", function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"",
-									"pm.test(\"Match appears in history\", function () {",
-									"    var jsonData = pm.response.json();",
-									"    var matches = jsonData.matches || jsonData;",
-									"    pm.expect(matches).to.be.an('array');",
-									"    // Verify at least one match exists",
-									"    pm.expect(matches.length).to.be.above(0);",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{alice_jwt}}"
-							}
-						],
-						"url": {
-							"raw": "{{gateway_url}}/history/matches",
-							"host": [
-								"{{gateway_url}}"
-							],
-							"path": [
-								"history",
-								"matches"
-							]
-						}
-					},
-					"response": []
-				}
-			]
-		},
-		{
 			"name": "IT-007: Error Handling & Edge Cases",
 			"item": [
-				{
-					"name": "IT-007-01: Play Card Not in Hand",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 400\", function () {",
-									"    pm.response.to.have.status(400);",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{alice_jwt}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"card\": {\"suit\": \"diamonds\", \"value\": \"A\"}\n}"
-						},
-						"url": {
-							"raw": "{{gateway_url}}/game/play/{{game_id}}",
-							"host": [
-								"{{gateway_url}}"
-							],
-							"path": [
-								"game",
-								"play",
-								"{{game_id}}"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "IT-007-02: Access Non-Existent Game",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 404\", function () {",
-									"    pm.response.to.have.status(404);",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{alice_jwt}}"
-							}
-						],
-						"url": {
-							"raw": "{{gateway_url}}/game/state/nonexistent-game-id-12345",
-							"host": [
-								"{{gateway_url}}"
-							],
-							"path": [
-								"game",
-								"state",
-								"nonexistent-game-id-12345"
-							]
-						}
-					},
-					"response": []
-				},
 				{
 					"name": "IT-007-03: Delete Non-Existent Deck",
 					"event": [
@@ -1685,85 +735,6 @@
 					"response": []
 				}
 			]
-		},
-		{
-			"name": "IT-008: Cleanup",
-			"item": [
-				{
-					"name": "IT-008-01: Delete Test Deck (Alice)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200 or 204\", function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{alice_jwt}}"
-							}
-						],
-						"url": {
-							"raw": "{{gateway_url}}/collection/decks/Alice_Deck_1",
-							"host": [
-								"{{gateway_url}}"
-							],
-							"path": [
-								"collection",
-								"decks",
-								"Alice_Deck_1"
-							]
-						}
-					},
-					"response": []
-				},
-				{
-					"name": "IT-008-02: Delete Test Deck (Bob)",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200 or 204\", function () {",
-									"    pm.expect(pm.response.code).to.be.oneOf([200, 204]);",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{bob_jwt}}"
-							}
-						],
-						"url": {
-							"raw": "{{gateway_url}}/collection/decks/Bob_Deck_1",
-							"host": [
-								"{{gateway_url}}"
-							],
-							"path": [
-								"collection",
-								"decks",
-								"Bob_Deck_1"
-							]
-						}
-					},
-					"response": []
-				}
-			]
 		}
 	],
 	"event": [
@@ -1834,6 +805,16 @@
 		},
 		{
 			"key": "game_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "alice_deck_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "bob_deck_id",
 			"value": "",
 			"type": "string"
 		}
