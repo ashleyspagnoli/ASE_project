@@ -22,7 +22,7 @@ game_stats = {
 }
     
 def generate_random_user():
-    rand_str = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6))
+    rand_str = ''.join(random.choices(string.ascii_lowercase + string.digits, k=6)) #nosec
     return f"user_{rand_str}", "Password123!"
 
 def register_and_login(username, password):
@@ -287,7 +287,7 @@ def player_routine(username, password, deck_slot):
 
             # Play a card
             round_num += 1
-            card = random.choice(hand)
+            card = random.choice(hand) # nosec
             
             print(f"\n🎯 [{username}] Round {round_num}")
             print(f"   Hand size: {len(hand)} cards")

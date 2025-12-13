@@ -17,7 +17,7 @@ class GameUserFlow(SequentialTaskSet):
     """
 
     def on_start(self):
-        self.username = f"loadtest_user_{random.randint(10000, 99999)}"
+        self.username = f"loadtest_user_{random.randint(10000, 99999)}" # nosec
         self.password = "TestPass123!"
         self.token = None
         self.game_id = None
@@ -155,7 +155,7 @@ class GameUserFlow(SequentialTaskSet):
     def _play_turns(self):
         headers = {"Authorization": f"Bearer {self.token}"}
 
-        for _ in range(random.randint(3, 8)):
+        for _ in range(random.randint(3, 8)): # nosec
 
             # Get hand
             with self.client.get(
@@ -175,7 +175,7 @@ class GameUserFlow(SequentialTaskSet):
             if not hand:
                 return
 
-            card = random.choice(hand)
+            card = random.choice(hand) # nosec
 
             # Play card
             with self.client.post(
