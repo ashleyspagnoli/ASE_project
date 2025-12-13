@@ -4,6 +4,8 @@ from fastapi.testclient import TestClient
 from fastapi import HTTPException, status
 from bson import ObjectId
 from datetime import datetime, timedelta
+from passlib.context import CryptContext
+import hashlib
 
 # Importa il tuo modulo principale (Auth MS)
 # Assumi che il codice fornito sia in 'main.py' nella directory 'user-manager'
@@ -17,6 +19,7 @@ MOCK_OBJECT_ID = "60a1b2c3d4e5f6a7b8c9d0e1"
 MOCK_USER_CLEARTEXT = "testuser"
 MOCK_EMAIL_CLEARTEXT = "test@example.com"
 MOCK_PASSWORD_PLAINTEXT = "securepass123"
+MOCK_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0dXNlciIsImlkIjoiNjBhMWIyYzNkNGU1ZjZhN2I4YzlkMGUxIiwiaXNzIjoic2VydmVyIn0.S9Fw9ZtG_i8k4q7Q6T7L3d5J7M1O8Y3K9N5H0vA9X3E"
 
 # Dati che useremo per simulare il record nel DB (già hash/encrypted)
 MOCK_USER_DB_DATA = {
@@ -39,6 +42,67 @@ MOCK_USER_IN_DB = main.UserInDB(
 )
 
 # --- FIXTURES PER IL MOCKING DEL DATABASE ---
+
+
+import pytest
+from unittest.mock import patch, MagicMock
+from cryptography.fernet import Fernet # O la tua libreria di crittografia
+# Devi importare le funzioni reali (qui assumiamo che vengano da main.crypto)
+import main
+from main import hash_search_key, get_password_hash, verify_password, SECRET_KEY 
+# Assumi che le funzioni encrypt/decrypt siano qui per semplicità
+from crypto import encrypt_data, decrypt_data 
+
+# Dati di test
+TEST_DATA = "data_to_be_encrypted"
+TEST_PASSWORD = "PasswordSicura123"
+
+# --- Test Crittografia (Necessita della SECRET_KEY) ---
+
+@pytest.fixture(scope="module", autouse=True)
+
+def mock_secret_key():
+    """Garantisce che la chiave segreta sia caricata per i test di crittografia reali."""
+    # Simula una chiave segreta valida (ad esempio, una chiave Fernet)
+    test_key = Fernet.generate_key().decode()
+    with patch('main.SECRET_KEY', test_key):
+         yield
+
+def test_encryption_decryption_integrity(mock_secret_key):
+    """Verifica che la decrittografia ripristini i dati originali."""
+    
+    encrypted = encrypt_data(TEST_DATA)
+    decrypted = decrypt_data(encrypted)
+    
+    # Asserzioni
+    assert encrypted != TEST_DATA, "I dati non sono stati cifrati (dovrebbero essere diversi)."
+    assert decrypted == TEST_DATA, "La decrittografia non ha funzionato correttamente."
+
+
+# --- Test Hashing ---
+
+def test_hash_search_key_consistency():
+    """Verifica che l'hashing sia coerente e insensibile alle maiuscole/minuscole."""
+    
+    hash1 = hash_search_key("TestUser@example.com")
+    hash2 = hash_search_key("testuser@example.com")
+    
+    # Asserzioni
+    assert hash1 == hash2, "L'hashing di ricerca deve essere insensibile alle maiuscole/minuscole."
+    assert len(hash1) == 64, "L'hash SHA-256 deve avere una lunghezza di 64 caratteri."
+
+# --- Test Password Hashing ---
+
+def test_password_hashing_verification():
+    """Verifica che l'hashing Argon2 funzioni e che la verifica sia corretta."""
+    
+    hashed_pass = get_password_hash(TEST_PASSWORD)
+    
+    # Asserzioni
+    assert hashed_pass != TEST_PASSWORD, "La password non è stata hashata."
+    assert verify_password(TEST_PASSWORD, hashed_pass), "La verifica della password deve riuscire."
+    assert not verify_password("wrong_password", hashed_pass), "La verifica deve fallire con password errata."
+
 
 # Mock di tutte le interazioni con le collezioni (USO PRINCIPALE)
 @pytest.fixture
@@ -84,6 +148,7 @@ def test_get_user_found(mock_users_collection, mocker):
     assert user.id == MOCK_OBJECT_ID
     mock_users_collection.find_one.assert_called_once_with({"hashed_username": MOCK_USER_DB_DATA["hashed_username"]})
 
+
 def test_get_user_not_found(mock_users_collection):
     """Testa la ricerca di un utente non esistente."""
     mock_users_collection.find_one.return_value = None
@@ -91,7 +156,7 @@ def test_get_user_not_found(mock_users_collection):
     assert user is None
 
 # --- TEST DEGLI ENDPOINT DI AUTENTICAZIONE E REGISTRAZIONE ---
-
+# --- REGISTRAZIONE TESTS -------------
 # Mocka la dipendenza di PyMongo che è un blocco top-level
 @patch('main.USERS_COLLECTION', new_callable=MagicMock)
 def test_register_user_success(mock_users_collection, mocker):
@@ -137,6 +202,8 @@ def test_register_user_duplicate_username(mock_users_collection):
     assert response.status_code == 400
     assert "Username already registered" in response.json()["detail"]
 
+# LOGIN TESTS-------------
+
 @patch('main.authenticate_user', return_value=MOCK_USER_IN_DB)
 def test_login_for_access_token_success(mock_auth):
     """Testa l'endpoint OAuth2 standard (usato da Swagger)."""
@@ -150,6 +217,19 @@ def test_login_for_access_token_success(mock_auth):
     assert response.status_code == 200
     assert response.json()["token_type"] == "bearer"
     assert response.json()["access_token"] == "mock_jwt_token"
+
+# testa il fallimento del login
+@patch('main.authenticate_user', return_value=None)
+def test_login_for_access_token_failure(mock_auth):
+    """Testa il fallimento del login con credenziali errate."""
+    
+    response = client.post(
+        "/token", 
+        data={"username": MOCK_USER_CLEARTEXT, "password": "wrong_password"}
+    )
+    
+    assert response.status_code == 401
+    assert "Incorrect username or password" in response.json()["detail"]
 
 # --- TEST DEGLI ENDPOINT INTERNI (S2S) ---
 
