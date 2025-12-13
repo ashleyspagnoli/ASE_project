@@ -1,0 +1,91 @@
+\section{Rules of the Game}
+\subsection{Card Game Rules}
+
+\subsubsection{Deck Building Constraints}
+Each player constructs a \textbf{personal deck} of exactly \textbf{9 cards}. The deck must adhere to the following constraints:
+
+\begin{itemize}
+    \item \textbf{Composition:} The deck must contain exactly \textbf{1 Joker} and \textbf{8 Suited Cards}.
+    \item \textbf{Suit Distribution:} You must include exactly \textbf{2 cards} from each suit (\redheart, \reddiamond, \blackclub, \blackspade).
+    \item \textbf{Cost Limit:} The combined point value of the two cards in any single suit \textbf{must not exceed 15}.
+\end{itemize}
+
+\textbf{Card Point Costs} \\
+When calculating your deck limits, use the following costs (Note: Face cards have specific costs despite their combat strength):
+
+\begin{table}[h!]
+    \centering
+    \begin{tabular}{lccc}
+        \toprule
+        \textbf{Card Type} & \textbf{Ranks} & \textbf{Cost per Card} & \textbf{Example Pair Limit} \\
+        \midrule
+        Numbers & 2 -- 10 & Face Value & $10 + 5 = 15$ \checkmark \\
+        Ace & A & 7 & $A + 8 = 15$ \checkmark \\
+        Jack & J & 11 & $J + 4 = 15$ \checkmark \\
+        Queen & Q & 12 & $Q + 3 = 15$ \checkmark \\
+        King & K & 13 & $K + 2 = 15$ \checkmark \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+\subsubsection{Combat Hierarchy}
+When two cards are played, the winner is decided by the following hierarchy:
+
+\paragraph{1. The Combat Triangle}
+The core mechanics function like Rock-Paper-Scissors:
+\begin{itemize}
+    \item \textbf{Numbers (2--10)} beat \textbf{Aces}.
+    \item \textbf{Aces} beat \textbf{Face Cards (J, Q, K)}.
+    \item \textbf{Face Cards (J, Q, K)} beat \textbf{Numbers}.
+\end{itemize}
+
+\paragraph{2. The Joker}
+The \textbf{Joker} beats all other cards automatically. (If both players play a Joker, it is a tie).
+
+\paragraph{3. Tie-Breakers}
+If the combat rules above do not determine a clear winner (e.g., Number vs Number, or Face vs Face), compare the specific ranks:
+\begin{enumerate}
+    \item \textbf{Higher Rank Wins:} (e.g., 9 beats 6, King beats Jack).
+    \item \textbf{Equal Rank $\rightarrow$ Suit Priority:} If ranks are identical (e.g., \redheart 9 vs \reddiamond 9), check suits:
+    \[ \redheart > \reddiamond > \blackclub > \blackspade \]
+    \item \textbf{Mirror Match:} If players play the \textit{exact same card} (Rank and Suit), both players win the round and gain a point.
+\end{enumerate}
+
+\subsubsection{Gameplay Flow}
+\begin{enumerate}
+    \item \textbf{Setup:} Both players shuffle their pre-built decks.
+    \item \textbf{Initial Draw:} Each player draws \textbf{3 cards} to form their starting hand.
+    \item \textbf{The Round:}
+    \begin{itemize}
+        \item \textbf{Draw Phase:} At the start of every turn (including Turn 1), players draw \textbf{1 card}.
+        \item \textbf{Battle Phase:} Both players play one card \textbf{face down}, then reveal simultaneously.
+        \item \textbf{Scoring:} Determine the winner based on the Combat Hierarchy. The winner earns \textbf{1 point}.
+    \end{itemize}
+    \item \textbf{Victory:} The game ends immediately when a player reaches \textbf{5 points}.
+\end{enumerate}
+
+\subsubsection{Example Match Log}
+\textbf{Alice's Deck:} \redheart A, \redheart 7, \reddiamond A, \reddiamond 7, \blackclub K, \blackclub 2, \blackspade K, \blackspade 2, Joker.\\
+\textbf{Bob's Deck:} \redheart 2, \redheart 3, \reddiamond 2, \reddiamond 3, \blackclub 3, \blackclub 4, \blackspade 2, \blackspade 3, Joker.
+
+\vspace{1em}
+
+\begin{table}[h!]
+    \centering
+    \small % Makes the table slightly smaller to fit nicely
+    \begin{tabular}{ccclc}
+        \toprule
+        \textbf{Turn} & \textbf{Alice} & \textbf{Bob} & \textbf{Result Reasoning} & \textbf{Score (A-B)} \\
+        \midrule
+        1 & \redheart A & \blackclub K & \textbf{Ace beats Face} (Special Rule) & 1 -- 0 \\
+        2 & \reddiamond A & \reddiamond 3 & \textbf{Number beats Ace} (Special Rule) & 1 -- 1 \\
+        3 & \blackclub K & \blackclub 3 & \textbf{Face beats Number} (Special Rule) & 2 -- 1 \\
+        4 & \blackspade K & \blackspade 2 & \textbf{Face beats Number} (Special Rule) & 3 -- 1 \\
+        5 & \redheart 7 & \blackclub 4 & Both Numbers: $7 > 4$ & 3 -- 2 \\
+        6 & \reddiamond 7 & \blackspade 3 & Both Numbers: $7 > 3$ & 3 -- 3 \\
+        7 & \blackclub 2 & Joker & \textbf{Joker beats Everything} & 3 -- 4 \\
+        8 & Joker & \redheart 2 & \textbf{Joker beats Everything} & 4 -- 4 \\
+        9 & \redheart 7 & \blackspade 3 & Both Numbers: $7 > 3$ & \textbf{5 -- 4} \\
+        \bottomrule
+    \end{tabular}
+\end{table}

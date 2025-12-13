@@ -1,0 +1,32 @@
+\section{System Architecture}
+Below is the high-level architectural drawing of the system, illustrating the interactions between microservices.
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.8\textwidth]{architecture.png}
+    \label{fig:arch}
+\end{figure}
+
+All microservices are containerized using Docker and are written in Python. Some of them use the Flask framework and some FastAPI.
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{|l|l|l|}
+        \hline
+        \textbf{Microservice} & \textbf{Framework} & \textbf{Description} \\
+        \hline
+        Game history   & Flask   & Stores and retrieves past game data \\
+        Game engine    & Flask   & Handles the game runtime \\
+        Collection     & Flask   & Handles cards and users decks \\
+        User Editor    & FastAPI & Manages user profiles and settings \\
+        User Manager   & FastAPI & Manages user authentication and authorization \\
+        Gateway        & FastAPI & Routes requests to appropriate microservices \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsection{Design choices}
+\begin{itemize}
+    \item \textbf{Centralized Authorization:} (draft)Every microservice connects to the User Manager to verify the token header (so that i can get dynamic username). User manager logs out users when they change username, this means that if we used decentralized auth, a logged-in user could see its old username using an old token, also, we don't have a way to force the log-out of an user with decentralized
+    \item \textbf{User Information Update:} We've separated the 
+\end{itemize}
+

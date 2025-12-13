@@ -147,6 +147,10 @@ services:
     secrets:
       - api_gateway_cert
       - api_gateway_key
+      - user_manager_cert
+      - history_cert
+      - collection_cert
+      - game_engine_cert
     command: 
       [
         "uvicorn", 

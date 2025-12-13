@@ -1,0 +1,282 @@
+\documentclass[a4paper, 11pt]{article}
+
+
+% --- Packages ---
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\geometry{margin=1in}     % Standard margins
+\usepackage{graphicx}     % For images
+\usepackage{float}        % To force image placement
+\usepackage{xcolor}       % For colors
+\usepackage{hyperref}     % For clickable links
+\usepackage{listings}     % For code and API requests
+\usepackage{booktabs}     % For nicer tables
+\usepackage{amssymb}    % For suit symbols
+\usepackage{colortbl}   % For table highlighting
+
+
+% --- Required Packages ---
+\usepackage{xcolor}     % Required for the red color
+\usepackage{amssymb}    % Required for the suit symbols
+\usepackage{booktabs}   % Required for the tables (\toprule, \midrule)
+
+% --- FIXED Custom Suit Commands ---
+% These now use \ensuremath so they won't break your document
+\newcommand{\redheart}{\textcolor{red}{\ensuremath{\heartsuit}}}
+\newcommand{\reddiamond}{\textcolor{red}{\ensuremath{\diamondsuit}}}
+\newcommand{\blackclub}{\ensuremath{\clubsuit}}
+\newcommand{\blackspade}{\ensuremath{\spadesuit}}
+
+
+% --- Code Block Styling ---
+\definecolor{codegray}{rgb}{0.95,0.95,0.95}
+\definecolor{codeblue}{rgb}{0.0,0.0,0.6}
+
+\lstset{
+    backgroundcolor=\color{codegray},
+    basicstyle=\ttfamily\small,
+    commentstyle=\color{gray},
+    keywordstyle=\color{codeblue},
+    breaklines=true,
+    frame=single,
+    captionpos=b,
+    keepspaces=true,
+    columns=flexible,
+    showstringspaces=false
+}
+
+% --- Document Info ---
+\title{\textbf{ASE Project Report - GROUP 2}}
+\date{\today}
+
+\begin{document}
+
+\thispagestyle{empty} % Removes page number from the title page
+
+% --- 1 Page: Names of members and group (if you want also a table of contents).
+\begin{center}
+    \vspace*{1cm}
+    {\Huge \textbf{ASE Project Report - GROUP 2} \par}
+    \vspace{0.5cm}
+    {\Large \textbf{Advanced Software Engineering} \par}
+    \vspace{2cm}
+
+    \begin{table}[h]
+        \centering
+        \begin{tabular}{@{}cccc@{}}
+            \toprule
+            \textbf{First Name} & \textbf{Last Name} & \textbf{Student ID} & \textbf{E-Mail}\\
+            \midrule
+            Filippo & Morelli & 608924 & f.morelli38@studenti.unipi.it\\
+            Federico & Fornaciari & 619643 & f.fornaciari@studenti.unipi.it\\
+            Ashley & Spagnoli & 655843 & a.spagnoli9@studenti.unipi.it\\
+            Marco & Pernisco & 683674 & m.pernisco@studenti.unipi.it\\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+\end{center}
+
+\vspace{1cm}
+{
+    \hypersetup{linkcolor=black} % Optional: Keeps TOC black if using hyperref
+    \tableofcontents
+}
+
+\newpage
+
+%We used Centralized Auth (Access Security Lab)
+%For input sanitization it was enough to check that the input was a string, since MongoDB isn't vulnerable from string concatenation attacks but only from dictionaries in the input interpreted by jsonify
+%History app_test fills up with 2 mock endpoints
+
+% --- 1-2 Page: Cards overview (some images, short description, etc.).
+\input{sections/cards_overview.tex}
+
+% 1-3 Pages: Architecture (details later).
+\input{sections/system_architecture.tex}
+
+% --- 1-3 Pages: User Stories (details later).
+\input{sections/user_stories.tex}
+
+% --- 1-2 Pages: Game rules (details later).
+\input{sections/rules_of_the_game.tex}
+
+% --- 1-2 Pages: Game flow (details later)
+\input{sections/game_flow.tex}
+
+% --- 1-2 Pages: Testing (details later).
+\input{sections/testing.tex}
+
+\input{sections/security.tex}
+
+% --- 1-3 Pages: Threat model (details later).
+\input{sections/threat_model.tex}
+
+% --- 1-3 Pages: Use of Generative AI (details later).
+\input{sections/generative_ai.tex}
+
+% --- X Pages: Additional Features (details later).
+\input{sections/additional_features.tex}
+
+
+
+
+% --- Section 4: Build & Run ---
+\section{Build and Run Instructions}
+
+This project is a multi-service card game platform designed for two players. It features authentication, deck building, a match-simulation engine, and history tracking. All services are containerized and orchestrated via Docker Compose.
+
+\subsection{Prerequisites}
+Before starting, ensure your environment meets the following requirements:
+\begin{itemize}
+    \item \textbf{Docker \& Docker Compose} (Required for orchestration).
+    \item \textbf{Python 3.10+} (Optional, only required for local non-containerized development).
+\end{itemize}
+
+\subsection{Quick Start Guide}
+
+\begin{enumerate}
+    \item \textbf{Clone the repository}
+    \begin{verbatim}
+git clone https://github.com/ashleyspagnoli/ASE_project.git
+cd ASE_project/src
+    \end{verbatim}
+
+    \item \textbf{Build and launch services}
+    Run the following command to build the images and start the containers:
+    \begin{verbatim}
+docker compose up --build
+    \end{verbatim}
+
+    \item \textbf{Verify Service Status}
+    Once the containers are running, the architecture exposes the following endpoints:
+
+    \begin{table}[h!]
+        \centering
+        \begin{tabular}{llc}
+            \toprule
+            \textbf{Service Name} & \textbf{Responsibility} & \textbf{Local URL} \\
+            \midrule
+            User Manager & Authentication \& JWT & \texttt{https://localhost:5004} \\
+            Collection & Deck Management & \texttt{http://localhost:5003} \\
+            Game Engine & Core Logic \& Matchmaking & \texttt{http://localhost:5001} \\
+            Game History & Match Logging & \texttt{http://localhost:5002} \\
+            \bottomrule
+        \end{tabular}
+    \end{table}
+\end{enumerate}
+
+\subsection{Development \& Testing}
+
+\subsubsection{Environment Configuration}
+Each microservice is configured via environment variables. For specific configuration keys, refer to the \texttt{Dockerfile} and \texttt{requirements.txt} located in each service's directory.
+
+\subsubsection{Testing the Workflow}
+A Postman collection is provided for end-to-end testing. Import \texttt{game\_workflow.postman\_collection.json} into Postman to simulate a full lifecycle:
+\begin{itemize}
+    \item User Registration and Login (Token generation).
+    \item Deck creation and validation.
+    \item Matchmaking and gameplay simulation.
+\end{itemize}
+
+\subsubsection{Key API Endpoints}
+\begin{description}
+    \item[Authentication] \hfill \\
+    \begin{itemize}
+        \item \texttt{/users/register}: user registration [POST]
+        \item \texttt{/users/login}: user login [POST]
+        \item \texttt{/users/validate-token}: internal JWT token validation [GET]
+    \end{itemize}
+    
+    \item[Deck Management] \hfill \\
+    \begin{itemize}
+        \item \texttt{/collection/cards}: get the collection of cards [GET]
+        \item \texttt{/collection/decks}: create a new deck [POST]
+    \end{itemize}
+    
+    \item[Game Engine] \hfill \\
+    \begin{itemize}
+        \item \texttt{/game/connect}: connect to start playing the game [POST]
+        \item \texttt{/game/matchmake}: manual request to start the match [POST] (TO REMOVE)
+        \item \texttt{/game/play/\{game\_id\}}: play a card [POST]
+        \item \texttt{/game/state/\{game\_id\}}: get the state of the game [GET]
+    \end{itemize}
+    \item[Game History] \hfill \\
+    \begin{itemize}
+        \item \texttt{/leaderboard}: get the whole leaderboard [GET]
+        \item \texttt{/matches}: get the history of your played matches [GET]
+        \item \texttt{/addmatch}: memorize a new match [POST]
+    \end{itemize}
+    
+\end{description}
+
+\subsection{Maintenance}
+To stop the application and remove containers/networks, run:
+\begin{verbatim}
+docker compose down
+\end{verbatim}
+
+
+\iffalse
+% --- Section 5: Play Instructions (API) ---
+\section{Instructions to Play a Match}
+Below is the precise sequence of API requests required to complete a full match loop.
+
+\subsection{1. Create a New Game}
+\textbf{Endpoint:} \texttt{POST /api/game/new} \\
+\textbf{Description:} Initializes a new game session.
+
+\begin{lstlisting}
+curl -X POST http://localhost:8080/api/game/new \
+     -H "Content-Type: application/json" \
+     -d '{"player_count": 2}'
+\end{lstlisting}
+
+\subsection{2. Join Game}
+\textbf{Endpoint:} \texttt{POST /api/game/\{gameId\}/join}
+
+\begin{lstlisting}
+curl -X POST http://localhost:8080/api/game/101/join \
+     -d '{"player_name": "Alice"}'
+\end{lstlisting}
+
+\subsection{3. Play a Card}
+\textbf{Endpoint:} \texttt{PUT /api/game/\{gameId\}/play}
+
+\begin{lstlisting}
+curl -X PUT http://localhost:8080/api/game/101/play \
+     -d '{"card": "Ace of Spades"}'
+\end{lstlisting} 
+
+
+% --- Section 6: Testing ---
+\section{Running Tests}
+
+The project includes a comprehensive test suite located in the project root under the filename \texttt{game\_workflow.postman\_collection.json}. There are two methods to execute these tests.
+
+\subsection{Method 1: Using the Postman CLI (Recommended)}
+For automated testing or terminal-based execution, ensure you have the Postman CLI utility installed. Navigate to the project root and execute the following command:
+
+\begin{verbatim}
+postman collection run game_workflow.postman_collection.json
+\end{verbatim}
+
+\noindent
+If you are using \texttt{newman} (the open-source runner), the command is:
+
+\begin{verbatim}
+newman run game_workflow.postman_collection.json
+\end{verbatim}
+
+\subsection{Method 2: Using the Postman Desktop App}
+If you prefer a visual interface or need to debug specific requests, you can run the tests manually by importing them in the Postman Desktop App.
+\fi
+
+
+%RabbitMQ
+\end{document}
+
+
+#Collection: usa lazy loading del DB
+#Salvataggio decks -> additional feature
+#Di agli altri della cosa che non facendo flush non stampava gli errori

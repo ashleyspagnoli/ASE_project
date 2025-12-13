@@ -1,10 +1,19 @@
 import httpx
 from fastapi import Request, HTTPException, status
 from fastapi.responses import Response
+from urllib.parse import urlparse
+
+# Mapping of service hostnames to their certificate paths
+SERVICE_CERTS = {
+    "user-manager": "/run/secrets/user_manager_cert",
+    "game_history": "/run/secrets/history_cert",
+    "collection": "/run/secrets/collection_cert",
+    "game_engine": "/run/secrets/game_engine_cert"
+}
 
 # Initialize the global client
 # Note: In production, consider using a lifespan event in main.py to close this client cleanly
-http_client = httpx.AsyncClient(verify=False, timeout=10.0) 
+http_client = httpx.AsyncClient(timeout=10.0) 
 
 async def forward_request(request: Request, internal_url: str, body_data: dict = None, is_json: bool = True) -> Response:
     """
@@ -17,13 +26,22 @@ async def forward_request(request: Request, internal_url: str, body_data: dict =
     headers.pop('host', None)
     headers.pop('content-length', None) 
 
+    # Determine the certificate to use based on the hostname
+    parsed_url = urlparse(internal_url)
+    hostname = parsed_url.hostname
+    cert_path = SERVICE_CERTS.get(hostname)
+    
+    # Use the specific certificate if available, otherwise disable verification
+    verify_ssl = cert_path if cert_path else False
+
     # 2. Imposta i parametri della richiesta httpx
     request_kwargs = {
         "method": request.method,
         "url": internal_url,
         "headers": headers,
         "params": request.query_params,
-        "timeout": 10.0
+        "timeout": 10.0,
+        "verify": verify_ssl
     }
     
     # 3. Aggiunge il body

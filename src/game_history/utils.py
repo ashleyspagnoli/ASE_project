@@ -55,66 +55,62 @@ def associate_usernames_to_ids(user_ids):
 mock_validate_user_token = None
 def validate_user_token(token_header: str):
     """
-    Contatta l'user-manager (in HTTPS) per validare un token JWT.
-    
-    Ignora la verifica del certificato SSL (verify=False) per permettere
-    la comunicazione tra container con certificati auto-firmati.
-
-    Restituisce (user_uuid, username) se il token è valido.
-    Solleva ValueError se il token non è valido o il servizio non risponde.
+    Contacts the user-manager (via HTTPS) to validate a JWT token.
+    Returns (user_uuid, username) if the token is valid.
+    Raises ValueError if the token is invalid or the service does not respond.
     """
 
     if not token_header:
-        raise ValueError("Header 'Authorization' mancante.")
+        raise ValueError("Missing 'Authorization' header.")
     
     if mock_validate_user_token:
         return mock_validate_user_token(token_header)
     
-    # Il token_header è "Bearer eyJ...". Dobbiamo estrarre solo il token "eyJ..."
+    # The token_header is "Bearer eyJ...". We need to extract only the token "eyJ..."
     try:
         token_type, token = token_header.split(" ")
         if token_type.lower() != "bearer":
-            raise ValueError("Tipo di token non valido, richiesto 'Bearer'.")
+            raise ValueError("Invalid token type, 'Bearer' required.")
     except Exception:
-        raise ValueError("Formato 'Authorization' header non valido. Usare 'Bearer <token>'.")
+        raise ValueError("Invalid 'Authorization' header format. Use 'Bearer <token>'.")
 
-    # Questo è l'endpoint che hai definito nel tuo user-manager
+    # This is the endpoint defined in the user-manager
     validate_url = f"{USER_MANAGER_URL}/users/validate-token"
 
     try:
-        # Invia la richiesta GET con il token come query parameter
+        # Sends the GET request with the token in the Authorization header
         response = requests.get(
             validate_url,
             headers={"Authorization": f"Bearer {token}"},
             timeout=5,
-            verify=USER_MANAGER_CERT  # <-- verifica del certificato SSL
+            verify=USER_MANAGER_CERT  # <-- SSL certificate verification
         )
 
-        # Se l'user-manager risponde 401, 403, 404, ecc., solleva un errore
+        # If user-manager responds with 401, 403, 404, etc., raise an error
         response.raise_for_status()
 
         user_data = response.json()
 
-        # L'endpoint /users/validate-token restituisce 'id' e 'username'
+        # The /users/validate-token endpoint returns 'id' and 'username'
         user_uuid = user_data.get("id")
         username = user_data.get("username")
 
         if not user_uuid:
-            raise ValueError("Dati utente incompleti dal servizio di validazione")
+            raise ValueError("Incomplete user data from validation service")
 
-        print(f"Token validato con successo per l'utente: {user_uuid}", flush=True)
+        print(f"Token successfully validated for user: {user_uuid}", flush=True)
         return user_uuid, username
 
     except requests.RequestException as e:
-        # Errore di connessione o risposta 4xx/5xx dal servizio utenti
-        error_detail = f"Impossibile validare l'utente. Errore di connessione a {validate_url}."
+        # Connection error or 4xx/5xx response from user service
+        error_detail = f"Unable to validate user. Connection error to {validate_url}."
         if e.response:
             try:
-                # Prova a leggere il 'detail' dall'errore FastAPI
-                error_detail = e.response.json().get('detail', 'Errore sconosciuto da User-Manager')
+                # Try to read 'detail' from the FastAPI error
+                error_detail = e.response.json().get('detail', 'Unknown error from User-Manager')
             except json.JSONDecodeError:
                 error_detail = e.response.text
 
-        print(f"ERRORE validazione token: {error_detail}")
-        # Solleva un ValueError che il controller (routes.py) convertirà in 401
-        raise ValueError(f"Servizio Utenti: {error_detail}")
+        print(f"Token validation ERROR: {error_detail}")
+        # Raises a ValueError that the controller (routes.py) will convert to 401
+        raise ValueError(f"User Service: {error_detail}")
