@@ -43,12 +43,12 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:5006/collection/cards",
+					"raw": "http://localhost:5000/collection/cards",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "5006",
+					"port": "5000",
 					"path": [
 						"collection",
 						"cards"
@@ -89,12 +89,12 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:5006/collection/cards/hA",
+					"raw": "http://localhost:5000/collection/cards/hA",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "5006",
+					"port": "5000",
 					"path": [
 						"collection",
 						"cards",
@@ -131,12 +131,12 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:5006/collection/cards/hX",
+					"raw": "http://localhost:5000/collection/cards/hX",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "5006",
+					"port": "5000",
 					"path": [
 						"collection",
 						"cards",
@@ -174,12 +174,12 @@
 					"raw": ""
 				},
 				"url": {
-					"raw": "http://localhost:5006/collection/cards/JOKER/image",
+					"raw": "http://localhost:5000/collection/cards/JOKER/image",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "5006",
+					"port": "5000",
 					"path": [
 						"collection",
 						"cards",
@@ -226,12 +226,12 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:5006/collection/decks",
+					"raw": "http://localhost:5000/collection/decks",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "5006",
+					"port": "5000",
 					"path": [
 						"collection",
 						"decks"
@@ -276,12 +276,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost:5006/collection/decks",
+					"raw": "http://localhost:5000/collection/decks",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "5006",
+					"port": "5000",
 					"path": [
 						"collection",
 						"decks"
@@ -326,12 +326,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost:5006/collection/decks",
+					"raw": "http://localhost:5000/collection/decks",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "5006",
+					"port": "5000",
 					"path": [
 						"collection",
 						"decks"
@@ -379,12 +379,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost:5006/collection/decks",
+					"raw": "http://localhost:5000/collection/decks",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "5006",
+					"port": "5000",
 					"path": [
 						"collection",
 						"decks"
@@ -435,12 +435,12 @@
 					}
 				},
 				"url": {
-					"raw": "http://localhost:5006/collection/decks",
+					"raw": "http://localhost:5000/collection/decks",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "5006",
+					"port": "5000",
 					"path": [
 						"collection",
 						"decks"
@@ -478,12 +478,12 @@
 				"method": "DELETE",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:5006/collection/decks/{{saved_id}}",
+					"raw": "http://localhost:5000/collection/decks/{{saved_id}}",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "5006",
+					"port": "5000",
 					"path": [
 						"collection",
 						"decks",
@@ -529,12 +529,12 @@
 				"method": "GET",
 				"header": [],
 				"url": {
-					"raw": "http://localhost:5006/collection/decks",
+					"raw": "http://localhost:5000/collection/decks",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
-					"port": "5006",
+					"port": "5000",
 					"path": [
 						"collection",
 						"decks"

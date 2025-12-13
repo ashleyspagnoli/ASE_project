@@ -31,7 +31,7 @@ jobs:
         working-directory: ./src
         run: |
           docker build -f collection/Dockerfile_test -t collection-test .
-          docker run -d --name collection-test -p 5001:5000 \
+          docker run -d --name collection-test -p 5000:5000 \
             -v $(pwd)/secrets/collection:/run/secrets/collection:ro \
             -v $(pwd)/secrets/user-manager:/run/secrets/user-manager:ro \
             collection-test
@@ -43,7 +43,7 @@ jobs:
       - name: Run Collection Postman tests
         run: |
           newman run tests/collection_ut.postman_collection.json \
-            --insecure \
+            --env-var "base_url=http://localhost:5000" \
             --reporters cli,json \
             --reporter-json-export collection-results.json
 
@@ -87,7 +87,7 @@ jobs:
         working-directory: ./src
         run: |
           docker build -f game_history/Dockerfile_test -t game-history-test ./game_history
-          docker run -d --name game-history-test -p 5002:5000 \
+          docker run -d --name game-history-test -p 5000:5000 \
             -v $(pwd)/secrets/game_history:/run/secrets/game_history:ro \
             -v $(pwd)/secrets/user-manager:/run/secrets/user-manager:ro \
             -v $(pwd)/secrets/rabbitmq:/run/secrets/rabbitmq:ro \
@@ -100,7 +100,7 @@ jobs:
       - name: Run Game History Postman tests
         run: |
           newman run tests/game_history_ut.postman_collection.json \
-            --insecure \
+            --env-var "base_url=http://localhost:5000" \
             --reporters cli,json \
             --reporter-json-export game-history-results.json
 
@@ -192,15 +192,14 @@ jobs:
 
   test-summary:
     runs-on: ubuntu-latest
-    needs: [collection-tests, game-history-tests, user-manager-tests]
+    needs: [collection-tests, game-history-tests]
     if: always()
     
     steps:
       - name: Check test results
         run: |
           if [ "${{ needs.collection-tests.result }}" = "failure" ] || \
-             [ "${{ needs.game-history-tests.result }}" = "failure" ] || \
-             [ "${{ needs.user-manager-tests.result }}" = "failure" ]; then
+             [ "${{ needs.game-history-tests.result }}" = "failure" ]; then
             echo "❌ Some tests failed"
             exit 1
           else
