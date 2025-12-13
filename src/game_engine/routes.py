@@ -1,5 +1,5 @@
 from flask import Blueprint, jsonify, request
-from logic import (
+from .logic import (
     submit_card,
     get_game_state,
     select_deck,

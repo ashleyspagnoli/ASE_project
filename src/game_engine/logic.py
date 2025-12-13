@@ -1,13 +1,13 @@
 from datetime import datetime
-from models import Game, Player, Card, Deck
+from .models import Game, Player, Card, Deck
 import random
 import requests
 import uuid
 import json
 import urllib3
 import pika
-from config import COLLECTION_URL, COLLECTION_CERT, USER_MANAGER_URL, USER_MANAGER_CERT
-from config import RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_USER, RABBITMQ_PASSWORD, RABBITMQ_CERT_PATH
+from .config import COLLECTION_URL, COLLECTION_CERT, USER_MANAGER_URL, USER_MANAGER_CERT
+from .config import RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_USER, RABBITMQ_PASSWORD, RABBITMQ_CERT_PATH
 # Disabilita warning per certificati self-signed interni
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
