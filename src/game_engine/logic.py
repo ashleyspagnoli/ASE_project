@@ -4,21 +4,13 @@ import random
 import requests
 import uuid
 import json
-import os
 import urllib3
 import pika
-
+from config import COLLECTION_URL, COLLECTION_CERT, USER_MANAGER_URL, USER_MANAGER_CERT
+from config import RABBITMQ_HOST, RABBITMQ_PORT, RABBITMQ_USER, RABBITMQ_PASSWORD, RABBITMQ_CERT_PATH
 # Disabilita warning per certificati self-signed interni
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-GAME_HISTORY_URL = os.environ.get("GAME_HISTORY_URL", "https://game_history:5000/addmatch")
-COLLECTION_URL = os.environ.get("COLLECTION_URL", "https://collection:5000/collection")
-USER_MANAGER_URL = os.environ.get("USER_MANAGER_URL", "https://user_manager:5000")
-RABBITMQ_HOST = os.environ.get("RABBITMQ_HOST", "rabbitmq")
-RABBITMQ_PORT = int(os.environ.get("RABBITMQ_PORT", "5671"))
-RABBITMQ_USER = os.environ.get("RABBITMQ_USER", "rabbitmq_user")
-RABBITMQ_PASSWORD = os.environ.get("RABBITMQ_PASSWORD", "rabbitmq_password")
-RABBITMQ_CERT_PATH = "/run/secrets/rabbitmq_cert"
 
 
 # --- STRUTTURE DATI PER MATCHMAKING REST ---
@@ -155,7 +147,7 @@ def select_deck(game_id, player_uuid, deck_slot, games):
     try:
         # 1. Contatta il microservizio 'collection' per ottenere il mazzo
         deck_url = f"{COLLECTION_URL}/decks/user/{player_uuid}/slot/{deck_slot}"
-        response = requests.get(deck_url, timeout=5, verify=False)
+        response = requests.get(deck_url, timeout=5, verify=COLLECTION_CERT)
         
         # Lancia un errore se la richiesta fallisce (es. 404 Deck non trovato)
         response.raise_for_status() 
@@ -487,8 +479,8 @@ def validate_user_token(token_header: str):
     validate_url = f"{USER_MANAGER_URL}/users/validate-token"
     
     try:
-        # VERIFY=FALSE è cruciale per i certificati self-signed interni a Docker
-        response = requests.get(validate_url, headers={"Authorization": f"Bearer {token}"}, timeout=5, verify=False)
+        # Usa il certificato SSL per la comunicazione sicura
+        response = requests.get(validate_url, headers={"Authorization": f"Bearer {token}"}, timeout=5, verify=USER_MANAGER_CERT)
         response.raise_for_status()
         user_data = response.json()
         return user_data["id"], user_data["username"]

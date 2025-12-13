@@ -15,12 +15,17 @@ services:
       - game_engine_cert
       - game_engine_key
       - user_manager_cert
+      - collection_cert
+      - history_cert
       - rabbitmq_cert
     environment:
       GAME_ENGINE: "https://game_engine:5000/game"
       GAME_HISTORY_URL: "https://game_history:5000/addmatch"
       COLLECTION_URL: "https://collection:5000/collection"
-      USER_MANAGER_URL: "https://user-manager:5000" 
+      USER_MANAGER_URL: "https://user-manager:5000"
+      USER_MANAGER_CERT: "/run/secrets/user_manager_cert"
+      COLLECTION_CERT: "/run/secrets/collection_cert"
+      HISTORY_CERT: "/run/secrets/history_cert" 
       RABBITMQ_HOST: "rabbitmq"
       RABBITMQ_PORT: "5671"
       RABBITMQ_USER: "rabbitmq_user"
