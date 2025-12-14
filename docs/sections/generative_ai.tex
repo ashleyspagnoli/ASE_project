@@ -1,1 +1,24 @@
 \section{Use of Generative AI}
+During the project development we've made extensive use of various AI models, experimenting with them and learning how to use those tools as efficiently as possible.
+We've mainly taken advantage of what was given to us for free as students: GitHub Copilot Pro and Gemini Pro.
+We've used them in the following two areas.
+\begin{itemize}
+    \item Researching informations and tools: this has gotten a lot better in the past years, with models combining their knowledge with informations found on the web, providing extensive explanations and sources, while almost never allucinating. Researching using LLMs has definitely almost replaced our reliance on classical search engines.
+    \item Writing Code.
+    To which we've made the following considerations.
+    \begin{itemize}
+        \item The non-premium AI models of Copilot Pro (GPT-4.1, GPT-4o, GPT-5 mini, Grok Code Fast 1) were pretty bad and mostly generated slop we lost time in reviewing and then discarding. This was true even in writing something as simple as latex code, e.g. GPT-4.1 had a hard time understanding what an hyperref was.
+        \item We tried various AI coding VSCode extensions: Github Copilot, Roo Code, Gemini Code Assist etc. We found the Copilot extension as the most robust implementation of agentic behavior for vscode, and, together with the free premium requests, we ended up using it almost exclusively.
+        \item We found Claude Sonnet 4.5 as the best premium model for one-shot code generation, it has been useful to generate some initial drafts for the microservices and to re-generate whole functions.
+        \item We found the Copilot Gemini 3.0 Agent behaving in a more \textit{human} way, trying to get the best result while doing as least work as possible. E.g. for big changes in a single file that meant almost a whole refactoring, it often tried to delete the whole file and start from scratch.
+        \item The inline suggestions were a dividing topic, while some of us found them useful and kept them on, some others found them distracting and fatigue-inducing, where they suggested mostly wrong code while constantly drawing the attention of the user.
+        \item Even if ChatGPT models are still the most popular ones, we found them working on par, if not worse, than the others, hence we made less extensive use of them. This resonates with the recent "Code Red" raised by OpenAI after the release of Gemini 3.0.
+    \end{itemize}
+    
+\end{itemize}
+\subsection{Final Remarks}
+We found experienced and smart human beings better in any way but speed compared to the most powerful AI models that are publicly available.
+At the moment LLMs can be a useful tool for those people to work faster, but definitely not as a replacement of them.\\
+Reasoning models behaved way better,
+showing the robustness of more rigid and iterative workflows, applied to the more efficient and smaller MoE (Mixture of Experts) models, compared to one-shot larger models.
+This resonates with what is shown in the course for cloud services, where decomposing complex tasks (monoliths) into smaller, more easily verifiable tasks (microservices), often yields better results.

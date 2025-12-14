@@ -1,17 +1,16 @@
 \section{Rules of the Game}
-\subsection{Card Game Rules}
 
-\subsubsection{Deck Building Constraints}
+\subsection{Deck Building Constraints}
 Each player constructs a \textbf{personal deck} of exactly \textbf{9 cards}. The deck must adhere to the following constraints:
 
 \begin{itemize}
     \item \textbf{Composition:} The deck must contain exactly \textbf{1 Joker} and \textbf{8 Suited Cards}.
     \item \textbf{Suit Distribution:} You must include exactly \textbf{2 cards} from each suit (\redheart, \reddiamond, \blackclub, \blackspade).
-    \item \textbf{Cost Limit:} The combined point value of the two cards in any single suit \textbf{must not exceed 15}.
+    \item \textbf{Cost Limit:} For any suit, the total point value of the two cards \textbf{must not exceed 15}.
 \end{itemize}
 
 \textbf{Card Point Costs} \\
-When calculating your deck limits, use the following costs (Note: Face cards have specific costs despite their combat strength):
+When calculating your deck limits, use the following costs.
 
 \begin{table}[h!]
     \centering
@@ -28,8 +27,9 @@ When calculating your deck limits, use the following costs (Note: Face cards hav
     \end{tabular}
 \end{table}
 
-\subsubsection{Combat Hierarchy}
-When two cards are played, the winner is decided by the following hierarchy:
+\subsection{Combat Hierarchy}
+\label{sec:combat-hierarchy}
+When two cards are played, the winner is decided by the following hierarchy.
 
 \paragraph{1. The Combat Triangle}
 The core mechanics function like Rock-Paper-Scissors:
@@ -51,20 +51,20 @@ If the combat rules above do not determine a clear winner (e.g., Number vs Numbe
     \item \textbf{Mirror Match:} If players play the \textit{exact same card} (Rank and Suit), both players win the round and gain a point.
 \end{enumerate}
 
-\subsubsection{Gameplay Flow}
+\subsection{Gameplay Flow}
 \begin{enumerate}
     \item \textbf{Setup:} Both players shuffle their pre-built decks.
     \item \textbf{Initial Draw:} Each player draws \textbf{3 cards} to form their starting hand.
     \item \textbf{The Round:}
     \begin{itemize}
-        \item \textbf{Draw Phase:} At the start of every turn (including Turn 1), players draw \textbf{1 card}.
-        \item \textbf{Battle Phase:} Both players play one card \textbf{face down}, then reveal simultaneously.
-        \item \textbf{Scoring:} Determine the winner based on the Combat Hierarchy. The winner earns \textbf{1 point}.
+        \item \textbf{Draw Phase:} At the end of every turn, each player draws \textbf{1 card} to get back to \textbf{3}.
+        \item \textbf{Battle Phase:} Both players play one card \textbf{face down}, then reveal it at the same time.
+        \item \textbf{Scoring:} Determine the winner based on the \hyperref[sec:combat-hierarchy]{Combat Hierarchy}. The winner earns \textbf{1 point}. If it's a tie, both players earn \textbf{1 point}.
     \end{itemize}
-    \item \textbf{Victory:} The game ends immediately when a player reaches \textbf{5 points}.
+    \item \textbf{Victory:} The game ends immediately when one of the players reaches \textbf{5 points}.
 \end{enumerate}
 
-\subsubsection{Example Match Log}
+\subsection{Example of a Match}
 \textbf{Alice's Deck:} \redheart A, \redheart 7, \reddiamond A, \reddiamond 7, \blackclub K, \blackclub 2, \blackspade K, \blackspade 2, Joker.\\
 \textbf{Bob's Deck:} \redheart 2, \redheart 3, \reddiamond 2, \reddiamond 3, \blackclub 3, \blackclub 4, \blackspade 2, \blackspade 3, Joker.
 

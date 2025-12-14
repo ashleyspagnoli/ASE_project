@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2026/dev/Arch Linux) (preloaded format=pdflatex 2025.12.13)  13 DEC 2025 20:14
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2026/dev/Arch Linux) (preloaded format=pdflatex 2025.12.13)  14 DEC 2025 13:35
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -370,32 +370,37 @@ File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 
 
 [2] (./sections/cards_overview.tex
-<cards.png, id=174, 1376.14125pt x 593.21625pt>
+<cards.png, id=184, 1376.14125pt x 593.21625pt>
 File: cards.png Graphic file (type png)
 <use cards.png>
 Package pdftex.def Info: cards.png  used on input line 6.
 (pdftex.def)             Requested size: 362.37569pt x 156.20586pt.
-
-
-[3 <./cards.png>]) (./sections/system_architecture.tex
-<architecture.png, id=181, 1443.3925pt x 1105.12875pt>
+) (./sections/system_architecture.tex
+<architecture.png, id=186, 1443.3925pt x 1105.12875pt>
 File: architecture.png Graphic file (type png)
 <use architecture.png>
 Package pdftex.def Info: architecture.png  used on input line 5.
 (pdftex.def)             Requested size: 362.37569pt x 277.44505pt.
-) (./sections/user_stories.tex) (./sections/rules_of_the_game.tex
-
-[4{/usr/share/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc} <./architecture.png>]
-
-[5]) (./sections/game_flow.tex) (./sections/testing.tex) (./sections/security.tex) (./sections/threat_model.tex) (./sections/generative_ai.tex) (./sections/additional_features.tex)
-
-[6]
-
-LaTeX Warning: `!h' float specifier changed to `!ht'.
 
 
+[3 <./cards.png> <./architecture.png>]) (./sections/user_stories.tex
+\c@usCounter=\count307
 
-[7]
+Underfull \hbox (badness 10000) in paragraph at lines 12--13
+
+ []
+
+
+
+[4{/usr/share/texmf-dist/fonts/enc/dvips/cm-super/cm-super-ts1.enc}]) (./sections/rules_of_the_game.tex
+
+[5]) (./sections/game_flow.tex) (./sections/testing.tex) (./sections/security.tex) (./sections/threat_model.tex) (./sections/generative_ai.tex
+
+[6])
+
+[7] (./sections/additional_features.tex)
+
+[8]
 Overfull \hbox (55.46078pt too wide) in paragraph at lines 175--176
 \T1/cmr/m/n/10.95 A Post-man col-lec-tion is pro-vided for end-to-end test-ing. Im-port \T1/cmtt/m/n/10.95 game_workflow.postman_collection.json
  []
@@ -422,9 +427,9 @@ Underfull \hbox (badness 10000) in paragraph at lines 204--205
 
 
 
-[8]
+[9]
 
-[9] (./main.aux)
+[10] (./main.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2025-01-18>
@@ -434,21 +439,21 @@ L3 programming layer <2025-01-18>
 LaTeX Warning: There were multiply-defined labels.
 
 Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: A44B1CDDFFC367412D75C4EDBEF1F959;4649.
+(rerunfilecheck)             Checksum: BCFA492DC4266F789C7138A9B00FC4A9;5074.
  ) 
 Here is how much of TeX's memory you used:
- 12036 strings out of 475171
- 180645 string characters out of 5767094
- 588921 words of memory out of 5000000
- 34797 multiletter control sequences out of 15000+600000
+ 12049 strings out of 475171
+ 180780 string characters out of 5767094
+ 591026 words of memory out of 5000000
+ 34807 multiletter control sequences out of 15000+600000
  574248 words of font info for 75 fonts, out of 8000000 for 9000
  14 hyphenation exceptions out of 8191
- 75i,11n,79p,542b,524s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 75i,11n,79p,542b,675s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/share/texmf-dist/fonts/type1/public/amsfonts/symbols/msam10.pfb></usr/share/texmf-dist/fonts/type1/public/cm-super/sfbx1000.pfb></usr/share/texmf-dist/fonts/type1/public/cm-super/sfbx1095.pfb></usr/share/texmf-dist/fonts/type1/public/cm-super/sfbx1200.pfb></usr/share/texmf-dist/fonts/type1/public/cm-super/sfbx1440.pfb></usr/share/texmf-dist/fonts/type1/public/cm-super/sfbx2488.pfb></usr/share/texmf-dist/fonts/type1/public/cm-super/sfrm1000.pfb></usr/share/texmf-dist/fonts/type1/public/cm-super/sfrm1095.pfb></usr/share/texmf-dist/fonts/type1/public/cm-super/sfti1095.pfb></usr/share/texmf-dist/fonts/type1/public/cm-super/sftt1095.pfb>
-Output written on main.pdf (9 pages, 724435 bytes).
+Output written on main.pdf (10 pages, 734624 bytes).
 PDF statistics:
- 306 PDF objects out of 1000 (max. 8388607)
- 261 compressed objects within 3 object streams
- 55 named destinations out of 1000 (max. 500000)
- 259 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 322 PDF objects out of 1000 (max. 8388607)
+ 276 compressed objects within 3 object streams
+ 58 named destinations out of 1000 (max. 500000)
+ 275 words of extra memory for PDF output out of 10000 (max. 10000000)
 

@@ -166,7 +166,7 @@ services:
       ]
 
   rabbitmq:
-    image: rabbitmq:3-management
+    image: rabbitmq:4.2.1-alpine
     ports:
       - "127.0.0.1:15672:15672" #Expose the management UI url only to localhost, we can see data passing through rabbitmq but the port is not exposed to external network
     volumes:
