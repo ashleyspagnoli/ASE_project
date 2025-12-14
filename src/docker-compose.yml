@@ -113,7 +113,7 @@ services:
 
 
   user-db:
-    image: cgr.dev/chainguard/mongodb:latest
+    image: circleci/mongo:4.0-xenial-ram
     container_name: user_auth_db
     restart: always 
     ports:
@@ -127,12 +127,12 @@ services:
       
   # (Mantenuti i tuoi db-history, db-games, db-decks)
   db-history:
-    image: cgr.dev/chainguard/mongodb:latest
+    image: circleci/mongo:4.0-xenial-ram
     volumes:
       - history-data:/data/db
 
   db-decks:
-    image: cgr.dev/chainguard/mongodb:latest
+    image: circleci/mongo:4.0-xenial-ram
     volumes:
       - decks-data:/data/db
 
