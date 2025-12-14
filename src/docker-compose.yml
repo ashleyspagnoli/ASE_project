@@ -113,7 +113,7 @@ services:
 
 
   user-db:
-    image: mongo:latest
+    image: cgr.dev/chainguard/mongodb:latest
     container_name: user_auth_db
     restart: always 
     ports:
@@ -127,12 +127,12 @@ services:
       
   # (Mantenuti i tuoi db-history, db-games, db-decks)
   db-history:
-    image: mongo:latest
+    image: cgr.dev/chainguard/mongodb:latest
     volumes:
       - history-data:/data/db
 
   db-decks:
-    image: mongo:latest
+    image: cgr.dev/chainguard/mongodb:latest
     volumes:
       - decks-data:/data/db
 
