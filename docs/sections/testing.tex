@@ -1,1 +1,382 @@
 \section{Testing}
+
+The project implements a testing strategy covering unit tests, integration tests, and performance tests to ensure system reliability, correctness, and scalability across all microservices.
+
+\subsection{Unit Testing}
+
+Unit tests verify individual microservice functionality in isolation using mocked dependencies. Each microservice has its own dedicated test suite executed within Docker containers to ensure consistent testing environments.
+
+\subsubsection{Test Environment Setup}
+
+Unit tests are executed using specialized Docker containers with test-specific configurations:
+
+\begin{itemize}
+    \item \textbf{Isolated execution}: Each service runs in a dedicated test container
+    \item \textbf{Mocked dependencies}: External service calls are mocked to test in isolation
+    \item \textbf{Consistent environment}: Docker ensures identical test conditions across machines
+    \item \textbf{Postman collections}: API tests are defined in structured JSON collections
+\end{itemize}
+
+\subsubsection{Collection Service Unit Tests}
+
+The Collection service manages card collections and deck building with validation logic.
+
+\textbf{Test Execution:}
+\begin{lstlisting}[language=bash]
+# Build the test container
+cd src
+docker build -f collection/Dockerfile_test -t collection-test .
+
+# Run the test container
+docker run -d -p 5006:5000 --name collection-test collection-test
+
+# Import docs/tests/collection_ut.postman_collection.json in Postman
+# Run the collection
+
+# Cleanup
+docker stop collection-test
+docker rm collection-test
+\end{lstlisting}
+
+\textbf{Test Coverage:}
+\begin{itemize}
+    \item \texttt{GET /collection/cards}: Retrieves all 53 cards and validates response structure
+    \item \texttt{GET /collection/cards/\{card\_id\}}: Fetches individual card details (e.g., \texttt{hA})
+    \item \texttt{GET /collection/cards/\{card\_id\}/image}: Serves card images
+    \item \texttt{GET /collection/decks}: Returns user's deck collection
+    \item \texttt{POST /collection/decks}: Creates decks with validation rules:
+    \begin{itemize}
+        \item Exactly 8 cards required
+        \item 2 cards per suit (hearts, diamonds, clubs, spades)
+        \item Maximum 15 points per suit
+        \item Rejects invalid configurations (e.g., 3 hearts cards, point overflow)
+    \end{itemize}
+    \item \texttt{DELETE /collection/decks/\{deck\_id\}}: Removes decks and validates cleanup
+\end{itemize}
+
+\textbf{Key Validation Tests:}
+\begin{itemize}
+    \item Invalid card IDs return 404 errors
+    \item Deck creation with 16 points in diamonds suit fails with appropriate error
+    \item Deck creation with wrong card count per suit is rejected
+    \item Successfully created decks are retrievable and deletable
+\end{itemize}
+
+\subsubsection{Game History Unit Tests}
+
+The Game History service tracks matches and maintains leaderboards with pagination.
+
+\textbf{Test Execution:}
+\begin{lstlisting}[language=bash]
+# Build and run test container
+cd src
+docker build -f game_history/Dockerfile_test -t history-test .
+docker run -d -p 5007:5000 --name history-test history-test
+
+# Import docs/tests/game_history_ut.postman_collection.json
+# Set base URL to http://localhost:5007
+# Run the collection
+
+# Cleanup
+docker stop history-test
+docker rm history-test
+\end{lstlisting}
+
+\textbf{Test Coverage:}
+\begin{itemize}
+    \item \textbf{Setup Phase}:
+    \begin{itemize}
+        \item Seeds database with 12+ user mappings (alice, bob, user3-user12)
+        \item Bulk inserts 13 matches with varied outcomes (wins, losses, draws)
+        \item Creates test data for pagination validation
+    \end{itemize}
+    
+    \item \textbf{Match History Endpoint} (\texttt{GET /matches}):
+    \begin{itemize}
+        \item Page 0: Returns up to 10 matches with row numbers 1-10
+        \item Page 1: Returns next batch with row numbers 11+, no overlap with page 0
+        \item Unauthorized access without JWT token returns 401
+    \end{itemize}
+    
+    \item \textbf{Leaderboard Endpoint} (\texttt{GET /leaderboard}):
+    \begin{itemize}
+        \item Page 0: Returns top 10 players ranked by points
+        \item Page 1: Returns next 10 players with no username overlap
+        \item POST request to leaderboard returns 405 (Method Not Allowed)
+    \end{itemize}
+\end{itemize}
+
+\textbf{Pagination Validation:}
+The tests verify that pagination works correctly by checking:
+\begin{itemize}
+    \item Each page contains at most 10 entries
+    \item Row numbers increment correctly across pages
+    \item No duplicate entries between consecutive pages
+    \item Usernames in leaderboard pages are distinct
+\end{itemize}
+
+\subsubsection{User Manager Unit Tests}
+
+The User Manager service handles authentication and user registration.
+
+\textbf{Test Execution:}
+\begin{lstlisting}[language=bash]
+# Build and run test container
+cd src
+docker build -f user-manager/Dockerfile_test -t user-manager-test .
+docker run -d -p 5004:5000 --name user-manager-test user-manager-test
+
+# Import docs/tests/user_manager_ut.postman_collection.json
+# Set base URL to http://localhost:5004
+# Run the collection
+
+# Cleanup
+docker stop user-manager-test
+docker rm user-manager-test
+\end{lstlisting}
+
+\textbf{Test Coverage:}
+\begin{itemize}
+    \item \textbf{Registration} (\texttt{POST /users/register}):
+    \begin{itemize}
+        \item Success case: Creates new user with username, password, email
+        \item Returns 201 Created with confirmation message
+        \item Duplicate username: Returns 400 Bad Request
+        \item Duplicate email: Returns 400 Bad Request
+    \end{itemize}
+    
+    \item \textbf{Login} (\texttt{POST /users/login}):
+    \begin{itemize}
+        \item Success case: Returns 200 OK with JWT token (50+ characters)
+        \item Token type is "bearer"
+        \item Invalid password: Returns 401 Unauthorized
+        \item Error detail: "Invalid username or password"
+        \item Saves token for subsequent authenticated requests
+    \end{itemize}
+\end{itemize}
+
+\subsection{Integration Testing}
+
+Integration tests verify the complete workflow across all microservices (User Manager, Collection, Game Engine, Game History) through the API Gateway. These tests ensure proper service communication, data consistency, and end-to-end functionality.
+
+\subsubsection{Test Environment}
+
+Integration tests require all services running:
+\begin{lstlisting}[language=bash]
+cd src
+docker compose up --build
+\end{lstlisting}
+
+The tests use the API Gateway endpoint (\texttt{https://localhost:8443}) and are organized into test suites covering different aspects of the system.
+
+\subsubsection{Test Suites}
+
+\textbf{IT-001: Complete Game Workflow - Happy Path}
+
+Validates the entire user journey from registration to game completion:
+\begin{enumerate}
+    \item User registration and JWT token acquisition for Alice and Bob
+    \item Deck creation with valid card configurations
+    \item Deck retrieval verification
+    \item Matchmaking initialization
+    \item Game state progression
+\end{enumerate}
+
+\textbf{IT-002: Authentication \& Authorization}
+
+Tests security and access control:
+\begin{itemize}
+    \item Invalid login credentials return 401 Unauthorized
+    \item Accessing decks without token returns 401/403
+    \item Invalid JWT tokens are rejected
+    \item Duplicate username registration returns 400 with appropriate error
+\end{itemize}
+
+\textbf{IT-003: Deck Validation}
+
+Ensures deck building rules are enforced across services:
+\begin{itemize}
+    \item Decks with wrong number of cards are rejected (must be 8)
+    \item Suit distribution validation (2 cards per suit)
+    \item Point limits per suit (maximum 15 points)
+    \item Invalid card IDs are caught
+\end{itemize}
+
+\textbf{IT-004: Game History \& Leaderboard}
+
+Verifies historical data tracking:
+\begin{itemize}
+    \item Match history retrieval for authenticated users
+    \item Paginated results with consistent ordering
+    \item Leaderboard rankings reflect game outcomes
+    \item Specific match details are accessible
+\end{itemize}
+
+\textbf{IT-005: Cross-Service Data Consistency}
+
+Tests data isolation and integrity:
+\begin{itemize}
+    \item Users can only access their own decks
+    \item Bob's deck list does not include Alice's decks
+    \item User IDs are consistently used across services
+    \item Game results properly reference both players
+\end{itemize}
+
+\textbf{IT-007: Error Handling \& Edge Cases}
+
+Validates robust error handling:
+\begin{itemize}
+    \item Deleting non-existent decks returns 404
+    \item Malformed request bodies return 400/422
+    \item Services gracefully handle invalid inputs
+    \item Appropriate error messages guide users
+\end{itemize}
+
+\subsubsection{Test Execution}
+
+\textbf{Using Postman:}
+\begin{enumerate}
+    \item Import \texttt{docs/tests/integration.postman\_collection.json}
+    \item Configure environment variables:
+    \begin{itemize}
+        \item \texttt{gateway\_url}: \texttt{https://localhost:8443}
+        \item User credentials are auto-generated with timestamps
+    \end{itemize}
+    \item Run entire collection or specific test suites
+    \item Tests must run in order as later tests depend on earlier state
+\end{enumerate}
+
+\textbf{Using Python Script:}
+A complete game simulation can be executed programmatically:
+\begin{lstlisting}[language=bash]
+cd src
+python test_match.py
+\end{lstlisting}
+
+This script performs:
+\begin{enumerate}
+    \item Registers two random users with unique credentials
+    \item Creates valid decks for both players
+    \item Initiates matchmaking and pairs the users
+    \item Simulates a complete game with card plays
+    \item Displays comprehensive game statistics including:
+    \begin{itemize}
+        \item Round-by-round results
+        \item Final scores
+        \item Winner determination
+        \item Game duration
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Performance Testing with Locust}
+
+Performance tests simulate realistic user load to measure system behavior under concurrent access and identify bottlenecks. 
+The tests use Locust, a Python-based load testing framework.
+
+\subsubsection{Test Scenarios}
+
+The performance test suite simulates a complete user workflow representing realistic usage patterns:
+
+\begin{enumerate}
+    \item \textbf{User Registration}: Creates new accounts with random credentials
+    \item \textbf{Authentication}: Performs login and JWT token generation
+    \item \textbf{Deck Creation}: Builds valid 8-card decks following game rules
+    \item \textbf{Matchmaking}: Joins queue and waits for opponent matching
+    \item \textbf{Gameplay}: Simulates complete game sessions with:
+    \begin{itemize}
+        \item Deck selection for matched game
+        \item Iterative card plays
+        \item Hand retrieval between turns
+        \item Game state validation
+    \end{itemize}
+    \item \textbf{History Access}: Queries match history and leaderboard data
+\end{enumerate}
+
+\subsubsection{User Types}
+
+Three user types with different think times simulate varied usage patterns:
+
+\begin{itemize}
+    \item \textbf{QuickUser}: 1-3 second wait time between actions (rapid gameplay)
+    \item \textbf{NormalUser}: 3-7 second wait time (typical gameplay)
+    \item \textbf{SlowUser}: 5-15 second wait time (casual gameplay)
+\end{itemize}
+
+\subsubsection{Implementation Details}
+
+The Locust test implementation (\texttt{docs/locustfile.py}) features:
+
+\begin{itemize}
+    \item \textbf{Sequential Task Execution}: \texttt{GameUserFlow} class orchestrates the complete workflow
+    \item \textbf{Session Management}: Each user maintains state across requests:
+    \begin{itemize}
+        \item Username with random suffix (e.g., \texttt{loadtest\_user\_12345})
+        \item JWT token for authenticated requests
+        \item Active game ID during matches
+        \item Selected deck slot
+    \end{itemize}
+    \item \textbf{SSL Configuration}: Disables certificate verification for self-signed certificates
+    \item \textbf{Error Handling}: Graceful handling of concurrent access scenarios:
+    \begin{itemize}
+        \item 400 responses during registration marked as success, duplicate usernames expected and should not impact on the test results
+        \item 401 responses during opponent's turn marked as success, they indicate it's not the user's turn and should not impact on the test results
+        \item Failed operations are logged but don't interrupt test flow
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Test Execution}
+
+\textbf{Setup:}
+\begin{lstlisting}[language=bash]
+# Install Locust
+pip install locust
+
+# Ensure all services are running
+cd src
+docker compose up -d
+\end{lstlisting}
+
+\textbf{Running Tests:}
+\begin{lstlisting}[language=bash]
+# Start Locust web interface
+cd docs
+locust
+
+# Access web UI at http://localhost:8089
+\end{lstlisting}
+
+\textbf{Configuration:}
+\begin{enumerate}
+    \item Set number of users (e.g., 50 concurrent users)
+    \item Set spawn rate (e.g., 4 users/second)
+    \item Set host: \texttt{https://localhost:8443}
+    \item Click "Start" to begin test
+\end{enumerate}
+
+\subsubsection{Metrics and Analysis}
+
+Locust provides real-time metrics during test execution:
+
+\begin{itemize}
+    \item \textbf{Request Statistics}:
+    \begin{itemize}
+        \item Requests per second (RPS) by endpoint
+        \item Response time percentiles (50th, 95th, 99th)
+        \item Failure rates and error types
+        \item Average response sizes
+    \end{itemize}
+    
+    \item \textbf{Endpoints}:
+    \begin{itemize}
+        \item \texttt{/users/register}: user creation
+        \item \texttt{/users/login}: authentication
+        \item \texttt{/collection/decks}: deck management operations
+        \item \texttt{/game/match/join}: matchmaking queue
+        \item \texttt{/game/hand}: cards in hand
+        \item \texttt{/game/play}: card play action
+        \item \texttt{/history/matches}: user's matches history
+        \item \texttt{/history/leaderboard}: leaderboard
+    \end{itemize}
+
+    % Analisi da terminare
+\end{itemize}
