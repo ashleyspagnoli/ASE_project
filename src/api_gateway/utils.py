@@ -31,7 +31,7 @@ async def forward_request(request: Request, internal_url: str, body_data: dict =
     if cert_path and os.path.exists(cert_path):
         try:
             ssl_context = ssl.create_default_context(cafile=cert_path)
-            # ssl_context.check_hostname = False # Decommenta se hai problemi di Hostname Mismatch
+            ssl_context.check_hostname = False # Decommenta se hai problemi di Hostname Mismatch
             verify_option = ssl_context
             print(f"Using SSL Context with cert: {cert_path}")
         except Exception as e:
