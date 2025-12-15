@@ -53,7 +53,7 @@ services:
 
   collection:
     build:
-      dockerfile: collection/Dockerfile
+      dockerfile: ./collection
     depends_on:
       - db-decks
       - user-manager

@@ -3,6 +3,5 @@ WORKDIR /app
 COPY collection/requirements.txt .
 RUN pip install -r requirements.txt
 COPY collection/ .
-COPY cards/ ./cards/
 EXPOSE 5000
 CMD flask run --cert=/run/secrets/collection_cert --key=/run/secrets/collection_key --host=0.0.0.0 --port=5000
