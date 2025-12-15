@@ -1,13 +1,28 @@
-# user_editor_service.py (AGGIORNATO)
+# user_editor_service.py (AGGIORNATO CON SANITIZZAZIONE)
 
 from fastapi import Depends, HTTPException, status, FastAPI
-from pydantic import BaseModel, Field
+# 🟢 AGGIUNTA: field_validator per Pydantic V2 (o 'validator' se usi V1)
+from pydantic import BaseModel, Field, field_validator 
 from typing import Optional
 import requests
 from os import environ
 from fastapi.security import OAuth2PasswordBearer
+import bleach # 🟢 AGGIUNTA: Libreria per sanitizzazione
 
+# =================================================================
+# FUNZIONE DI UTILITÀ PER SANITIZZAZIONE
+# =================================================================
+def sanitize_text(text: str) -> str:
+    """
+    Rimuove tag HTML potenzialmente pericolosi e spazi bianchi superflui.
+    """
+    if not text:
+        return text
+    # Rimuove tutti i tag HTML (tags=[]) e fa strip degli spazi
+    clean_text = bleach.clean(text, tags=[], strip=True)
+    return clean_text.strip()
 
+# =================================================================
 
 class UserInDB(BaseModel):
     """Schema interno che rappresenta l'utente recuperato dal DB."""
@@ -19,7 +34,6 @@ AUTH_SERVICE_BASE_URL = environ.get("AUTH_SERVICE_URL", "https://user-manager:50
 AUTH_SERVICE_CERT_PATH = "/run/secrets/user_manager_cert"
 
 
-
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="https://localhost:5004/token") 
 
 def get_raw_token(token: str = Depends(oauth2_scheme)) -> str:
@@ -28,42 +42,31 @@ def get_raw_token(token: str = Depends(oauth2_scheme)) -> str:
 def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
     """
     Verifica la validità del token JWT chiamando il Microservizio di Autenticazione 
-    (che gestisce la decodifica, la ricerca nel DB e la decrittografia)
-    e recupera i dati utente.
     """
     
     internal_endpoint = f"{AUTH_SERVICE_BASE_URL}/users/validate-token"
     print(f"Calling Auth Service at {internal_endpoint} to validate token.")
     print(f"Using token: {token}")
-    # Invia il token come header, per comodità e sicurezza
     headers = {"Authorization": f"Bearer {token}"}
     
     try:
-        # Effettua la chiamata HTTPS al servizio di autenticazione
         response = requests.get(internal_endpoint, headers=headers, verify=AUTH_SERVICE_CERT_PATH)
         print(f"Auth Service response status: {response.status_code}")  
-        # Solleva eccezione per codici di errore 4xx/5xx
         response.raise_for_status() 
 
-        # L'Auth Service ritorna l'oggetto utente in formato JSON
         user_data = response.json()
         
-        # Converte i dati JSON ricevuti (che rappresentano il record del DB) 
-        # nell'oggetto Pydantic UserInDB, che gestisce la decrittografia tramite @property.
-        # Usiamo from_mongo per la mappatura corretta dei campi DB (es. _id -> id, username(enc) -> username(dec)).
         print(f"User data received from Auth Service: {user_data}")
         print(user_data) 
         return (user_data) 
 
     except requests.exceptions.HTTPError as e:
-        # Se l'Auth Service solleva 401/403 (Token non valido)
         if response.status_code in (status.HTTP_401_UNAUTHORIZED, status.HTTP_403_FORBIDDEN):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Could not validate credentials (Token invalid or expired)",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        # Altri errori del servizio Auth
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, 
             detail=f"Auth Service error: {e.response.text}"
@@ -75,26 +78,41 @@ def get_current_user(token: str = Depends(oauth2_scheme)) -> UserInDB:
             detail="Cannot connect to Auth Service"
         )
     except Exception as e:
-         # Errore di parsing o mappatura
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
             detail=f"Internal error processing user data: {e}"
         )
+
 # =================================================================
-# 1. MODELLI PYDANTIC PER GLI ENDPOINT
+# 1. MODELLI PYDANTIC CON SANITIZZAZIONE
 # =================================================================
 
 class UsernameUpdate(BaseModel):
     new_username: str = Field(..., min_length=1)
 
+    # 🟢 AGGIUNTA SANITIZZAZIONE: Pulisce lo username da HTML e spazi
+    @field_validator('new_username')
+    @classmethod
+    def sanitize_username(cls, v):
+        return sanitize_text(v)
+
 class PasswordUpdate(BaseModel):
     old_password: str = Field(..., description="Password attuale per verifica")
     new_password: str = Field(..., min_length=3)
+    
+    # ⚠️ NOTA BENE: Le password NON vanno sanitizzate con bleach perché caratteri 
+    # speciali (come <, >, &) sono validi in una password sicura.
     
 
 class UpdateEmail(BaseModel):
     old_email: str = Field(..., min_length=1)
     new_email: str = Field(..., min_length=1)
+
+    # 🟢 AGGIUNTA SANITIZZAZIONE: Pulisce le email
+    @field_validator('old_email', 'new_email')
+    @classmethod
+    def sanitize_email(cls, v):
+        return sanitize_text(v)
 
 # =================================================================
 # 2. INIZIALIZZAZIONE FASTAPI E ENDPOINT DI MODIFICA
@@ -109,21 +127,18 @@ app = FastAPI(
 # Funzione helper per l'aggiornamento interno
 
 class UserUpdateInternal(BaseModel):
-    """Payload interno per aggiornare solo i campi necessari.
-    L'ID è essenziale per trovare l'elemento da aggiornare."""
+    """Payload interno per aggiornare solo i campi necessari."""
     username: Optional[str] = None
     old_email: Optional[str] = None
     new_email: Optional[str] = None
-    new_password: Optional[str] = None # Solo se la password cambia
-    old_password: Optional[str] = None # Per verifica
+    new_password: Optional[str] = None 
+    old_password: Optional[str] = None 
 
 
 def _call_auth_service_update(payload: UserUpdateInternal, token: str):
     """Invia la richiesta di aggiornamento al Microservizio Auth."""
     
-    # Aggiunge l'ID utente al payload
     headers = {
-            # Formato standard Bearer richiesto da get_current_user
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
             }
@@ -147,17 +162,15 @@ def _call_auth_service_update(payload: UserUpdateInternal, token: str):
             verify=AUTH_SERVICE_CERT_PATH
             
         )
-        response.raise_for_status() # Solleva eccezione per codici di errore 4xx/5xx
+        response.raise_for_status() 
         print("Dopo richiesta")
         print(response.json())
         return response.json()
     except requests.exceptions.HTTPError as e:
-        # Se l'Auth Service solleva 400 (es. username già in uso), propaghiamo l'errore
         if response.status_code == status.HTTP_400_BAD_REQUEST:
             detail = response.json().get("detail", "Dato non valido (es. username/email già in uso).")
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
         
-        # Altri errori
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, 
             detail=f"Errore di comunicazione con il servizio Auth: {e}"
@@ -167,7 +180,6 @@ def _call_auth_service_update(payload: UserUpdateInternal, token: str):
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE, 
             detail="Impossibile connettersi al servizio Auth."
         )
-
 
 
 ### Modifica Username
@@ -190,20 +202,15 @@ def change_username(
     if old_username_clear == new_username_clear:
         return {"message": "Il nuovo username è identico a quello attuale."}
     
-    # 1. Chiama il servizio Auth per eseguire l'aggiornamento
     payload=UserUpdateInternal(
         username=new_username_clear
     )
     
-    
-
-
     _call_auth_service_update(
         payload=payload,
         token=token
     )
     
-
     return {
         "message": "Username changed successfully. Please use the new token for future requests.",
         "old_username": old_username_clear,
@@ -227,7 +234,6 @@ def change_password(
         old_password = update_data.old_password
         new_password = update_data.new_password
         
-
         payload=UserUpdateInternal(
             new_password=new_password,
             old_password=old_password
@@ -236,7 +242,6 @@ def change_password(
             payload=payload,
             token=token
         )
-        # 2. Chiama il servizio Auth per aggiornare la password (che si occuperà dell'hashing)
         
         return {"message": "Password changed successfully."}
 
@@ -256,8 +261,6 @@ def change_password(
 
         old_email = update_data.old_email
         new_email = update_data.new_email
-
-        # 2. Chiama il servizio Auth per aggiornare l'email (che si occuperà della crittografia e del check duplicati)
 
         payload=UserUpdateInternal(
             old_email=old_email,
@@ -282,7 +285,6 @@ def view_data(
     token: str = Depends(get_raw_token)
     ):
         headers = {
-            # Formato standard Bearer richiesto da get_current_user
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
             }
@@ -294,15 +296,13 @@ def view_data(
                 headers=headers,
                 verify=AUTH_SERVICE_CERT_PATH
             )
-            response.raise_for_status() # Solleva eccezione per codici di errore 4xx/5xx
+            response.raise_for_status() 
 
         except requests.exceptions.HTTPError as e:
-            # Se l'Auth Service solleva 400 (es. username già in uso), propaghiamo l'errore
             if response.status_code == status.HTTP_400_BAD_REQUEST:
                 detail = response.json().get("detail", "Dato non valido (es. username/email già in uso).")
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
             
-            # Altri errori
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE, 
                 detail=f"Errore di comunicazione con il servizio Auth: {e}"

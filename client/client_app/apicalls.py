@@ -13,11 +13,14 @@ class ApiResult:
         self.success = success
         self.message = message
 
+GATEWAY_CERT_PATH = "client/certs/gateway_cert.pem"
+
+
 
 # --- FUNZIONI DI SERVIZIO ---
 
 async def api_login(username, password,CURRENT_USER_STATE: UserState):
-    async with httpx.AsyncClient(verify=False) as client:
+    async with httpx.AsyncClient(verify=GATEWAY_CERT_PATH) as client:
         try:
             login_url = f"{API_GATEWAY_URL}/users/login"
             body = {"username": username, "password": password}
@@ -44,7 +47,7 @@ async def api_login(username, password,CURRENT_USER_STATE: UserState):
 
 async def api_register(username, password, email,CURRENT_USER_STATE: UserState):
     # Logica di registrazione: OK
-    async with httpx.AsyncClient(verify=False) as client:
+    async with httpx.AsyncClient(verify=GATEWAY_CERT_PATH) as client:
         try:
             register_url = f"{API_GATEWAY_URL}/users/register"
             body = {"username": username, "password": password, "email": email}
@@ -69,7 +72,7 @@ async def api_register(username, password, email,CURRENT_USER_STATE: UserState):
 async def api_change_password(old_password, new_password,CURRENT_USER_STATE: UserState): #ENDPOINT IMPLEMENTATO FUNZIONANTE
     token = CURRENT_USER_STATE.token # Lettura dal globale
     
-    async with httpx.AsyncClient(verify=False) as client:
+    async with httpx.AsyncClient(verify=GATEWAY_CERT_PATH) as client:
         try:
             change_url = f"{API_GATEWAY_URL}/users/modify/change-password"
             headers = {"Authorization": f"Bearer {token}"}
@@ -109,7 +112,7 @@ async def api_change_email(old_email,new_email,CURRENT_USER_STATE: UserState):
     # ORA C'È DA IMPLEMENTARE BENE LE API PER CAMBIO EMAIL E USERNAME
     token = CURRENT_USER_STATE.token # Lettura dal globale
     
-    async with httpx.AsyncClient(verify=False) as client:
+    async with httpx.AsyncClient(verify=GATEWAY_CERT_PATH) as client:
         try:
             change_url = f"{API_GATEWAY_URL}/users/modify/change-email"
             headers = {"Authorization": f"Bearer {token}"}
@@ -145,7 +148,7 @@ async def api_change_username(new_username,CURRENT_USER_STATE: UserState):
     # ORA C'È DA IMPLEMENTARE BENE LE API PER CAMBIO EMAIL E USERNAME
     token = CURRENT_USER_STATE.token # Lettura dal globale
     
-    async with httpx.AsyncClient(verify=False) as client:
+    async with httpx.AsyncClient(verify=GATEWAY_CERT_PATH) as client:
         try:
             change_url = f"{API_GATEWAY_URL}/users/modify/change-username"
             headers = {"Authorization": f"Bearer {token}"}
@@ -180,7 +183,7 @@ async def api_change_username(new_username,CURRENT_USER_STATE: UserState):
 async def api_get_leaderboard(page:int, CURRENT_USER_STATE: UserState):
     token = CURRENT_USER_STATE.token # Lettura dal globale
     
-    async with httpx.AsyncClient(verify=False) as client:
+    async with httpx.AsyncClient(verify=GATEWAY_CERT_PATH) as client:
         try:
             leaderboard_url = f"{API_GATEWAY_URL}/history/leaderboard"
             headers = {"Authorization": f"Bearer {token}"}
@@ -205,7 +208,7 @@ async def api_get_leaderboard(page:int, CURRENT_USER_STATE: UserState):
 async def api_get_card_collection(CURRENT_USER_STATE: UserState):
     token = CURRENT_USER_STATE.token # Lettura dal globale
     
-    async with httpx.AsyncClient(verify=False) as client:
+    async with httpx.AsyncClient(verify=GATEWAY_CERT_PATH) as client:
         try:
             collection_url = f"{API_GATEWAY_URL}/collection/cards"
             headers = {"Authorization": f"Bearer {token}"}
@@ -229,7 +232,7 @@ async def api_get_card_collection(CURRENT_USER_STATE: UserState):
 async def api_get_deck_collection(CURRENT_USER_STATE: UserState):
     token = CURRENT_USER_STATE.token # Lettura dal globale
     
-    async with httpx.AsyncClient(verify=False) as client:
+    async with httpx.AsyncClient(verify=GATEWAY_CERT_PATH) as client:
         try:
             collection_url = f"{API_GATEWAY_URL}/collection/decks"
             headers = {"Authorization": f"Bearer {token}"}
@@ -242,6 +245,30 @@ async def api_get_deck_collection(CURRENT_USER_STATE: UserState):
             response.raise_for_status() 
             data = response.json()
             return data  # Ritorna i dati della deck collection
+    
+        except httpx.HTTPStatusError as e:
+            # Qui rilanciamo gli errori generici del servizio
+            return None
+            
+        except httpx.RequestError:
+            return None
+        
+async def api_view_data(CURRENT_USER_STATE: UserState):
+    token = CURRENT_USER_STATE.token # Lettura dal globale
+    
+    async with httpx.AsyncClient(verify=GATEWAY_CERT_PATH) as client:
+        try:
+            collection_url = f"{API_GATEWAY_URL}/usereditor/view-userdata"
+            headers = {"Authorization": f"Bearer {token}"}
+            
+            response = await client.get(
+                collection_url,
+                headers=headers,
+            )
+            
+            response.raise_for_status() 
+            data = response.json()
+            return data  # Ritorna i dati dell'utente
     
         except httpx.HTTPStatusError as e:
             # Qui rilanciamo gli errori generici del servizio

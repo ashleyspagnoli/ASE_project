@@ -219,3 +219,8 @@ secrets:
     file: ./secrets/rabbitmq/key.pem
   rabbitmq_conf:
     file: ./secrets/rabbitmq/rabbitmq.conf
+
+
+networks:
+  default:
+    name: guerra-ase
