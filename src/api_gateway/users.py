@@ -37,7 +37,3 @@ async def proxy_token(request: Request):
     form_data = await request.form()
     return await forward_request(request, URL, body_data=dict(form_data), is_json=False)
 
-@router.get("/my-username-my-email", tags=["Authentication and Users"])
-async def proxy_get_username_email(request: Request):
-    URL = USER_URL + '/users/my-username-my-email' 
-    return await forward_request(request, URL, is_json=False)

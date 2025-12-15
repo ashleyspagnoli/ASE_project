@@ -38,3 +38,8 @@ async def proxy_change_password(data:UserModifyPassword,request: Request):
 async def proxy_change_email(data:UserModifyEmail,request: Request):
     URL = USER_URL + '/users/modify/change-email' 
     return await forward_request(request, URL, body_data=data.model_dump())
+
+@router.get("/view-userdata", tags=["User Editing"])
+async def proxy_get_username_email(request: Request):
+    URL = USER_URL + '/users/view-userdata' 
+    return await forward_request(request, URL, is_json=False)

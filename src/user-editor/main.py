@@ -269,3 +269,46 @@ def change_password(
         )
         
         return {"message": "Email changed successfully."}
+
+### Modifica Email
+@app.get(
+    "/users/modify/view-userdata",
+    status_code=status.HTTP_200_OK,
+    tags=["User Editor"],
+    summary="See user email and username"
+)
+def view_data(
+    current_user: UserInDB = Depends(get_current_user),
+    token: str = Depends(get_raw_token)
+    ):
+        headers = {
+            # Formato standard Bearer richiesto da get_current_user
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+            }
+
+        try:
+            url=f"{AUTH_SERVICE_BASE_URL}/users/my-username-my-email"
+            response = requests.get(
+                url,
+                headers=headers,
+                verify=AUTH_SERVICE_CERT_PATH
+            )
+            response.raise_for_status() # Solleva eccezione per codici di errore 4xx/5xx
+
+        except requests.exceptions.HTTPError as e:
+            # Se l'Auth Service solleva 400 (es. username già in uso), propaghiamo l'errore
+            if response.status_code == status.HTTP_400_BAD_REQUEST:
+                detail = response.json().get("detail", "Dato non valido (es. username/email già in uso).")
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
+            
+            # Altri errori
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE, 
+                detail=f"Errore di comunicazione con il servizio Auth: {e}"
+            )
+        
+        return {
+            "username": current_user["username"],
+            "email": response.json().get("email")
+        }
