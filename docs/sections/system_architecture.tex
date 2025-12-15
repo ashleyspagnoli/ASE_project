@@ -41,15 +41,19 @@ Here is a list of the main microservices of the system:
         expect to change, we've decided to hard-code their behavior and their images
         in the microservices, without relying on databases.
     \end{itemize}
+    \item \textbf{Game History -> User-Manager:} Game History needs to connect to User Manager also to get a list of (updated) usernames from a list of user-ids to represent the leaderboard.
     \item \textbf{User Editor:}
     We've separated the user profile editing endpoints from the user manager to keep the user manager smaller
     and allow horizontal scalability.
     The User Editor then connects to dedicated endpoints of the User Manager that allow it to update user information in the DB User-DB.
-    \item \textbf{Cards and decks:}
-    The Collection microservice allows the users to see all the cards, their images and to \hyperref[sec:cloud-decks]{handle their decks}. 
     \item \textbf{Separated in-game logic:}
     The Game Engine microservice, as the name suggest, handles the whole game logic,
     while delegating to Game History and Collection the handling of old games and decks.
+    \item \textbf{Cards and decks:}
+    The Collection microservice allows the users to see all the cards, their images and to \hyperref[sec:cloud-decks]{handle their decks}.\\
+    The Game Engine will connect to this microservice to get the deck selected from the user: the user provides the deck's number and the Game Engine asks for the corresponding cards to the Collection.
+    \item \textbf{Game History and Leaderboard:} The Game Engine delegates the Game History to store finished games. How this is handled is discussed in detail in the \hyperref[sec:rabbitmq]{Additional Features} section.\\
+    This microservices then allow users to see their old matches, and allows everyone to see the leaderboard (think about a website that shows the best players to unauthenticated users).
     
 \end{itemize}
 

@@ -1,4 +1,3 @@
-
 from fastapi import FastAPI, HTTPException, Depends, status, Query
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from fastapi.requests import Request
@@ -11,16 +10,21 @@ from bson import ObjectId
 from datetime import datetime, timedelta
 from typing import Optional, List 
 from fastapi import Header
-from jose.exceptions import JWTError as PyJWTError
+
+# --- MODIFICA: Sostituzione python-jose con PyJWT ---
+import jwt 
+from jwt import PyJWTError # Base exception di PyJWT
+# ----------------------------------------------------
 
 from crypto import encrypt_data, decrypt_data, load_secret_key
 
 from fastapi.middleware.cors import CORSMiddleware
-# JWT and Hashing Libraries
-from jose import JWTError, jwt
+
+# Hashing Libraries
 from passlib.context import CryptContext
 import hashlib
 from app_test import MockClient
+
 def hash_search_key(data: str) -> str:
     """Generates a SHA-256 hash of the lowercase input string for consistent searching.
      This helps in avoiding storing plain text sensitive data while allowing lookups like email and username.
@@ -41,7 +45,7 @@ DEFAULT_MONGO_URI = f"mongodb://user-db:27017/{DB_NAME}"
 MONGO_URI = environ.get("MONGO_URI", DEFAULT_MONGO_URI)
 
 # JWT Configuration (read from environment)
-FAKE_SECRET_KEY = load_secret_key("fake-key-jwt.txt",default="default_secret_key_weak")  # Chiave di fallback (solo per testing locale)
+FAKE_SECRET_KEY = load_secret_key("fake-key-jwt.txt", default="default_secret_key_weak")  # Chiave di fallback (solo per testing locale)
 
 SECRET_KEY = load_secret_key("/run/secrets/jwt_secret_key", default=FAKE_SECRET_KEY)
 ALGORITHM = environ.get("ALGORITHM", "HS256")
@@ -56,7 +60,7 @@ if MOCKMONGO == "false":
     try:
         print("Connecting to MongoDB...", flush=True)
         print(f"Using MONGO_URI: {MONGO_URI}", flush=True)  
-        client = MongoClient(MONGO_URI,serverSelectionTimeoutMS=5000)
+        client = MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
 
         db = client.get_database(DB_NAME) 
         ITEMS_COLLECTION = db["elementi"] 
@@ -154,6 +158,8 @@ def create_access_token(data: dict):
         to_encode["sub"] = to_encode["username"]    
     expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     to_encode.update({"exp": expire})
+    
+    # PyJWT encode
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
@@ -209,9 +215,10 @@ def verify_internal_token(authorization: str = Header(..., alias="Authorization"
     # 2. Decodifica e Validazione
     try:
         # Usa la chiave segreta specifica per i servizi interni
-        payload=jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        # PyJWT decode
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         
-    except PyJWTError as e:
+    except PyJWTError as e: # Catch PyJWT base exception
         # Cattura errori di firma non valida, token scaduto, ecc.
         print(f"Internal Token Error: {e}")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid internal service token.")
@@ -273,13 +280,14 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
         headers={"Authenticate": "Bearer"},
     )
     try:
+        # PyJWT decode
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         # Look for the 'sub' claim (standard JWT subject)
         username: str = payload.get("sub") 
         if username is None:
             raise credentials_exception
         token_data = TokenData(username=username)
-    except JWTError:
+    except PyJWTError: # Catch PyJWT base exception
         raise credentials_exception
         
     user = get_user(token_data.username)
@@ -418,13 +426,14 @@ def get_user_from_local_token(token: str = Depends(oauth2_scheme)) -> UserInDB:
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:
+        # PyJWT decode
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         # Assumiamo che l'identificatore sia nel campo 'username' o 'sub'
         identifier: str = payload.get("username")
         if identifier is None:
             raise credentials_exception
             
-    except PyJWTError:
+    except PyJWTError: # Catch PyJWT base exception
         raise credentials_exception
         
     # La funzione get_user(identifier) cerca l'utente cifrato nel DB e lo decripta
