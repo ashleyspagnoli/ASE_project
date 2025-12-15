@@ -10,8 +10,10 @@ To allow players to keep their decks stored in the cloud, we added
 \subsection{Client}
 
 \subsection{Endpoint-based Service Interaction Smell - Proof of Concept} %RabbitMQ
+\label{sec:rabbitmq}
 The project requirements asked to make up for the \textbf{Wobbly service interaction} smell. We solved it mainly with timeouts as suggested.\\
 Regarding the \textbf{Endpoint-based service interaction} smell, the requirements said to ignore it since it would've been difficult to solve.\\
 We decided to partially solve it anyway in a single interaction between the \textbf{Game History} and \textbf{Game Engine} microservices as a proof-of-concept.\\
 In this interaction we replaced the timeout with RabbitMQ, a Message Broker, that solved both the \textbf{Wobbly service interaction} and the \textbf{Endpoint-based service interaction} smells.
 
+\subsection{Test-match}

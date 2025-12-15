@@ -8,73 +8,127 @@
 \begin{itemize}
     \item Account
     \begin{itemize}
-        \item[\colorednum{red}{}] Create an account SO THAT I can participate to the game\\
-        /users/register (Gateway $\rightarrow$ User Manager $\rightarrow$ MongoDB $\rightarrow$ User Manager $\rightarrow$ Gateway)
 
-        \item[\colorednum{red}{}] Login into the game SO THAT I can play a match\\
-        /users/login (Gateway $\rightarrow$ User Manager $\rightarrow$ MongoDB $\rightarrow$ User Manager $\rightarrow$ Gateway)
+        \item[\colorednum{red}{}] Create an account SO THAT I can participate to the game
+        \begin{itemize}
+            \item /users/register (Gateway $\rightarrow$ User Manager $\rightarrow$ MongoDB $\rightarrow$ User Manager $\rightarrow$ Gateway)
+        \end{itemize}
 
-        \item[\colorednum{red}{}] Check/modify my profile SO THAT I can update my information\\
-        /userseditor/modify/change-username (Gateway $\rightarrow$ User Editor $\rightarrow$ User Manager $\rightarrow$ MongoDB $\rightarrow$ User Manager $\rightarrow$ User Editor $\rightarrow$ Gateway)\\
-        /userseditor/modify/change-password (Gateway $\rightarrow$ User Editor $\rightarrow$ User Manager $\rightarrow$ MongoDB $\rightarrow$ User Manager $\rightarrow$ User Editor $\rightarrow$ Gateway)\\
-        /userseditor/modify/change-email (Gateway $\rightarrow$ User Editor $\rightarrow$ User Manager $\rightarrow$ MongoDB $\rightarrow$ User Manager $\rightarrow$ User Editor $\rightarrow$ Gateway)\\
-        	extit{Note: Profile checking is handled via token validation or login response.}
 
-        \item[\colorednum{yellow}{}] Be safe about my account data SO THAT nobody can steal/modify them\\
-        N/A (Non-functional): Implemented via JWT Authentication, Password Hashing (Argon2) in User Manager, and HTTPS communication.
+        \item[\colorednum{red}{}] Login into the game SO THAT I can play a match
+        \begin{itemize}
+            \item /users/login (Gateway $\rightarrow$ User Manager $\rightarrow$ MongoDB $\rightarrow$ User Manager $\rightarrow$ Gateway)
+        \end{itemize}
+
+
+        \item[\colorednum{red}{}] Check/modify my profile SO THAT I can update my information
+        \begin{itemize}
+            \item /userseditor/modify/change-username (Gateway $\rightarrow$ User Editor $\rightarrow$ User Manager $\rightarrow$ MongoDB $\rightarrow$ User Manager $\rightarrow$ User Editor $\rightarrow$ Gateway)
+            \item /userseditor/modify/change-password (Gateway $\rightarrow$ User Editor $\rightarrow$ User Manager $\rightarrow$ MongoDB $\rightarrow$ User Manager $\rightarrow$ User Editor $\rightarrow$ Gateway)
+            \item /userseditor/modify/change-email (Gateway $\rightarrow$ User Editor $\rightarrow$ User Manager $\rightarrow$ MongoDB $\rightarrow$ User Manager $\rightarrow$ User Editor $\rightarrow$ Gateway)
+        \end{itemize}
+        	\textit{Note: Profile checking is handled via token validation or login response.}
+
+        \item[\colorednum{yellow}{}] Be safe about my account data SO THAT nobody can steal/modify them
+        \begin{itemize}
+            \item Implemented via JWT Authentication, Password Hashing (Argon2) in User Manager, and HTTPS communication.
+        \end{itemize}
     \end{itemize}
     \item Cards
     \begin{itemize}
-        \item[\colorednum{red}{}] See the overall card collection SO THAT I can think of a strategy\\
-        /collection/cards (Gateway $\rightarrow$ Collection $\rightarrow$ File System [cards.json] $\rightarrow$ Collection $\rightarrow$ Gateway)
 
-        \item[\colorednum{red}{}] View the details of a card SO THAT I can think of a strategy\\
-        /collection/cards/{card\_id} (Gateway $\rightarrow$ Collection $\rightarrow$ File System [cards.json] $\rightarrow$ Collection $\rightarrow$ Gateway)
+        \item[\colorednum{red}{}] See the overall card collection SO THAT I can think of a strategy
+        \begin{itemize}
+            \item /collection/cards (Gateway $\rightarrow$ Collection $\rightarrow$ File System [cards.json] $\rightarrow$ Collection $\rightarrow$ Gateway)
+        \end{itemize}
+
+
+        \item[\colorednum{red}{}] View the details of a card SO THAT I can think of a strategy
+        \begin{itemize}
+            \item /collection/cards/{card\_id} (Gateway $\rightarrow$ Collection $\rightarrow$ File System [cards.json] $\rightarrow$ Collection $\rightarrow$ Gateway)
+        \end{itemize}
     \end{itemize}
     \item Game
     \begin{itemize}
-        \item[\colorednum{red}{}] Start a new game SO THAT I can play\\
-        /game/match/join (Gateway $\rightarrow$ Game Engine $\rightarrow$ Matchmaking Queue $\rightarrow$ Game Engine $\rightarrow$ Gateway)
 
-        \item[\colorednum{red}{}] Select the subset of cards SO THAT I can start a match\\
-        /game/deck/{game\_id} (Gateway $\rightarrow$ Game Engine $\rightarrow$ Game State $\rightarrow$ Gateway)\\
-        Alternatively for deck creation: /collection/decks (Gateway $\rightarrow$ Collection $\rightarrow$ MongoDB $\rightarrow$ Collection $\rightarrow$ Gateway)
+        \item[\colorednum{red}{}] Start a new game SO THAT I can play
+        \begin{itemize}
+            \item /game/match/join (Gateway $\rightarrow$ Game Engine $\rightarrow$ Matchmaking Queue $\rightarrow$ Game Engine $\rightarrow$ Gateway)
+        \end{itemize}
 
-        \item[\colorednum{red}{}] Select a card SO THAT I can play my turn\\
-        /game/play/{game\_id} (Gateway $\rightarrow$ Game Engine $\rightarrow$ Game Logic $\rightarrow$ Game State $\rightarrow$ Gateway)
 
-        \item[\colorednum{red}{}] Know the score SO THAT I know if I am winning or losing\\
-        /game/state/{game\_id} (Gateway $\rightarrow$ Game Engine $\rightarrow$ Game State $\rightarrow$ Gateway)
+        \item[\colorednum{red}{}] Select the subset of cards SO THAT I can start a match
+        \begin{itemize}
+            \item /game/deck/{game\_id} (Gateway $\rightarrow$ Game Engine $\rightarrow$ Game State $\rightarrow$ Gateway)
+            \item Alternatively for deck creation: /collection/decks (Gateway $\rightarrow$ Collection $\rightarrow$ MongoDB $\rightarrow$ Collection $\rightarrow$ Gateway)
+        \end{itemize}
 
-        \item[\colorednum{red}{}] Know the turns SO THAT I can know how many rounds there are till the end\\
-        /game/state/{game\_id} (Gateway $\rightarrow$ Game Engine $\rightarrow$ Game State $\rightarrow$ Gateway)
 
-        \item[\colorednum{red}{}] See the score SO THAT I know who is winning\\
-        /game/state/{game\_id} (Gateway $\rightarrow$ Game Engine $\rightarrow$ Game State $\rightarrow$ Gateway)
+        \item[\colorednum{red}{}] Select a card SO THAT I can play my turn
+        \begin{itemize}
+            \item /game/play/{game\_id} (Gateway $\rightarrow$ Game Engine $\rightarrow$ Game Logic $\rightarrow$ Game State $\rightarrow$ Gateway)
+        \end{itemize}
 
-        \item[\colorednum{red}{}] Know who won the turn SO THAT I know the updated score\\
-        /game/state/{game\_id} (Gateway $\rightarrow$ Game Engine $\rightarrow$ Game State $\rightarrow$ Gateway)
 
-        \item[\colorednum{red}{}] Know who won a match SO THAT I know the result of a match\\
-        /game/state/{game\_id} (Gateway $\rightarrow$ Game Engine $\rightarrow$ Game State $\rightarrow$ Gateway)
+        \item[\colorednum{red}{}] Know the score SO THAT I know if I am winning or losing
+        \begin{itemize}
+            \item /game/state/{game\_id} (Gateway $\rightarrow$ Game Engine $\rightarrow$ Game State $\rightarrow$ Gateway)
+        \end{itemize}
 
-        \item[\colorednum{yellow}{}] Ensure that the rules are not violated SO THAT I can play a fair match\\
-        N/A (Enforced by Logic): Handled internally by Game Engine during /game/play/{game\_id} execution.
-        (draft) zero trust for game engine and collection,
+
+        \item[\colorednum{red}{}] Know the turns SO THAT I can know how many rounds there are till the end
+        \begin{itemize}
+            \item /game/state/{game\_id} (Gateway $\rightarrow$ Game Engine $\rightarrow$ Game State $\rightarrow$ Gateway)
+        \end{itemize}
+
+
+        \item[\colorednum{red}{}] See the score SO THAT I know who is winning
+        \begin{itemize}
+            \item /game/state/{game\_id} (Gateway $\rightarrow$ Game Engine $\rightarrow$ Game State $\rightarrow$ Gateway)
+        \end{itemize}
+
+
+        \item[\colorednum{red}{}] Know who won the turn SO THAT I know the updated score
+        \begin{itemize}
+            \item /game/state/{game\_id} (Gateway $\rightarrow$ Game Engine $\rightarrow$ Game State $\rightarrow$ Gateway)
+        \end{itemize}
+
+
+        \item[\colorednum{red}{}] Know who won a match SO THAT I know the result of a match
+        \begin{itemize}
+            \item /game/state/{game\_id} (Gateway $\rightarrow$ Game Engine $\rightarrow$ Game State $\rightarrow$ Gateway)
+        \end{itemize}
+
+        \item[\colorednum{yellow}{}] Ensure that the rules are not violated SO THAT I can play a fair match
+        \begin{itemize}
+            \item N/A (Enforced by Logic): Handled internally by Game Engine during /game/play/{game\_id} execution.
+            \item (draft) zero trust for game engine and collection,
+        \end{itemize}
     \end{itemize}
     \item Others
     \begin{itemize}
-        \item[\colorednum{red}{}] View the list of my old matches SO THAT I can see how I played\\
-        /history/matches (Gateway $\rightarrow$ Game History $\rightarrow$ MongoDB $\rightarrow$ Game History $\rightarrow$ Gateway)
 
-        \item[\colorednum{red}{}] View the details of one of my matches SO THAT I can see how I played\\
-        /history/matches (Gateway $\rightarrow$ Game History $\rightarrow$ MongoDB $\rightarrow$ Game History $\rightarrow$ Gateway)\\
+        \item[\colorednum{red}{}] View the list of my old matches SO THAT I can see how I played
+        \begin{itemize}
+            \item /history/matches (Gateway $\rightarrow$ Game History $\rightarrow$ MongoDB $\rightarrow$ Game History $\rightarrow$ Gateway)
+        \end{itemize}
+
+
+        \item[\colorednum{red}{}] View the details of one of my matches SO THAT I can see how I played
+        \begin{itemize}
+            \item /history/matches (Gateway $\rightarrow$ Game History $\rightarrow$ MongoDB $\rightarrow$ Game History $\rightarrow$ Gateway)
+        \end{itemize}
         	extit{Note: The list endpoint returns match details.}
 
-        \item[\colorednum{red}{}] View the leaderboards SO THAT I know who are the best players\\
-        /history/leaderboard (Gateway $\rightarrow$ Game History $\rightarrow$ MongoDB $\rightarrow$ Game History $\rightarrow$ Gateway)
 
-        \item[\colorednum{yellow}{}] Prevent people to tamper my old matches SO THAT I have them available\\
-        N/A (Security): Implemented via internal service isolation (only Game Engine writes to History via RabbitMQ/Internal API) and Database access controls.
+        \item[\colorednum{red}{}] View the leaderboards SO THAT I know who are the best players
+        \begin{itemize}
+            \item /history/leaderboard (Gateway $\rightarrow$ Game History $\rightarrow$ MongoDB $\rightarrow$ Game History $\rightarrow$ Gateway)
+        \end{itemize}
+
+        \item[\colorednum{yellow}{}] Prevent people to tamper my old matches SO THAT I have them available
+        \begin{itemize}
+            \item N/A (Security): Implemented via internal service isolation (only Game Engine writes to History via RabbitMQ/Internal API) and Database access controls.
+        \end{itemize}
     \end{itemize}
 \end{itemize}
