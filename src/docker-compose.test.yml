@@ -113,15 +113,6 @@ services:
       --ssl-keyfile /run/secrets/user_editor_key 
       --ssl-certfile /run/secrets/user_editor_cert
 
-  user-db:
-    image: mongo:latest
-    container_name: user_auth_db_test
-    restart: always 
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: user_admin
-      MONGO_INITDB_ROOT_PASSWORD: secure_password_user
-      MONGO_INITDB_DATABASE: user_auth_db
-
   api-gateway:
     build: 
       context: ./api_gateway

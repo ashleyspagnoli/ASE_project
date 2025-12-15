@@ -41,35 +41,51 @@ class MockCollection:
         self._current_id_counter = 0
 
     def _match_query(self, doc: Dict[str, Any], query: Dict[str, Any]) -> bool:
-        """Helper che implementa la logica di base del matching delle query."""
-        
-        for key, value in query.items():
-            doc_value = doc.get(key)
+            """Helper che implementa la logica di base del matching delle query."""
             
-            # Gestione della query per ObjectId (_id)
-            if key == '_id':
-                # Convertiamo entrambi in stringa per un confronto robusto nel mock
-                if str(doc_value) != str(value):
-                    return False
-            
-            # Gestione degli operatori di query
-            elif isinstance(value, dict):
-                # Operatore $ne (Not Equal)
-                if '$ne' in value:
-                    if doc_value == value['$ne']:
-                        return False
-                # Operatore $in (In List)
-                elif '$in' in value:
-                    if doc_value not in value['$in']:
-                        return False
-                # Aggiungi altri operatori ($gt, $lt, ecc.) se necessario
-            
-            # Matching diretto (es. {"username": "test"})
-            elif doc_value != value:
-                return False
+            for key, value in query.items():
+                doc_value = doc.get(key)
                 
-        return True
+                # --- 1. Gestione degli operatori di query (dict) ---
+                if isinstance(value, dict):
+                    
+                    # Operatore $in (In List)
+                    if '$in' in value:
+                        list_of_values = value['$in']
+                        
+                        # Caso speciale: $in su campo _id
+                        if key == '_id':
+                            # Convertiamo tutto in stringa per confronto sicuro
+                            doc_id_str = str(doc_value)
+                            # Creiamo una lista di stringhe dagli ID passati nella query
+                            search_list_strs = [str(x) for x in list_of_values]
+                            
+                            if doc_id_str not in search_list_strs:
+                                return False
+                        
+                        # Caso standard: $in su altri campi
+                        else:
+                            if doc_value not in list_of_values:
+                                return False
 
+                    # Operatore $ne (Not Equal)
+                    elif '$ne' in value:
+                        if doc_value == value['$ne']:
+                            return False
+                    
+                    # Qui puoi aggiungere altri operatori se servono ($gt, $lt, etc.)
+
+                # --- 2. Gestione specifica uguaglianza _id (se non è un operatore) ---
+                elif key == '_id':
+                    # Convertiamo entrambi in stringa per un confronto robusto nel mock
+                    if str(doc_value) != str(value):
+                        return False
+                
+                # --- 3. Matching diretto standard (es. {"username": "test"}) ---
+                elif doc_value != value:
+                    return False
+                    
+            return True
     # Aggiungi questo metodo alla tua classe MockCollection
 
 

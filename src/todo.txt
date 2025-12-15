@@ -1,0 +1,9 @@
+11.gateway [ricordati di aggiungere il certificato in utils]
+12. password + salt (Filippo) Lo fa gia la libreria
+13. Unit test user  (Più o meno)
+17. Togliere development environment
+——————————————————
+21. finire client (Filippo)
+15/12 SPRINT REVIEW 🏃🏾‍➡️
+16/12 DEADLINE ☠️⚰️ ricordarsi di aggiornare openapi gateway!!
+

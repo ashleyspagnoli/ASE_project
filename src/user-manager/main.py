@@ -457,27 +457,36 @@ def validate_token(current_user: UserInDB = Depends(get_user_from_local_token)):
 )
 
 def get_usernames_by_ids(
-    # Standard FastAPI way to handle multiple query parameters
     id_list: List[str] = Query(..., description="List of user IDs (repeated in query: ?id_list=ID1&id_list=ID2)"),
 ):
-    
     """
     Returns a list of usernames mapped to their corresponding user IDs.
+    Restituisce [] se gli ID non esistono o se sono formattati male.
     """
     if not id_list:
         return []
 
-    try:
-        # Validate and convert string IDs to MongoDB ObjectIds
-        object_ids = [ObjectId(id_str) for id_str in id_list]
-    except Exception:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, 
-                            detail="One or more provided User IDs are invalid (ObjectId).")
+    # 🟢 MODIFICA: Utilizza una lista separata per gli ID validi
+    object_ids = []
+    
+    # Itera sugli ID e aggiungi solo quelli che possono essere convertiti
+    for id_str in id_list:
+        try:
+            object_ids.append(ObjectId(id_str))
+        except Exception:
+            # IGNORA l'ID non valido invece di sollevare un'eccezione HTTP
+            print(f"WARNING: Invalid ObjectId format received and ignored: {id_str}")
+            continue
+
+    # Se dopo la pulizia non abbiamo ID validi da cercare, restituiamo []
+    if not object_ids:
+        # Se tutti gli ID erano formattati male, ritorna semplicemente un array vuoto.
+        return []
         
-    # Query MongoDB for users whose _id is in the list
+    # Query MongoDB per gli ID validi rimanenti
     users = USERS_COLLECTION.find(
         {"_id": {"$in": object_ids}},
-        {"username": 1} # Project only the username and _id (default)
+        {"username": 1} # Proietta solo username e _id
     )
     
     results = []
@@ -486,6 +495,8 @@ def get_usernames_by_ids(
             id=str(user_doc["_id"]), 
             username=user_doc["username"] 
         ))
+        
+    # Restituisce i risultati trovati (che saranno [] se gli ID validi non esistono nel DB)
     return results
 
 @app.get(
