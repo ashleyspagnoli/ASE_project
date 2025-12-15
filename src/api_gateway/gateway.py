@@ -1,4 +1,4 @@
-import collection, users, game_engine, history
+import collection, users, game_engine, history, usereditor
 from fastapi import FastAPI
 
 
@@ -16,3 +16,5 @@ app.include_router(game_engine.router, prefix="/game", tags=["Game"])
 app.include_router(history.router, prefix="/history", tags=["History"])
 # Collection routes
 app.include_router(collection.router, prefix="/collection", tags=["Collection"])
+# User editor routes
+app.include_router(usereditor.router, prefix="/userseditor", tags=["User Editing"])

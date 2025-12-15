@@ -1,310 +1,246 @@
-import pytest
-from unittest.mock import patch, MagicMock
-from fastapi.testclient import TestClient
-from fastapi import HTTPException, status
+# mock_mongo.py
+
 from bson import ObjectId
-from datetime import datetime, timedelta
-from passlib.context import CryptContext
-import hashlib
-
-# Importa il tuo modulo principale (Auth MS)
-# Assumi che il codice fornito sia in 'main.py' nella directory 'user-manager'
-import main 
-
-# Crea un client di test per l'applicazione FastAPI
-client = TestClient(main.app)
-
-# Dati Mock per tutti i test
-MOCK_OBJECT_ID = "60a1b2c3d4e5f6a7b8c9d0e1"
-MOCK_USER_CLEARTEXT = "testuser"
-MOCK_EMAIL_CLEARTEXT = "test@example.com"
-MOCK_PASSWORD_PLAINTEXT = "securepass123"
-MOCK_TOKEN = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJ0ZXN0dXNlciIsImlkIjoiNjBhMWIyYzNkNGU1ZjZhN2I4YzlkMGUxIiwiaXNzIjoic2VydmVyIn0.S9Fw9ZtG_i8k4q7Q6T7L3d5J7M1O8Y3K9N5H0vA9X3E"
-
-# Dati che useremo per simulare il record nel DB (già hash/encrypted)
-MOCK_USER_DB_DATA = {
-    "_id": ObjectId(MOCK_OBJECT_ID),
-    "username": "encrypted_testuser",
-    "email": "encrypted_test@example.com",
-    "hashed_password": "hashed_password_mock",
-    "hashed_username": "hashed_testuser",
-    "hashed_email": "hashed_test@example.com",
-}
-
-# Oggetto UserInDB (dopo decrypt/mapping)
-MOCK_USER_IN_DB = main.UserInDB(
-    id=MOCK_OBJECT_ID,
-    username=MOCK_USER_CLEARTEXT,
-    email=MOCK_EMAIL_CLEARTEXT,
-    hashed_password=MOCK_USER_DB_DATA["hashed_password"],
-    hashed_username=MOCK_USER_DB_DATA["hashed_username"],
-    hashed_email=MOCK_USER_DB_DATA["hashed_email"],
-)
-
-# --- FIXTURES PER IL MOCKING DEL DATABASE ---
+from typing import Dict, Any, List, Optional
+from unittest.mock import MagicMock
 
 
-import pytest
-from unittest.mock import patch, MagicMock
-from cryptography.fernet import Fernet # O la tua libreria di crittografia
-# Devi importare le funzioni reali (qui assumiamo che vengano da main.crypto)
-import main
-from main import hash_search_key, get_password_hash, verify_password, SECRET_KEY 
-# Assumi che le funzioni encrypt/decrypt siano qui per semplicità
-from crypto import encrypt_data, decrypt_data 
+# --- Classi per simulare i risultati di PyMongo ---
 
-# Dati di test
-TEST_DATA = "data_to_be_encrypted"
-TEST_PASSWORD = "PasswordSicura123"
+class MockInsertOneResult:
+    """Simula il risultato di collection.insert_one()."""
+    def __init__(self, inserted_id: ObjectId):
+        self.inserted_id = inserted_id
 
-# --- Test Crittografia (Necessita della SECRET_KEY) ---
-
-@pytest.fixture(scope="module", autouse=True)
-
-def mock_secret_key():
-    """Garantisce che la chiave segreta sia caricata per i test di crittografia reali."""
-    # Simula una chiave segreta valida (ad esempio, una chiave Fernet)
-    test_key = Fernet.generate_key().decode()
-    with patch('main.SECRET_KEY', test_key):
-         yield
-
-def test_encryption_decryption_integrity(mock_secret_key):
-    """Verifica che la decrittografia ripristini i dati originali."""
+class MockUpdateResult:
+    """Simula il risultato di collection.update_one()."""
+    def __init__(self, modified_count: int):
+        self.modified_count = modified_count
     
-    encrypted = encrypt_data(TEST_DATA)
-    decrypted = decrypt_data(encrypted)
+    # Utile per usare il mock direttamente dove è atteso un oggetto risultato
+    def __call__(self):
+        return self
+
+class MockDeleteResult:
+    """Simula il risultato di collection.delete_many()."""
+    def __init__(self, deleted_count: int):
+        self.deleted_count = deleted_count
     
-    # Asserzioni
-    assert encrypted != TEST_DATA, "I dati non sono stati cifrati (dovrebbero essere diversi)."
-    assert decrypted == TEST_DATA, "La decrittografia non ha funzionato correttamente."
+    def __call__(self):
+        return self
+
+# --- Classe Principale per simulare la Collezione MongoDB ---
+
+class MockCollection:
+    """Simula una singola collezione MongoDB (es. USERS_COLLECTION)."""
+    
+    def __init__(self, name: str):
+        self.name = name
+        # Il dizionario in-memory che memorizza i documenti
+        self.data: Dict[str, Dict[str, Any]] = {}
+        self._current_id_counter = 0
+
+    def _match_query(self, doc: Dict[str, Any], query: Dict[str, Any]) -> bool:
+        """Helper che implementa la logica di base del matching delle query."""
+        
+        for key, value in query.items():
+            doc_value = doc.get(key)
+            
+            # Gestione della query per ObjectId (_id)
+            if key == '_id':
+                # Convertiamo entrambi in stringa per un confronto robusto nel mock
+                if str(doc_value) != str(value):
+                    return False
+            
+            # Gestione degli operatori di query
+            elif isinstance(value, dict):
+                # Operatore $ne (Not Equal)
+                if '$ne' in value:
+                    if doc_value == value['$ne']:
+                        return False
+                # Operatore $in (In List)
+                elif '$in' in value:
+                    if doc_value not in value['$in']:
+                        return False
+                # Aggiungi altri operatori ($gt, $lt, ecc.) se necessario
+            
+            # Matching diretto (es. {"username": "test"})
+            elif doc_value != value:
+                return False
+                
+        return True
+
+    # Aggiungi questo metodo alla tua classe MockCollection
 
 
-# --- Test Hashing ---
+# ... (I tuoi metodi esistenti come find, insert_one, ecc.) ...
 
-def test_hash_search_key_consistency():
-    """Verifica che l'hashing sia coerente e insensibile alle maiuscole/minuscole."""
-    
-    hash1 = hash_search_key("TestUser@example.com")
-    hash2 = hash_search_key("testuser@example.com")
-    
-    # Asserzioni
-    assert hash1 == hash2, "L'hashing di ricerca deve essere insensibile alle maiuscole/minuscole."
-    assert len(hash1) == 64, "L'hash SHA-256 deve avere una lunghezza di 64 caratteri."
+    def find_one(self, query: Optional[Dict[str, Any]] = None, projection: Optional[Dict[str, Any]] = None) -> Optional[Dict[str, Any]]:
+        """
+        Simula collection.find_one().
+        Restituisce il primo documento che corrisponde alla query, o None.
+        """
+        if query is None:
+            query = {}
+        
+        # 1. Utilizza il tuo metodo _match_query (o find) per trovare le corrispondenze
+        # Per semplicità e coerenza, replichiamo la logica di find, 
+        # ma fermandoci al primo match.
+        
+        for doc in self.data.values():
+            if self._match_query(doc, query):
+                # Trovato il primo match, lo restituiamo immediatamente
+                
+                # [Opzionale] Potresti applicare la 'projection' qui, 
+                # ma per i mock di base, restituire il doc completo va bene.
+                return doc.copy()
+                
+        # Se il loop finisce senza trovare corrispondenze
+        return None
 
-# --- Test Password Hashing ---
+# Il tuo metodo find() dovrebbe rimanere come prima, se restituisce una lista/cursore
+# def find(self, query: Dict[str, Any] = None, projection: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
+#     # ...
 
-def test_password_hashing_verification():
-    """Verifica che l'hashing Argon2 funzioni e che la verifica sia corretta."""
-    
-    hashed_pass = get_password_hash(TEST_PASSWORD)
-    
-    # Asserzioni
-    assert hashed_pass != TEST_PASSWORD, "La password non è stata hashata."
-    assert verify_password(TEST_PASSWORD, hashed_pass), "La verifica della password deve riuscire."
-    assert not verify_password("wrong_password", hashed_pass), "La verifica deve fallire con password errata."
+    def find(self, query: Dict[str, Any] = None, projection: Optional[Dict[str, Any]] = None):
+        """Simula collection.find(), restituendo una lista di documenti (simula un cursore)."""
+        
+        # 🟢 Correzione: Se la query è None (chiamata senza argomenti), usa {}
+        if query is None:
+            query = {}
+            
+        results = []
+        for doc in self.data.values():
+            if self._match_query(doc, query):
+                results.append(doc.copy())
+        return results
 
+    def insert_one(self, doc: Dict[str, Any]) -> MockInsertOneResult:
+        """Simula collection.insert_one()."""
+        
+        if '_id' not in doc:
+            new_id = ObjectId()
+            doc['_id'] = new_id
+        else:
+            new_id = doc['_id']
+        
+        self.data[str(new_id)] = doc.copy()
+        return MockInsertOneResult(inserted_id=new_id)
 
-# Mock di tutte le interazioni con le collezioni (USO PRINCIPALE)
-@pytest.fixture
-def mock_users_collection(mocker):
-    """Mocka la collezione MongoDB USERS_COLLECTION."""
-    # Sostituisce l'oggetto USERS_COLLECTION con un MagicMock che simula i metodi di PyMongo
-    return mocker.patch('main.USERS_COLLECTION')
+    def update_one(self, query: Dict[str, Any], update: Dict[str, Any]) -> MockUpdateResult:
+        """Simula collection.update_one(). Supporta solo $set."""
+        
+        modified_count = 0
+        
+        for doc_key, doc in self.data.items():
+            if self._match_query(doc, query):
+                
+                # Applica solo l'operatore $set per semplicità
+                if '$set' in update:
+                    self.data[doc_key].update(update['$set'])
+                    modified_count += 1
+                
+                # MongoDB si ferma al primo match per update_one
+                return MockUpdateResult(modified_count=modified_count)
 
-# Mock delle funzioni critiche di crittografia/hashing
-@pytest.fixture(autouse=True) # Esegue automaticamente per tutti i test
-def mock_crypto(mocker):
-    """Mocka le funzioni di hashing e crittografia."""
-    # Crittografia
-    mocker.patch('main.encrypt_data', return_value="encrypted_value")
-    mocker.patch('main.decrypt_data', side_effect=lambda x: MOCK_USER_CLEARTEXT if x == MOCK_USER_DB_DATA["username"] else MOCK_EMAIL_CLEARTEXT)
+        return MockUpdateResult(modified_count=0)
     
-    # Hashing
-    mocker.patch('main.hash_search_key', return_value="hashed_value")
-    mocker.patch('main.get_password_hash', return_value="new_hashed_password")
-    mocker.patch('main.verify_password', return_value=True) # Assume che la password sia corretta
-    
-    # JWT
-    mocker.patch('main.create_access_token', return_value="mock_jwt_token")
+    def delete_many(self, query: Dict[str, Any]) -> MockDeleteResult:
+        """Simula collection.delete_many()."""
+        deleted_count = 0
+        keys_to_delete = []
+        
+        # Identifica le chiavi da eliminare
+        for doc_key, doc in self.data.items():
+            if self._match_query(doc, query):
+                keys_to_delete.append(doc_key)
+        
+        # Elimina i documenti
+        for key in keys_to_delete:
+            del self.data[key]
+            deleted_count += 1
+            
+        return MockDeleteResult(deleted_count=deleted_count)
+        
+    def reset_data(self):
+        """Svuota la collezione per un nuovo test."""
+        self.data = {}
+        self._current_id_counter = 0
 
+# --- Classe per simulare il Database MongoDB ---
 
-# --- TEST DELLE FUNZIONI DI SICUREZZA E DI SUPPORTO ---
+class MockDatabase:
+    """Simula un database MongoDB (db = client.get_database(DB_NAME))."""
+    
+    def __init__(self, name: str):
+        self.name = name
+        # Dizionario per memorizzare le istanze delle collezioni (mockate)
+        self._collections: Dict[str, MockCollection] = {}
 
-def test_get_user_found(mock_users_collection, mocker):
-    """Testa la ricerca di un utente esistente nel DB."""
+    def __getitem__(self, collection_name: str) -> MockCollection:
+        """Permette l'accesso come db['collection_name']."""
+        if collection_name not in self._collections:
+            # Crea e memorizza l'istanza se non esiste
+            self._collections[collection_name] = MockCollection(collection_name)
+        return self._collections[collection_name]
     
-    # Configura il mock per ritornare il record DB fittizio
-    mock_users_collection.find_one.return_value = MOCK_USER_DB_DATA
-    
-    # Mocka la decrittografia per ritornare i valori in chiaro
-    mocker.patch('main.decrypt_data', side_effect=lambda x: MOCK_USER_CLEARTEXT if 'user' in x else MOCK_EMAIL_CLEARTEXT)
-    mocker.patch('main.hash_search_key', return_value=MOCK_USER_DB_DATA["hashed_username"])
+    def reset_all_collections(self):
+        """Svuota i dati in tutte le collezioni create."""
+        for collection in self._collections.values():
+            collection.reset_data()
 
-    user = main.get_user(MOCK_USER_CLEARTEXT)
-    
-    # Asserzioni
-    assert user is not None
-    assert user.username == MOCK_USER_CLEARTEXT
-    assert user.id == MOCK_OBJECT_ID
-    mock_users_collection.find_one.assert_called_once_with({"hashed_username": MOCK_USER_DB_DATA["hashed_username"]})
+# --- Classe per simulare il MongoClient ---
 
+class MockClient:
+    """Simula il MongoClient (client = MongoClient(URI))."""
+    
+    def __init__(self):
+        self._databases: Dict[str, MockDatabase] = {}
+        # Usiamo un MagicMock per simulare il client stesso
+        self.admin = MagicMock() 
 
-def test_get_user_not_found(mock_users_collection):
-    """Testa la ricerca di un utente non esistente."""
-    mock_users_collection.find_one.return_value = None
-    user = main.get_user("nonexistent_user")
-    assert user is None
+    def get_database(self, db_name: str) -> MockDatabase:
+        """Simula client.get_database(DB_NAME)."""
+        if db_name not in self._databases:
+            self._databases[db_name] = MockDatabase(db_name)
+        return self._databases[db_name]
 
-# --- TEST DEGLI ENDPOINT DI AUTENTICAZIONE E REGISTRAZIONE ---
-# --- REGISTRAZIONE TESTS -------------
-# Mocka la dipendenza di PyMongo che è un blocco top-level
-@patch('main.USERS_COLLECTION', new_callable=MagicMock)
-def test_register_user_success(mock_users_collection, mocker):
-    """Testa la registrazione di un nuovo utente con successo."""
+    def server_info(self):
+        """Simula client.server_info() (il controllo di connessione)."""
+        # Ritorna un valore atteso per simulare il successo della connessione
+        return {"version": "5.0.0", "ok": 1}
     
-    # Configura find_one per ritornare None (nessun duplicato)
-    mock_users_collection.find_one.return_value = None
-    
-    new_user_data = main.UserCreate(
-        username=MOCK_USER_CLEARTEXT, 
-        password=MOCK_PASSWORD_PLAINTEXT, 
-        email=MOCK_EMAIL_CLEARTEXT
-    )
-    
-    response = client.post("/users/register", json=new_user_data.model_dump())
-    
-    # Asserzioni
-    assert response.status_code == 201
-    assert response.json()["username"] == MOCK_USER_CLEARTEXT
-    
-    # Verifica che sia stata chiamata insert_one
-    mock_users_collection.insert_one.assert_called_once()
-    
-    # Verifica il controllo dei duplicati
-    assert mock_users_collection.find_one.call_count == 3 
+    def close(self):
+        """Simula client.close()."""
+        pass
 
-@patch('main.USERS_COLLECTION', new_callable=MagicMock)
-def test_register_user_duplicate_username(mock_users_collection):
-    """Testa il fallimento della registrazione per username duplicato."""
-    
-    # Configura find_one per ritornare un record (duplicato trovato)
-    mock_users_collection.find_one.return_value = MOCK_USER_DB_DATA
-    
-    new_user_data = main.UserCreate(
-        username=MOCK_USER_CLEARTEXT, 
-        password=MOCK_PASSWORD_PLAINTEXT, 
-        email=MOCK_EMAIL_CLEARTEXT
-    )
-    
-    response = client.post("/users/register", json=new_user_data.model_dump())
-    
-    # Asserzioni
-    assert response.status_code == 400
-    assert "Username already registered" in response.json()["detail"]
+# --- FUNZIONE UTILITY PER IL TUO MAIN.PY ---
 
-# LOGIN TESTS-------------
+def get_mock_client() -> MockClient:
+    """Restituisce un'istanza singleton (o quasi) del MockClient."""
+    # Se devi mantenere lo stato tra i moduli, usa una variabile globale qui
+    return MockClient()
 
-@patch('main.authenticate_user', return_value=MOCK_USER_IN_DB)
-def test_login_for_access_token_success(mock_auth):
-    """Testa l'endpoint OAuth2 standard (usato da Swagger)."""
+# --- Esempio di Uso (Non parte del modulo, solo per testare la classe) ---
+if __name__ == '__main__':
+    client_mock = get_mock_client()
+    db_mock = client_mock.get_database("test_db")
+    utenti_col = db_mock["utenti"]
     
-    response = client.post(
-        "/token", 
-        # I dati devono essere passati come form-data per OAuth2PasswordRequestForm
-        data={"username": MOCK_USER_CLEARTEXT, "password": MOCK_PASSWORD_PLAINTEXT}
-    )
+    # 1. Test Inserimento
+    res = utenti_col.insert_one({"username": "mario", "età": 30})
+    print(f"Inserito ID: {res.inserted_id}")
     
-    assert response.status_code == 200
-    assert response.json()["token_type"] == "bearer"
-    assert response.json()["access_token"] == "mock_jwt_token"
-
-# testa il fallimento del login
-@patch('main.authenticate_user', return_value=None)
-def test_login_for_access_token_failure(mock_auth):
-    """Testa il fallimento del login con credenziali errate."""
+    # 2. Test Ricerca
+    user = utenti_col.find_one({"username": "mario"})
+    print(f"Trovato: {user}")
     
-    response = client.post(
-        "/token", 
-        data={"username": MOCK_USER_CLEARTEXT, "password": "wrong_password"}
-    )
+    # 3. Test Aggiornamento
+    update_res = utenti_col.update_one({"username": "mario"}, {"$set": {"età": 31}})
+    print(f"Modificati: {update_res.modified_count}")
+    print(f"Dopo update: {utenti_col.find_one({'username': 'mario'})}")
     
-    assert response.status_code == 401
-    assert "Incorrect username or password" in response.json()["detail"]
-
-# --- TEST DEGLI ENDPOINT INTERNI (S2S) ---
-
-@patch('main.get_user_from_local_token', return_value=MOCK_USER_IN_DB)
-def test_validate_token_internal_success(mock_get_user):
-    """Testa l'endpoint che convalida il token e ritorna i dati utente per i servizi."""
-    
-    # Viene chiamato da un altro servizio che usa il token JWT
-    response = client.get(
-        "/users/validate-token", 
-        # Necessario l'header per OAuth2PasswordBearer
-        headers={"Authorization": f"Bearer {MOCK_TOKEN}"} 
-    )
-    
-    assert response.status_code == 200
-    data = response.json()
-    assert data["id"] == MOCK_OBJECT_ID
-    assert data["username"] == MOCK_USER_CLEARTEXT
-
-
-@patch('main.USERS_COLLECTION', new_callable=MagicMock)
-def test_get_usernames_by_ids_success(mock_users_collection, mocker):
-    """Testa il recupero di username da una lista di ID (Query Parameter)."""
-
-    mock_users_collection.find.return_value = [
-        {"_id": ObjectId(MOCK_OBJECT_ID), "username": "encrypted_testuser_1"},
-        {"_id": ObjectId("60a1b2c3d4e5f6a7b8c9d0e2"), "username": "encrypted_testuser_2"},
-    ]
-    
-    # Mock della decrittografia
-    mocker.patch('main.decrypt_data', side_effect=["testuser_1", "testuser_2"])
-    
-    response = client.get(
-        "/users/usernames-by-ids", 
-        params={"id_list": [MOCK_OBJECT_ID, "60a1b2c3d4e5f6a7b8c9d0e2"]}
-    )
-    
-    assert response.status_code == 200
-    assert len(response.json()) == 2
-    assert response.json()[0]["username"] == "testuser_1" # Controlla che la decrittografia sia avvenuta
-
-# --- TEST AGGIORNAMENTO UTENTE INTERNO (ENDPOINT CRITICO) ---
-
-@patch('main.USERS_COLLECTION', new_callable=MagicMock)
-@patch('main.verify_internal_token', return_value=True) # Bypass token S2S
-@patch('main.get_current_user', return_value=MOCK_USER_IN_DB) # Utente autorizzato
-def test_update_user_username_success(mock_get_user, mock_internal_token, mock_users_collection):
-    """Testa l'aggiornamento solo dell'username."""
-
-    # Dati DB iniziali (per current_record)
-    mock_users_collection.find_one.return_value = MOCK_USER_DB_DATA
-    
-    # Configurazione per check duplicati (deve ritornare None la seconda volta)
-    mock_users_collection.find_one.side_effect = [
-        MOCK_USER_DB_DATA, # Prima chiamata: trova l'utente attuale
-        None,             # Seconda chiamata: check duplicati per il nuovo username (successo)
-    ]
-    
-    # Mock della risposta update_one
-    mock_users_collection.update_one.return_value = MagicMock(modified_count=1)
-
-    payload = main.UserUpdateInternal(username="new_username_cleartext")
-    
-    response = client.post(
-        "/internal/update-user", 
-        json=payload.model_dump(),
-        headers={"Authorization": "Bearer internal_service_token"} 
-    )
-    
-    assert response.status_code == 200
-    assert "updated successfully" in response.json()["message"]
-    mock_users_collection.update_one.assert_called_once()
-    
-    # Verifica che i campi crittografati e hashati siano stati usati nell'aggiornamento
-    # Si aspetta che i valori siano quelli mockati: "encrypted_value" e "hashed_value"
-    update_call_args = mock_users_collection.update_one.call_args[0][1]["$set"]
-    assert update_call_args["username"] == "encrypted_value"
-    assert update_call_args["hashed_username"] == "hashed_value"
+    # 4. Test Eliminazione
+    delete_res = utenti_col.delete_many({"età": 31})
+    print(f"Eliminati: {delete_res.deleted_count}")
+    print(f"Dopo delete: {utenti_col.find_one({'username': 'mario'})}")

@@ -17,17 +17,6 @@ class UserRegister(BaseModel):
     password: str = Field(..., min_length=3, example="newstrongpassword")
     email: Optional[str] = Field(None, example="aseproject@unipi.it")
 
-class UserModifyUsername(BaseModel):
-    old_username: str = Field(..., example="user123")
-    new_username: str = Field(..., example="updateduser")
-
-class UserModifyPassword(BaseModel):
-    old_password: str = Field(..., example="oldpassword")
-    new_password: str = Field(..., min_length=3, example="newstrongpassword")
-
-class UserModifyEmail(BaseModel):
-    old_email: str = Field(..., example="aseproject@unipi.it")
-    new_email: str = Field(..., example="aseproject2@unipi.it")   
 # --- Routes ---
 # Note: We remove "/users" from the path because we will add it as a prefix in main.py
 
@@ -41,22 +30,6 @@ async def proxy_json_login(user_data: UserLogin, request: Request):
 async def proxy_register(user_data: UserRegister, request: Request):
     URL = USER_URL + '/users/register' 
     return await forward_request(request, URL, body_data=user_data.model_dump(), is_json=True)
-
-
-@router.patch("/modify/change-username", tags=["User Editing"])
-async def proxy_change_username(data:UserModifyUsername,request: Request):
-    URL = USER_URL + '/users/modify/change-username' 
-    return await forward_request(request, URL, body_data=data.model_dump())
-
-@router.patch("/modify/change-password", tags=["User Editing"])
-async def proxy_change_password(data:UserModifyPassword,request: Request):
-    URL = USER_URL + '/users/modify/change-password' 
-    return await forward_request(request, URL, body_data=data.model_dump())
-
-@router.patch("/modify/change-email", tags=["User Editing"])
-async def proxy_change_email(data:UserModifyEmail,request: Request):
-    URL = USER_URL + '/users/modify/change-email' 
-    return await forward_request(request, URL, body_data=data.model_dump())
 
 @router.post("/token", tags=["Authentication and Users"])
 async def proxy_token(request: Request):

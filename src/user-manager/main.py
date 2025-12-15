@@ -20,7 +20,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 import hashlib
-import pytest
+from app_test import MockClient
 def hash_search_key(data: str) -> str:
     """Generates a SHA-256 hash of the lowercase input string for consistent searching.
      This helps in avoiding storing plain text sensitive data while allowing lookups like email and username.
@@ -47,21 +47,38 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", 30)
 
 
 # Database Connection Initialization
-try:
-    print("Connecting to MongoDB...", flush=True)
-    print(f"Using MONGO_URI: {MONGO_URI}", flush=True)  
-    client = MongoClient(MONGO_URI,serverSelectionTimeoutMS=5000)
 
+MOCKMONGO = environ.get("MOCKMONGO", "False").lower()
+if MOCKMONGO == "false":
+    try:
+        print("Connecting to MongoDB...", flush=True)
+        print(f"Using MONGO_URI: {MONGO_URI}", flush=True)  
+        client = MongoClient(MONGO_URI,serverSelectionTimeoutMS=5000)
+
+        db = client.get_database(DB_NAME) 
+        ITEMS_COLLECTION = db["elementi"] 
+        USERS_COLLECTION = db["utenti"] 
+        client.server_info() 
+        print(f"Successfully connected to DB: {DB_NAME}")
+    except Exception as e:
+        print(f"CRITICAL MongoDB connection error: {e}")
+        raise ConnectionError(f"Cannot connect to MongoDB: {e}")
+    
+else: # 🟢 Modalità Mock
+    print("WARNING: Running in MOCKMONGO mode (Database mocked).", flush=True)
+    
+    # 1. Usa la tua classe MockClient al posto di MongoClient
+    client = MockClient() 
+    
+    # 2. Simula l'accesso al database e alla collezione
     db = client.get_database(DB_NAME) 
-    ITEMS_COLLECTION = db["elementi"] 
     USERS_COLLECTION = db["utenti"] 
+    # ITEMS_COLLECTION = db["elementi"] = db["elementi"] # Se necessaria
+    
+    # Simula la verifica della connessione per un codice più pulito
     client.server_info() 
-    print(f"Successfully connected to DB: {DB_NAME}")
-except Exception as e:
-    print(f"CRITICAL MongoDB connection error: {e}")
-    raise ConnectionError(f"Cannot connect to MongoDB: {e}")
-
-
+    
+    print(f"Using Mock MongoDB Collection for DB: {DB_NAME}")
 # Context for password hashing
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
@@ -354,7 +371,7 @@ class UserCreate(UserBase):
     summary="Register a new user"
 )
 
-def register_user(user_in: UserCreate):
+def register_user(user_in: UserCreate, ):
     """
     Registers a new user and grants the 'admin' role if the username is 'admin'.
     """
@@ -441,7 +458,7 @@ def validate_token(current_user: UserInDB = Depends(get_user_from_local_token)):
 
 def get_usernames_by_ids(
     # Standard FastAPI way to handle multiple query parameters
-    id_list: List[str] = Query(..., description="List of user IDs (repeated in query: ?id_list=ID1&id_list=ID2)")
+    id_list: List[str] = Query(..., description="List of user IDs (repeated in query: ?id_list=ID1&id_list=ID2)"),
 ):
     
     """
@@ -479,7 +496,7 @@ def get_usernames_by_ids(
 )
 def get_ids_by_usernames(
     # Standard FastAPI way to handle multiple query parameters
-    username_list: List[str] = Query(..., description="List of usernames (repeated in query: ?username_list=user1&username_list=user2)")
+    username_list: List[str] = Query(..., description="List of usernames (repeated in query: ?username_list=user1&username_list=user2)"),
 ):
     """
     Returns a list of user IDs mapped to their corresponding usernames.
@@ -658,7 +675,7 @@ def update_email_in_db(update_data: UserUpdateInternal, currentuser:UserInDB=Dep
         return {"message": "User record was not modified (data was already the same or concurrent update occurred)."}
     
 
-    
+
 @app.post("/internal/update-password", status_code=status.HTTP_200_OK, tags=["Internal DB Access"], dependencies=[Depends(verify_internal_token)])
 def update_password_in_db(update_data: UserUpdateInternal, currentuser:UserInDB=Depends(get_current_user)):
     """

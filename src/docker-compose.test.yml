@@ -67,26 +67,27 @@ services:
     environment:
       USER_MANAGER_URL: "https://user-manager:5000"
       # Using mongomock via Dockerfile_test
-
   user-manager:
     build: 
       context: ./user-manager
-    container_name: user_manager_service_test
+    container_name: user_manager_service
     ports:
       - "5004:5000"
+
     environment:
-      MONGO_URI: mongodb://user_admin:secure_password_user@user-db:27017/user_auth_db?authSource=admin
       ALGORITHM: "HS256"
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      MOCKMONGO: "True"
+
     volumes:
       - ./user-manager:/app
+
     secrets:
       - user_manager_cert
       - user_manager_key
       - user_db_encryption_secret_key
       - jwt_secret_key
-    depends_on:
-      - user-db
+
     command: 
       uvicorn main:app --host 0.0.0.0 --port 5000 
       --ssl-keyfile /run/secrets/user_manager_key 
