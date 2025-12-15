@@ -1,3 +1,10 @@
 .DS_Store
 __pycache__/
 proj_env/
+docs/main.aux
+docs/main.fdb_latexmk
+docs/main.log
+docs/main.fls
+docs/main.out
+docs/main.synctex.gz
+docs/main.toc
