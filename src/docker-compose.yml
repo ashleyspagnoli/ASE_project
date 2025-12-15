@@ -67,6 +67,8 @@ services:
     build: 
       context: ./user-manager
     container_name: user_manager_service
+    #ports:
+    #  - "5004:5000"
     depends_on:
       - user-db
 
@@ -93,8 +95,8 @@ services:
       context: .
       dockerfile: ./user-editor/Dockerfile 
     container_name: user_editor_service
-    ports:
-      - "5005:5000"
+    #ports:
+    #  - "5005:5000"
     depends_on:
       - user-manager
     environment:
@@ -217,3 +219,8 @@ secrets:
     file: ./secrets/rabbitmq/key.pem
   rabbitmq_conf:
     file: ./secrets/rabbitmq/rabbitmq.conf
+
+
+networks:
+  default:
+    name: guerra-ase

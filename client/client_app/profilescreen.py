@@ -1,7 +1,7 @@
 import questionary
 import asyncio
 import time
-from client_app.apicalls import api_change_password, api_change_email, api_change_username
+from client_app.apicalls import api_change_password, api_change_email, api_change_username, api_view_data
 from rich.console import Console
 
 class UserState:
@@ -25,13 +25,27 @@ def schermata_profilo(console:Console, CURRENT_USER_STATE: UserState): # Rimosso
         console.print(f"Username: [bold]{username}[/]")
         scelta = questionary.select(
                 "You are in your profile. What do you want to do?",
-                choices=["Edit profile", "Go Back"]
+                choices=["Edit profile", "View Profile" , "Go Back"]
             ).ask()
         if scelta == "Edit profile":
             # Se la modifica ha successo e forza il logout, usciamo da qui.
             schermata_modifica_profilo(console, CURRENT_USER_STATE) 
             if not CURRENT_USER_STATE.token:
                 return # Torna al main menu per il logout forzato
+        elif scelta == "View Profile":
+            risultato = asyncio.run(api_view_data(CURRENT_USER_STATE))
+            if not risultato.success:
+                console.print(f"[bold red]❌ Errore:[/bold red] {risultato.message}")
+                time.sleep(2)
+                continue
+            # Supponiamo che risultato.data contenga le informazioni dell'utente
+            email = risultato.data.get("email", "N/A")
+            console.clear()
+            console.print(f"[bold blue]--- USER PROFILE DETAILS ---[/]")
+            console.print(f"[bold green]Username:[/] {username}")
+            console.print(f"[bold green]Email:[/]{email}")
+            console.print("\nPress Enter to go back.")
+            input()
         elif scelta == "Go Back":
             break
 

@@ -36,3 +36,4 @@ async def proxy_token(request: Request):
     URL = USER_URL + '/users/token' 
     form_data = await request.form()
     return await forward_request(request, URL, body_data=dict(form_data), is_json=False)
+

@@ -1,0 +1,7 @@
+httpx
+pyjwt
+python-dotenv
+bleach
+requests # Se lo usi al posto di httpx
+questionary
+rich

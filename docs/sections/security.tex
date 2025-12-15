@@ -8,14 +8,14 @@
 
 \paragraph{Description:}
 The email input is a critical user identifier used for account recovery and communication. It must be sanitized to prevent:
-\begin{itemize}[noitemsep]
+\begin{itemize}
     \item NoSQL injection attacks
     \item Cross-site scripting (XSS) attempts
     \item Duplicate account creation
 \end{itemize}
 
 \paragraph{Microservices Involved:}
-\begin{itemize}[noitemsep]
+\begin{itemize}
     \item \textbf{User-Manager:} Handles registration and email validation
     \item \textbf{User-Editor:} Manages email modification requests
     \item \textbf{API Gateway:} Performs initial validation before forwarding requests
@@ -59,7 +59,7 @@ To protect confidentiality in case of database compromise email addresses and us
 \textbf{Encryption Method:} Fernet
 
 \textbf{Key Management:}
-\begin{itemize}[noitemsep]
+\begin{itemize}
     \item Encryption key stored as Docker secret at \texttt{/run/secrets/user\_db\_encryption\_secret\_key}
     \item Generated using cryptographically secure random bytes (32 bytes/256 bits)
     \item Encoded in Base64 URL-safe format for compatibility
@@ -91,7 +91,7 @@ user = UserInDB(
 \end{lstlisting}
 
 \paragraph{Reasons:}
-\begin{itemize}[noitemsep]
+\begin{itemize}
     \item \textbf{Defense in Depth:} Even if the database is compromised, sensitive data remains encrypted
     \item \textbf{Dual Hashing Strategy:} Email addresses are both encrypted (for storage) and hashed (for duplicate checking), preventing inference attacks
     \item \textbf{Separation of Concerns:} Encryption keys are managed externally via Docker secrets
@@ -106,7 +106,7 @@ Our system implements a \textbf{centralized authentication model} where the \tex
 
 \paragraph{Token Validation Flow:}
 
-\begin{enumerate}[noitemsep]
+\begin{enumerate}
     \item \textbf{Client Request:} User sends credentials to API Gateway
     \item \textbf{Authentication:} API Gateway forwards to \texttt{user-manager}
     \item \textbf{Token Generation:} \texttt{user-manager} creates JWT and returns to client
@@ -119,20 +119,20 @@ Our system implements a \textbf{centralized authentication model} where the \tex
 \centering
 \begin{minipage}{0.9\textwidth}
 \textbf{Token Validation Process:}
-\begin{verbatim}
-┌─────────┐        ┌─────────────┐        ┌──────────────┐
-│ Client  │───1───>│ API Gateway │───2───>│ Microservice │
-└─────────┘        └─────────────┘        └──────────────┘
-     │                                            │
-     │                                            │3. Validate
-     │                                            ▼
-     │                                     ┌──────────────┐
-     │<──────────────6. Response──────────│ user-manager │
-     │                                     └──────────────┘
-     │                                            │
-     │                                            │4. JWT decode
-     │                                            │5. DB lookup
-\end{verbatim}
+% \begin{verbatim}
+% ┌─────────┐        ┌─────────────┐        ┌──────────────┐
+% │ Client  │───1───>│ API Gateway │───2───>│ Microservice │
+% └─────────┘        └─────────────┘        └──────────────┘
+%      │                                            │
+%      │                                            │3. Validate
+%      │                                            ▼
+%      │                                     ┌──────────────┐
+%      │<──────────────6. Response──────────│ user-manager │
+%      │                                     └──────────────┘
+%      │                                            │
+%      │                                            │4. JWT decode
+%      │                                            │5. DB lookup
+% \end{verbatim}
 \end{minipage}
 \caption{Centralized token validation architecture}
 \end{figure}
@@ -165,7 +165,7 @@ Our system implements a \textbf{centralized authentication model} where the \tex
 \end{lstlisting}
 
 \textbf{Field Descriptions:}
-\begin{itemize}[noitemsep]
+\begin{itemize}
     \item \texttt{sub}: Standard JWT subject claim containing the username
     \item \texttt{username}: Redundant field for backward compatibility
     \item \texttt{id}: User's unique database identifier for efficient lookups
@@ -193,7 +193,7 @@ def create_access_token(data: dict):
 \paragraph{Strategy:} \textbf{Automatic rejection with explicit error messaging}
 
 \textbf{Mechanism:}
-\begin{enumerate}[noitemsep]
+\begin{enumerate}
     \item JWT library (\texttt{python-jose}) automatically validates \texttt{exp} claim during decoding
     \item \texttt{JWTError} exception is raised if token is expired
     \item Client receives HTTP 401 Unauthorized response
@@ -222,7 +222,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
 \end{lstlisting}
 
 \textbf{Client-Side Handling:}
-\begin{itemize}[noitemsep]
+\begin{itemize}
     \item Client detects 401 response
     \item Redirects user to login page
     \item Clears stored token from local state
@@ -258,7 +258,7 @@ bandit -r src/
 pip-audit
 \end{lstlisting}
 
-\textbf{Result:} One low-severity vulnerability found in pip version (fixed updating it).
+\textbf{Result:} One low-severity vulnerability found in pip version 24.0, fixed upgrading it to 25.3.
 
 \paragraph{Dependabot (GitHub):}
 Enabled on the repository to automatically scan for vulnerable dependencies.
@@ -272,9 +272,20 @@ Enabled on the repository to automatically scan for vulnerable dependencies.
 \textbf{Usage:} all container images where scanend for vulnerabilities using Docker Scout directly from Docker Desktop.
 
 \textbf{Mitigation Actions:}
-\begin{itemize}[noitemsep]
-    \item \textbf{RabbitMQ:} Upgraded to \texttt{rabbitmq:4.2.1-alpine} to eliminate critical vulnerabilities
-    \item \textbf{MongoDB:} Switched to \texttt{mongo:8.0.4-noble} for minimal vulnerability exposure
+\begin{itemize}
+    \item \textbf{RabbitMQ:} 2 critical, 9 high-severity vulnerabilities because of the golang and stdlib versions in the linux image used by 3-management. Solved upgrading to \texttt{rabbitmq:4.2.1-alpine}.
+    \item \textbf{MongoDB:}
+    This was more of an issue, 
+    \begin{itemize}
+        \item The mongo:latest image we used in development had 6 high-severity vulnerabilities.
+        \item All the versions of the official mongo image have either a lot of vulnerabilities or run only on windows servers (windows OS images).
+        \item "latest" images are not an option as a final shipment version, this would mean the images possibly breaking for an update.
+        \item All the companies we've found providing mongo linux images moved to a paid model, providing only "latest" versions for free for development environments.
+        \item The only option we had were old legacy images made by those companies in the past.
+        Fortunately we found \textit{circleci/mongo:4.0-xenial-ram},
+        a 4 years old image that relied on a really light-weight ubuntu version with 0 vulnerabilities.
+        \item This is definitely not a future-proof solution, hence the best path forward might just be to build a local image where we install mongoDB on top of alpine.
+    \end{itemize}
 \end{itemize}
 
 % Da aggiungere screenshot del report di Docker Scout
@@ -292,7 +303,7 @@ trivy image --severity HIGH,CRITICAL <image_name>
 \end{lstlisting}
 
 \textbf{Findings:}
-\begin{itemize}[noitemsep]
+\begin{itemize}
     \item \textbf{Exposed Secrets:} Trivy detected hardcoded keys in repository
     \item \textbf{Academic Context:} Keys are intentionally included for educational demonstration purposes
     \item \textbf{Production Mitigation:} In a real deployment, keys would be:
