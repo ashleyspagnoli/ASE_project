@@ -41,9 +41,12 @@ DEFAULT_MONGO_URI = f"mongodb://user-db:27017/{DB_NAME}"
 MONGO_URI = environ.get("MONGO_URI", DEFAULT_MONGO_URI)
 
 # JWT Configuration (read from environment)
-SECRET_KEY = load_secret_key("/run/secrets/jwt_secret_key", default="default_secret_key_weak")
+FAKE_SECRET_KEY = load_secret_key("fake-key-jwt.txt",default="default_secret_key_weak")  # Chiave di fallback (solo per testing locale)
+
+SECRET_KEY = load_secret_key("/run/secrets/jwt_secret_key", default=FAKE_SECRET_KEY)
 ALGORITHM = environ.get("ALGORITHM", "HS256")
-ACCESS_TOKEN_EXPIRE_MINUTES = int(environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", 30)) 
+ACCESS_TOKEN_EXPIRE_MINUTES = int(environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", 30))
+HTTPS_ENABLED = environ.get("HTTPS_ENABLED", "True").lower() == "true" 
 
 
 # Database Connection Initialization

@@ -1,216 +1,1778 @@
 {
 	"info": {
-		"_postman_id": "c6a2e411-4560-4965-b568-d069b2a7585f",
-		"name": "Auth MS - Login & Register ONLY (Minimal)",
-		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+		"_postman_id": "d7fa1c27-5593-4d6d-b8df-9507c1e199ca",
+		"name": "UserManagerASE",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "50808693",
+		"_collection_link": "https://ff-falco-9628849.postman.co/workspace/Filippo-'s-Workspace~292bcf96-da75-4147-8ec0-087be5412781/collection/50808693-d7fa1c27-5593-4d6d-b8df-9507c1e199ca?action=share&source=collection_link&creator=50808693"
 	},
 	"item": [
 		{
-			"name": "Setup Variabili Base",
+			"name": "Clear DB (For Testing Only)",
 			"request": {
-				"method": "GET",
+				"method": "DELETE",
 				"header": [],
 				"url": {
-					"raw": ""
+					"raw": "http://localhost:5004/devs/admin-clear-users",
+					"host": [
+						"http://localhost:5004"
+					],
+					"path": [
+						"devs",
+						"admin-clear-users"
+					]
 				}
 			},
+			"response": []
+		},
+		{
+			"name": "Login No Registered",
 			"event": [
 				{
-					"listen": "prerequest",
+					"listen": "test",
 					"script": {
 						"exec": [
-							"// 🛑 IMPOSTA IL TUO URL QUI PRIMA DI ESEGUIRE",
-							"pm.environment.set(\"baseUrl\", \"https://localhost:5004\");",
-							"pm.environment.set(\"test_username\", \"mocktestuser\");",
-							"pm.environment.set(\"test_password\", \"Secure12345\");",
-							"pm.environment.set(\"test_email\", \"mocktest@example.com\");"
+							"pm.test(\"Status code is 401 Unauthorized\", function () {",
+							"    pm.response.to.have.status(401);",
+							"});",
+							"",
+							"pm.test(\"Verify the correct error message is returned\", function () {",
+							"    ",
+							"    pm.expect(pm.response.json()).to.be.an('object');",
+							"",
+							"    const jsonData = pm.response.json();",
+							"",
+							"    pm.expect(jsonData.detail).to.eql(\"Invalid username or password\");",
+							"    });"
 						],
-						"type": "text/javascript"
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
 					}
 				}
-			]
-		},
-		{
-			"name": "1. Registrazione Utente (SUCCESS & DUPLICATE)",
-			"item": [
-				{
-					"name": "1.1 SUCCESS - Registra Nuovo Utente",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 201 Created\", function () {",
-									"    pm.response.to.have.status(201);",
-									"});",
-									"pm.test(\"Response confirms registration\", function () {",
-									"    pm.expect(pm.response.json().message).to.eql(\"Registration successful.\");",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"username\": \"{{test_username}}\",\n    \"password\": \"{{test_password}}\",\n    \"email\": \"{{test_email}}\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/users/register",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"users",
-								"register"
-							]
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"username\": \"string\",\n  \"password\": \"string\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
 						}
 					}
 				},
-				{
-					"name": "1.2 FAILURE - Username Duplicato",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 400 Bad Request\", function () {",
-									"    pm.response.to.have.status(400);",
-									"});",
-									"pm.test(\"Detail message is correct (Duplicate)\", function () {",
-									"    pm.expect(pm.response.json().detail).to.be.oneOf([\"Username already registered\", \"Email already registered\"]);",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
+				"url": {
+					"raw": "http://localhost:5004/users/login",
+					"host": [
+						"http://localhost:5004"
 					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"username\": \"{{test_username}}\",\n    \"password\": \"{{test_password}}\",\n    \"email\": \"{{test_email}}\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/users/register",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"users",
-								"register"
-							]
-						}
-					}
+					"path": [
+						"users",
+						"login"
+					]
 				}
-			]
+			},
+			"response": []
 		},
 		{
-			"name": "2. Login Utente (SUCCESS & FAILURE)",
-			"item": [
+			"name": "Login Bad",
+			"event": [
 				{
-					"name": "2.1 SUCCESS - Login JSON e Salvataggio Token",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 200 OK\", function () {",
-									"    pm.response.to.have.status(200);",
-									"});",
-									"var jsonData = pm.response.json();",
-									"pm.test(\"Token is received\", function () {",
-									"    pm.expect(jsonData.token).to.be.a('string').and.to.have.lengthOf.at.least(50);",
-									"});",
-									"// 🟢 Salva il token per l'uso in test successivi",
-									"pm.environment.set(\"test_token\", jsonData.token);",
-									"pm.environment.set(\"token_type\", jsonData.token_type);"
-								],
-								"type": "text/javascript"
-							}
-						}
-					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 422 Unauthorized\", function () {",
+							"    pm.response.to.have.status(422);",
+							"});",
+							"",
+							""
 						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"username\": \"{{test_username}}\",\n    \"password\": \"{{test_password}}\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/users/login",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"users",
-								"login"
-							]
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"usernam\": \"string\",\n  \"password\": \"string\"\n} ",
+					"options": {
+						"raw": {
+							"language": "json"
 						}
 					}
 				},
-				{
-					"name": "2.2 FAILURE - Password non valida",
-					"event": [
-						{
-							"listen": "test",
-							"script": {
-								"exec": [
-									"pm.test(\"Status code is 401 Unauthorized\", function () {",
-									"    pm.response.to.have.status(401);",
-									"});",
-									"pm.test(\"Detail message is correct\", function () {",
-									"    pm.expect(pm.response.json().detail).to.eql(\"Invalid username or password\");",
-									"});"
-								],
-								"type": "text/javascript"
-							}
-						}
+				"url": {
+					"raw": "http://localhost:5004/users/login",
+					"host": [
+						"http://localhost:5004"
 					],
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							}
+					"path": [
+						"users",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Registration Ok",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 201 Created\", function () {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"",
+							"pm.test(\"Verify specific content: message and username\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    ",
+							"    pm.expect(jsonData.message).to.eql(\"Registration successful.\");",
+							"    ",
+							"    pm.expect(jsonData.username).to.eql(\"string1\");",
+							"});",
+							"",
+							""
 						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"username\": \"{{test_username}}\",\n    \"password\": \"WrongPassword123\"\n}"
-						},
-						"url": {
-							"raw": "{{baseUrl}}/users/login",
-							"host": [
-								"{{baseUrl}}"
-							],
-							"path": [
-								"users",
-								"login"
-							]
-						}
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
 					}
 				}
-			]
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"username\": \"string1\",\n  \"password\": \"string1\",\n  \"email\": \"string1\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5004/users/register",
+					"host": [
+						"http://localhost:5004"
+					],
+					"path": [
+						"users",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Registration Ok 2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 201 Created\", function () {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"",
+							"pm.test(\"Verify specific content: message and username\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    ",
+							"    pm.expect(jsonData.message).to.eql(\"Registration successful.\");",
+							"    ",
+							"    pm.expect(jsonData.username).to.eql(\"string2\");",
+							"});",
+							"",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"username\": \"string2\",\n  \"password\": \"string2\",\n  \"email\": \"string2\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5004/users/register",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5004",
+					"path": [
+						"users",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Registration Ok 3",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 201 Created\", function () {",
+							"    pm.response.to.have.status(201);",
+							"});",
+							"",
+							"pm.test(\"Verify specific content: message and username\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    ",
+							"    pm.expect(jsonData.message).to.eql(\"Registration successful.\");",
+							"    ",
+							"    pm.expect(jsonData.username).to.eql(\"string3\");",
+							"});",
+							"",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"username\": \"string3\",\n  \"password\": \"string3\",\n  \"email\": \"string3\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5004/users/register",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5004",
+					"path": [
+						"users",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Login Ok",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200 OK\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"// 2. Verifica la Presenza e la Correttezza dei Campi Chiave",
+							"pm.test(\"Response body contains valid token structure\", function () {",
+							"    // Tenta di analizzare il corpo della risposta come JSON",
+							"    const jsonData = pm.response.json();",
+							"    ",
+							"    // Verifica che il campo 'message' sia \"Login successful\"",
+							"    pm.expect(jsonData.message).to.eql(\"Login successful\");",
+							"    ",
+							"    // Verifica che il campo 'token_type' sia \"bearer\"",
+							"    pm.expect(jsonData.token_type).to.eql(\"bearer\");",
+							"    ",
+							"    // Verifica che il 'token' sia una stringa di lunghezza ragionevole",
+							"    pm.expect(jsonData.token).to.be.a('string').and.to.have.lengthOf.at.least(50);",
+							"});",
+							"",
+							"// 3. 🟢 AZIONE CRITICA: Estrazione e Salvataggio del Token",
+							"pm.test(\"Save Access Token to Environment Variable 'test_token'\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    ",
+							"    // Salva il JWT nella variabile d'ambiente 'test_token'",
+							"    // La variabile sarà accessibile nelle richieste successive tramite {{test_token}}",
+							"    pm.environment.set(\"test_token\", jsonData.token);",
+							"    ",
+							"    console.log(\"Token salvato nella variabile d'ambiente 'test_token'.\");",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"username\": \"string1\",\n  \"password\": \"string1\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5004/users/login",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5004",
+					"path": [
+						"users",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Registration Duplicate",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 400 Bad Request\", function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"// 2. Verifica che il corpo della risposta sia JSON e contenga il messaggio corretto",
+							"pm.test(\"Verify the 'Username already registered' detail message\", function () {",
+							"    ",
+							"    // Assicurati che la risposta sia JSON",
+							"    pm.expect(pm.response.json()).to.be.an('object');",
+							"",
+							"    const jsonData = pm.response.json();",
+							"    ",
+							"    // Verifica che il campo 'detail' contenga la stringa esatta",
+							"    pm.expect(jsonData.detail).to.eql(\"Username already registered\");",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"username\": \"string1\",\n  \"password\": \"string1\",\n  \"email\": \"string1\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5004/users/register",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5004",
+					"path": [
+						"users",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Registration Bad",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 422 Unauthorized\", function () {",
+							"    pm.response.to.have.status(422);",
+							"});",
+							"",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"username\": \"string2\",\n  \"password\": \"string2\",\n  \"email\": \"string2\"\n  \"pass\": \"string2\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5004/users/register",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5004",
+					"path": [
+						"users",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Validate-Token",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// --- TEST POSTMAN: Verifica Validazione Token (200 OK) ---",
+							"",
+							"// 1. Verifica il Codice di Stato (Status Code)",
+							"pm.test(\"Status code is 200 OK\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"// 2. Verifica la Struttura e il Contenuto dei Dati Utente",
+							"pm.test(\"Response contains valid ID and Username\", function () {",
+							"    // Tenta di analizzare il corpo della risposta come JSON",
+							"    const jsonData = pm.response.json();",
+							"    ",
+							"    // Verifica che l'ID sia presente e sia una stringa di lunghezza tipica di ObjectId",
+							"    pm.expect(jsonData.id).to.be.a('string').and.to.have.lengthOf.at.least(24);",
+							"    ",
+							"    // Verifica che il campo 'username' sia presente e corrisponda allo username del test (se è stato salvato)",
+							"    const expectedUsername = pm.environment.get(\"test_username\");",
+							"    if (expectedUsername) {",
+							"         pm.expect(jsonData.username).to.eql(expectedUsername);",
+							"    } else {",
+							"         pm.expect(jsonData.username).to.be.a('string').and.to.have.lengthOf.at.least(1);",
+							"    }",
+							"});",
+							"",
+							"// 3. 🟢 AZIONE CRITICA: Estrazione e Salvataggio dell'ID Utente",
+							"pm.test(\"Save User ID to Environment Variable 'test_id'\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    ",
+							"    // Salva l'ID utente nella variabile d'ambiente 'test_id'",
+							"    // Sarà cruciale per i test di risoluzione ID/Username successivi.",
+							"    pm.environment.set(\"test_id\", jsonData.id);",
+							"    ",
+							"    console.log(`ID utente salvato: ${jsonData.id}`);",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Cache-Control",
+						"value": "no-cache",
+						"type": "text"
+					},
+					{
+						"key": "Postman-Token",
+						"value": "<calculated when request is sent>",
+						"type": "text"
+					},
+					{
+						"key": "Host",
+						"value": "<calculated when request is sent>",
+						"type": "text"
+					},
+					{
+						"key": "User-Agent",
+						"value": "PostmanRuntime/7.39.1",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "*/*",
+						"type": "text"
+					},
+					{
+						"key": "Accept-Encoding",
+						"value": "gzip, deflate, br",
+						"type": "text"
+					},
+					{
+						"key": "Connection",
+						"value": "keep-alive",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{test_token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:5004/users/validate-token",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5004",
+					"path": [
+						"users",
+						"validate-token"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Ids-by-Username Ok",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// --- TEST POSTMAN: Get IDs by Usernames (S2S) ---",
+							"",
+							"// 1. Verifica il Codice di Stato",
+							"pm.test(\"Status code is 200 OK\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"// 2. Verifica la Struttura Generale della Risposta",
+							"pm.test(\"Response is an array with 3 mapping objects\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    ",
+							"    // Verifica che la risposta sia un array e contenga esattamente 3 elementi",
+							"    pm.expect(jsonData).to.be.an('array').and.to.have.lengthOf(3);",
+							"    ",
+							"    // Verifica la struttura del primo elemento",
+							"    pm.expect(jsonData[0]).to.have.property('username');",
+							"    pm.expect(jsonData[0]).to.have.property('id').to.be.a('string').and.to.have.lengthOf.at.least(24);",
+							"});",
+							"",
+							"// 3. Verifica i Contenuti e Salva gli ID",
+							"pm.test(\"Verify usernames and save IDs\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    ",
+							"    // Mappa i dati per un accesso più facile, assumendo l'ordine della richiesta",
+							"    const mapping = {};",
+							"    jsonData.forEach(item => {",
+							"        mapping[item.username] = item.id;",
+							"    });",
+							"",
+							"    // Verifica la corrispondenza e salva i singoli ID",
+							"    ",
+							"    // String1",
+							"    pm.expect(mapping.string1).to.exist;",
+							"    pm.environment.set(\"test_id_1\", mapping.string1);",
+							"    console.log(`ID string1 salvato: ${mapping.string1}`);",
+							"    ",
+							"    // String2",
+							"    pm.expect(mapping.string2).to.exist;",
+							"    pm.environment.set(\"test_id_2\", mapping.string2);",
+							"    console.log(`ID string2 salvato: ${mapping.string2}`);",
+							"    ",
+							"    // String3",
+							"    pm.expect(mapping.string3).to.exist;",
+							"    pm.environment.set(\"test_id_3\", mapping.string3);",
+							"    console.log(`ID string3 salvato: ${mapping.string3}`);",
+							"    ",
+							"    // Se vuoi salvare l'ID principale in 'test_id' (per compatibilità con altri test)",
+							"    pm.environment.set(\"test_id\", mapping.string1);",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Cache-Control",
+						"value": "no-cache",
+						"type": "text"
+					},
+					{
+						"key": "Postman-Token",
+						"value": "<calculated when request is sent>",
+						"type": "text"
+					},
+					{
+						"key": "Host",
+						"value": "<calculated when request is sent>",
+						"type": "text"
+					},
+					{
+						"key": "User-Agent",
+						"value": "PostmanRuntime/7.39.1",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "*/*",
+						"type": "text"
+					},
+					{
+						"key": "Accept-Encoding",
+						"value": "gzip, deflate, br",
+						"type": "text"
+					},
+					{
+						"key": "Connection",
+						"value": "keep-alive",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer randomtoken",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:5004/users/ids-by-usernames?username_list=string1&username_list=string2&username_list=string3",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5004",
+					"path": [
+						"users",
+						"ids-by-usernames"
+					],
+					"query": [
+						{
+							"key": "username_list",
+							"value": "string1"
+						},
+						{
+							"key": "username_list",
+							"value": "string2"
+						},
+						{
+							"key": "username_list",
+							"value": "string3"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Ids-by-Username Bad",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// --- TEST POSTMAN: Failure (No Match) - Get IDs by Usernames ---",
+							"",
+							"// 1. Verifica il Codice di Stato",
+							"pm.test(\"Status code is 200 OK\", function () {",
+							"    // Il server dovrebbe restituire 200 OK anche in caso di non corrispondenze,",
+							"    // dato che la richiesta è andata a buon fine, ma il risultato è vuoto.",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"// 2. Verifica che la Risposta sia una Lista Vuota",
+							"pm.test(\"Response body is an empty array\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    ",
+							"    // 🟢 Verifica che la risposta sia un array",
+							"    pm.expect(jsonData).to.be.an('array');",
+							"    ",
+							"    // 🟢 Verifica che l'array sia vuoto (lunghezza 0)",
+							"    pm.expect(jsonData).to.have.lengthOf(0);",
+							"});",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Cache-Control",
+						"value": "no-cache",
+						"type": "text"
+					},
+					{
+						"key": "Postman-Token",
+						"value": "<calculated when request is sent>",
+						"type": "text"
+					},
+					{
+						"key": "Host",
+						"value": "<calculated when request is sent>",
+						"type": "text"
+					},
+					{
+						"key": "User-Agent",
+						"value": "PostmanRuntime/7.39.1",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "*/*",
+						"type": "text"
+					},
+					{
+						"key": "Accept-Encoding",
+						"value": "gzip, deflate, br",
+						"type": "text"
+					},
+					{
+						"key": "Connection",
+						"value": "keep-alive",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer randomtoken",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:5004/users/ids-by-usernames?username_list=string4&username_list=string5&username_list=string6",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5004",
+					"path": [
+						"users",
+						"ids-by-usernames"
+					],
+					"query": [
+						{
+							"key": "username_list",
+							"value": "string4"
+						},
+						{
+							"key": "username_list",
+							"value": "string5"
+						},
+						{
+							"key": "username_list",
+							"value": "string6"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Username-by-Ids Ok",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// --- TEST POSTMAN: Get Usernames by IDs (S2S) ---",
+							"",
+							"// 1. Verifica il Codice di Stato",
+							"pm.test(\"Status code is 200 OK\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"// 2. Verifica la Struttura e il Contenuto",
+							"pm.test(\"Response is an array with 3 correct username mappings\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    ",
+							"    // Variabili che contengono gli ID inviati",
+							"    const expectedIds = [",
+							"        pm.environment.get(\"test_id_1\"),",
+							"        pm.environment.get(\"test_id_2\"),",
+							"        pm.environment.get(\"test_id_3\")",
+							"    ];",
+							"",
+							"    // Array di username attesi",
+							"    const expectedUsernames = [\"string1\", \"string2\", \"string3\"];",
+							"    ",
+							"    // Verifica che la risposta sia un array e abbia esattamente 3 elementi",
+							"    pm.expect(jsonData).to.be.an('array').and.to.have.lengthOf(3);",
+							"",
+							"    // Mappa gli username restituiti per un controllo rapido",
+							"    const returnedUsernames = jsonData.map(item => item.username);",
+							"    ",
+							"    // Mappa gli ID restituiti per un controllo rapido",
+							"    const returnedIds = jsonData.map(item => item.id);",
+							"",
+							"    // 🟢 3. Verifica che gli username restituiti corrispondano a quelli attesi",
+							"    pm.expect(returnedUsernames).to.have.members(expectedUsernames);",
+							"    ",
+							"    // 🟢 4. Verifica che gli ID restituiti corrispondano a quelli inviati",
+							"    pm.expect(returnedIds).to.have.members(expectedIds);",
+							"",
+							"    console.log(\"Validazione inversa (ID -> Username) completata con successo.\");",
+							"});",
+							"",
+							"// 5. Verifica la Corrispondenza Esatta ID-Username (Optional, ma più preciso)",
+							"pm.test(\"Individual ID-Username mappings are correct\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    ",
+							"    // Crea una mappa per cercare l'username dato l'ID",
+							"    const idToUsernameMap = {};",
+							"    jsonData.forEach(item => {",
+							"        idToUsernameMap[item.id] = item.username;",
+							"    });",
+							"",
+							"    // Verifica che gli ID salvati abbiano gli username attesi",
+							"    pm.expect(idToUsernameMap[pm.environment.get(\"test_id_1\")]).to.eql(\"string1\");",
+							"    pm.expect(idToUsernameMap[pm.environment.get(\"test_id_2\")]).to.eql(\"string2\");",
+							"    pm.expect(idToUsernameMap[pm.environment.get(\"test_id_3\")]).to.eql(\"string3\");",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Cache-Control",
+						"value": "no-cache",
+						"type": "text"
+					},
+					{
+						"key": "Postman-Token",
+						"value": "<calculated when request is sent>",
+						"type": "text"
+					},
+					{
+						"key": "Host",
+						"value": "<calculated when request is sent>",
+						"type": "text"
+					},
+					{
+						"key": "User-Agent",
+						"value": "PostmanRuntime/7.39.1",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "*/*",
+						"type": "text"
+					},
+					{
+						"key": "Accept-Encoding",
+						"value": "gzip, deflate, br",
+						"type": "text"
+					},
+					{
+						"key": "Connection",
+						"value": "keep-alive",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer randomtoken",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:5004/users/usernames-by-ids?id_list={{test_id_1}}&id_list={{test_id_2}}&id_list={{test_id_3}}",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5004",
+					"path": [
+						"users",
+						"usernames-by-ids"
+					],
+					"query": [
+						{
+							"key": "id_list",
+							"value": "{{test_id_1}}"
+						},
+						{
+							"key": "id_list",
+							"value": "{{test_id_2}}"
+						},
+						{
+							"key": "id_list",
+							"value": "{{test_id_3}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Username-by-Ids Bad",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// --- TEST POSTMAN: Failure (No Match) - Get IDs by Usernames ---",
+							"",
+							"// 1. Verifica il Codice di Stato",
+							"pm.test(\"Status code is 200 OK\", function () {",
+							"    // Il server dovrebbe restituire 200 OK anche in caso di non corrispondenze,",
+							"    // dato che la richiesta è andata a buon fine, ma il risultato è vuoto.",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"// 2. Verifica che la Risposta sia una Lista Vuota",
+							"pm.test(\"Response body is an empty array\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    ",
+							"    // 🟢 Verifica che la risposta sia un array",
+							"    pm.expect(jsonData).to.be.an('array');",
+							"    ",
+							"    // 🟢 Verifica che l'array sia vuoto (lunghezza 0)",
+							"    pm.expect(jsonData).to.have.lengthOf(0);",
+							"});",
+							""
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Cache-Control",
+						"value": "no-cache",
+						"type": "text"
+					},
+					{
+						"key": "Postman-Token",
+						"value": "<calculated when request is sent>",
+						"type": "text"
+					},
+					{
+						"key": "Host",
+						"value": "<calculated when request is sent>",
+						"type": "text"
+					},
+					{
+						"key": "User-Agent",
+						"value": "PostmanRuntime/7.39.1",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "*/*",
+						"type": "text"
+					},
+					{
+						"key": "Accept-Encoding",
+						"value": "gzip, deflate, br",
+						"type": "text"
+					},
+					{
+						"key": "Connection",
+						"value": "keep-alive",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer randomtoken",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:5004/users/usernames-by-ids?id_list=string4&id_list=string5&id_list=string6",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5004",
+					"path": [
+						"users",
+						"usernames-by-ids"
+					],
+					"query": [
+						{
+							"key": "id_list",
+							"value": "string4"
+						},
+						{
+							"key": "id_list",
+							"value": "string5"
+						},
+						{
+							"key": "id_list",
+							"value": "string6"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update Username Ok",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200 OK\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"// 2. Verifica il Contenuto della Risposta",
+							"pm.test(\"Response indicates successful update and provides correct details\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    ",
+							"    // Verifica il messaggio (se presente e standard)",
+							"    if (jsonData.message) {",
+							"        pm.expect(jsonData.message).to.include(\"User attributes updated successfully.\");",
+							"    }",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Cache-Control",
+						"value": "no-cache",
+						"type": "text"
+					},
+					{
+						"key": "Postman-Token",
+						"value": "<calculated when request is sent>",
+						"type": "text"
+					},
+					{
+						"key": "Host",
+						"value": "<calculated when request is sent>",
+						"type": "text"
+					},
+					{
+						"key": "User-Agent",
+						"value": "PostmanRuntime/7.39.1",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "*/*",
+						"type": "text"
+					},
+					{
+						"key": "Accept-Encoding",
+						"value": "gzip, deflate, br",
+						"type": "text"
+					},
+					{
+						"key": "Connection",
+						"value": "keep-alive",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{test_token}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"username\": \"newstring1\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5004/internal/update-username",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5004",
+					"path": [
+						"internal",
+						"update-username"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Login Ok 2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200 OK\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"// 2. Verifica la Presenza e la Correttezza dei Campi Chiave",
+							"pm.test(\"Response body contains valid token structure\", function () {",
+							"    // Tenta di analizzare il corpo della risposta come JSON",
+							"    const jsonData = pm.response.json();",
+							"    ",
+							"    // Verifica che il campo 'message' sia \"Login successful\"",
+							"    pm.expect(jsonData.message).to.eql(\"Login successful\");",
+							"    ",
+							"    // Verifica che il campo 'token_type' sia \"bearer\"",
+							"    pm.expect(jsonData.token_type).to.eql(\"bearer\");",
+							"    ",
+							"    // Verifica che il 'token' sia una stringa di lunghezza ragionevole",
+							"    pm.expect(jsonData.token).to.be.a('string').and.to.have.lengthOf.at.least(50);",
+							"});",
+							"",
+							"// 3. 🟢 AZIONE CRITICA: Estrazione e Salvataggio del Token",
+							"pm.test(\"Save Access Token to Environment Variable 'test_token_2\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    ",
+							"    // Salva il JWT nella variabile d'ambiente 'test_token'",
+							"    // La variabile sarà accessibile nelle richieste successive tramite {{test_token}}",
+							"    pm.environment.set(\"test_token_2\", jsonData.token);",
+							"    ",
+							"    console.log(\"Token salvato nella variabile d'ambiente 'test_token_2'.\");",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"username\": \"string2\",\n  \"password\": \"string2\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5004/users/login",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5004",
+					"path": [
+						"users",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Validate-Token 2",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"// --- TEST POSTMAN: Verifica Validazione Token (200 OK) ---",
+							"",
+							"// 1. Verifica il Codice di Stato (Status Code)",
+							"pm.test(\"Status code is 200 OK\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"// 2. Verifica la Struttura e il Contenuto dei Dati Utente",
+							"pm.test(\"Response contains valid ID and Username\", function () {",
+							"    // Tenta di analizzare il corpo della risposta come JSON",
+							"    const jsonData = pm.response.json();",
+							"    ",
+							"    // Verifica che l'ID sia presente e sia una stringa di lunghezza tipica di ObjectId",
+							"    pm.expect(jsonData.id).to.be.a('string').and.to.have.lengthOf.at.least(24);",
+							"    ",
+							"    // Verifica che il campo 'username' sia presente e corrisponda allo username del test (se è stato salvato)",
+							"    const expectedUsername = pm.environment.get(\"test_username\");",
+							"    if (expectedUsername) {",
+							"         pm.expect(jsonData.username).to.eql(expectedUsername);",
+							"    } else {",
+							"         pm.expect(jsonData.username).to.be.a('string').and.to.have.lengthOf.at.least(1);",
+							"    }",
+							"});",
+							"",
+							"// 3. 🟢 AZIONE CRITICA: Estrazione e Salvataggio dell'ID Utente",
+							"pm.test(\"Save User ID to Environment Variable 'test_id'\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    ",
+							"    // Salva l'ID utente nella variabile d'ambiente 'test_id'",
+							"    // Sarà cruciale per i test di risoluzione ID/Username successivi.",
+							"    pm.environment.set(\"test_id\", jsonData.id);",
+							"    ",
+							"    console.log(`ID utente salvato: ${jsonData.id}`);",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Cache-Control",
+						"value": "no-cache",
+						"type": "text"
+					},
+					{
+						"key": "Postman-Token",
+						"value": "<calculated when request is sent>",
+						"type": "text"
+					},
+					{
+						"key": "Host",
+						"value": "<calculated when request is sent>",
+						"type": "text"
+					},
+					{
+						"key": "User-Agent",
+						"value": "PostmanRuntime/7.39.1",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "*/*",
+						"type": "text"
+					},
+					{
+						"key": "Accept-Encoding",
+						"value": "gzip, deflate, br",
+						"type": "text"
+					},
+					{
+						"key": "Connection",
+						"value": "keep-alive",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{test_token_2}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:5004/users/validate-token",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5004",
+					"path": [
+						"users",
+						"validate-token"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update Username Duplicate",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 400 Bad Request\", function () {",
+							"    // Ci aspettiamo 400 perché l'errore è dovuto a un input non accettabile (username duplicato)",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"// 2. Verifica il Contenuto e il Messaggio di Errore",
+							"pm.test(\"Response body contains the expected error message\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    ",
+							"    // Verifica che l'oggetto di errore 'detail' sia presente",
+							"    pm.expect(jsonData).to.have.property('detail');",
+							"    ",
+							"    // 🟢 Verifica che il messaggio di errore sia quello atteso",
+							"    pm.expect(jsonData.detail).to.eql(\"Username already taken.\");",
+							"    ",
+							"    console.log(\"Test di fallimento (username duplicato) riuscito.\");",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Cache-Control",
+						"value": "no-cache",
+						"type": "text"
+					},
+					{
+						"key": "Postman-Token",
+						"value": "<calculated when request is sent>",
+						"type": "text"
+					},
+					{
+						"key": "Host",
+						"value": "<calculated when request is sent>",
+						"type": "text"
+					},
+					{
+						"key": "User-Agent",
+						"value": "PostmanRuntime/7.39.1",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "*/*",
+						"type": "text"
+					},
+					{
+						"key": "Accept-Encoding",
+						"value": "gzip, deflate, br",
+						"type": "text"
+					},
+					{
+						"key": "Connection",
+						"value": "keep-alive",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{test_token_2}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"username\": \"newstring1\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5004/internal/update-username",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5004",
+					"path": [
+						"internal",
+						"update-username"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update Email Ok",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200 OK\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"// 2. Verifica il Contenuto della Risposta",
+							"pm.test(\"Response indicates successful update and provides correct details\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    ",
+							"    // Verifica il messaggio (se presente e standard)",
+							"    if (jsonData.message) {",
+							"        pm.expect(jsonData.message).to.include(\"User attributes updated successfully.\");",
+							"    }",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Cache-Control",
+						"value": "no-cache",
+						"type": "text"
+					},
+					{
+						"key": "Postman-Token",
+						"value": "<calculated when request is sent>",
+						"type": "text"
+					},
+					{
+						"key": "Host",
+						"value": "<calculated when request is sent>",
+						"type": "text"
+					},
+					{
+						"key": "User-Agent",
+						"value": "PostmanRuntime/7.39.1",
+						"type": "text"
+					},
+					{
+						"key": "Accept",
+						"value": "*/*",
+						"type": "text"
+					},
+					{
+						"key": "Accept-Encoding",
+						"value": "gzip, deflate, br",
+						"type": "text"
+					},
+					{
+						"key": "Connection",
+						"value": "keep-alive",
+						"type": "text"
+					},
+					{
+						"key": "Authorization",
+						"value": "Bearer {{test_token_2}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"old_email\": \"string2\",\n\"new_email\":\"newstring2\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5004/internal/update-email",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5004",
+					"path": [
+						"internal",
+						"update-email"
+					]
+				}
+			},
+			"response": []
+		},
+		
+		{
+			"name": "Update Email Duplicate",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 400 Bad Request\", function () {",
+							"    // Ci aspettiamo 400 perché l'errore è dovuto a un input non accettabile (username duplicato)",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"// 2. Verifica il Contenuto e il Messaggio di Errore",
+							"pm.test(\"Response body contains the expected error message\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    ",
+							"    // Verifica che l'oggetto di errore 'detail' sia presente",
+							"    pm.expect(jsonData).to.have.property('detail');",
+							"    ",
+							"    // 🟢 Verifica che il messaggio di errore sia quello atteso",
+							"    pm.expect(jsonData.detail).to.eql(\"Email already registered.\");",
+							"    ",
+							"    console.log(\"Test di fallimento (email già registrata) riuscito.\");",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{test_token_2}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"old_email\": \"newstring2\",\n\"new_email\":\"string3\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5004/internal/update-email",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5004",
+					"path": [
+						"internal",
+						"update-email"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update Wrong Old Email",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 400 Bad Request\", function () {",
+							"    // Ci aspettiamo 400 perché l'errore è dovuto a un input non accettabile (username duplicato)",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"// 2. Verifica il Contenuto e il Messaggio di Errore",
+							"pm.test(\"Response body contains the expected error message\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    ",
+							"    // Verifica che l'oggetto di errore 'detail' sia presente",
+							"    pm.expect(jsonData).to.have.property('detail');",
+							"    ",
+							"    // 🟢 Verifica che il messaggio di errore sia quello atteso",
+							"    pm.expect(jsonData.detail).to.eql(\"Old email does not match current email.\");",
+							"    ",
+							"    console.log(\"Test di fallimento (email sbagliata) riuscito.\");",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{test_token_2}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"old_email\": \"string2\",\n\"new_email\":\"string3\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5004/internal/update-email",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5004",
+					"path": [
+						"internal",
+						"update-email"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update Password",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200 OK\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"// 2. Verifica il Contenuto della Risposta",
+							"pm.test(\"Response indicates successful update and provides correct details\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    ",
+							"    // Verifica il messaggio (se presente e standard)",
+							"    if (jsonData.message) {",
+							"        pm.expect(jsonData.message).to.include(\"User attributes updated successfully.\");",
+							"    }",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					
+					{
+						"key": "Authorization",
+						"value": "Bearer {{test_token_2}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"old_password\": \"string2\",\n\"new_password\":\"newstring2\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5004/internal/update-password",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5004",
+					"path": [
+						"internal",
+						"update-password"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update Password Wrong Current",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 400 Bad Request\", function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"",
+							"// 2. Verifica il Contenuto della Risposta",
+							"pm.test(\"Response indicates successful update and provides correct details\", function () {",
+							"    const jsonData = pm.response.json();",
+							"    ",
+							"    // Verifica il messaggio (se presente e standard)",
+							"    if (jsonData.message) {",
+							"        pm.expect(jsonData.message).to.include(\"Old password is incorrect.\");",
+							"    }",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					
+					{
+						"key": "Authorization",
+						"value": "Bearer {{test_token_2}}",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\"old_password\": \"string2\",\n\"new_password\":\"newstring2\"}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:5004/internal/update-password",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5004",
+					"path": [
+						"internal",
+						"update-password"
+					]
+				}
+			},
+			"response": []
+		}
+	],
+	"variable": [
+		{
+			"key": "baseURL",
+			"value": "",
+			"type": "default"
 		}
 	]
 }

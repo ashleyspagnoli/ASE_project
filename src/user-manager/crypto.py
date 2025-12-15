@@ -29,7 +29,8 @@ def load_secret_key(path: str, default: str) -> str:
         return default
 
 # Assegna la chiave letta
-ENCRYPTION_KEY_STRING = load_secret_key("/run/secrets/user_db_encryption_secret_key", DEFAULT_ENCRYPTION_KEY)
+FAKE_ENCRYPTION_KEY = load_secret_key("fake-key-crypto.txt", DEFAULT_ENCRYPTION_KEY)
+ENCRYPTION_KEY_STRING = load_secret_key("/run/secrets/user_db_encryption_secret_key", FAKE_ENCRYPTION_KEY)
 
 # ... Il resto della tua logica di cifratura che usa ENCRYPTION_KEY_STRING ...
 try:
