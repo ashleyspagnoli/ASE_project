@@ -138,6 +138,10 @@ services:
       - "8443:8000"
     depends_on:
       - user-manager
+      - user-editor
+      - game_engine
+      - game_history
+      - collection
     secrets:
       - api_gateway_cert
       - api_gateway_key

@@ -1,7 +1,4 @@
-httpx
-pyjwt
-python-dotenv
-bleach
-requests # Se lo usi al posto di httpx
-questionary
-rich
+httpx==0.27.0
+python-dotenv==1.0.1
+questionary==2.0.1
+rich==13.7.1

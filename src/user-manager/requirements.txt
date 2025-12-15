@@ -1,29 +1,17 @@
-# --- DEPENDENZE CORE ---
-fastapi
-uvicorn[standard]       # Server ASGI con supporto standard
-
-# --- DATABASE & UTILITY ---
-pymongo==4.8.0          # Driver MongoDB
-pydantic                # Validazione dati
-python-dotenv           # Gestione variabili d'ambiente (.env)
-dnspython               # Necessario per i server DNS di MongoDB
-email-validator         # Validazione formale indirizzi email
-
-# --- SICUREZZA & AUTENTICAZIONE ---
-# SOSTITUITO: python-jose con pyjwt
-pyjwt                   # Nuova libreria per gestire i token JWT
-
-# PASSWORD HASHING
-passlib[argon2]         # Base per l'hashing
-argon2-cffi             # Implementazione C per Argon2
-
-# --- FILE E CRYPTOGRAPHY (utilità) ---
-python-multipart        # Parsing form-data (necessario per OAuth2PasswordRequestForm)
-cryptography            # Mantienilo: serve per il tuo modulo 'crypto.py' (Fernet, ecc.)
-
-# --- DEPENDENZE PER TEST ---
-pytest
-pytest-asyncio
-httpx
-pytest-mock
-bleach
+fastapi==0.111.0
+uvicorn[standard]==0.29.0
+pymongo==4.8.0
+pydantic==2.7.1
+python-dotenv==1.0.1
+dnspython==2.6.1
+email-validator==2.1.1
+pyjwt==2.8.0
+passlib[argon2]==1.7.4
+argon2-cffi==23.1.0
+python-multipart==0.0.9
+cryptography==42.0.7
+pytest==8.2.0
+pytest-asyncio==0.23.6
+httpx==0.27.0
+pytest-mock==3.14.0
+bleach==6.1.0

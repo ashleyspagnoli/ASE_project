@@ -34,6 +34,7 @@ Here is a list of the main microservices of the system:
         \item The users can change their usernames that are stored in the User-DB, this is a way for microservices to verify they have the updated username.
         \item In the future we may want to add token revocation, having a single microservice handle that would make it easier.
     \end{itemize}
+    This is done through the \textit{/users/validate-token} endpoint of the User Manager.
     \item \textbf{Shared persistance smell solutions:}
     \begin{itemize}
         \item We connected a single microservice to each database (Games, Decks and Users).
@@ -41,9 +42,11 @@ Here is a list of the main microservices of the system:
         expect to change, we've decided to hard-code their behavior and their images
         in the microservices, without relying on databases.
     \end{itemize}
-    \item \textbf{Game History -> User-Manager:} Game History needs to connect to User Manager also to get a list of (updated) usernames from a list of user-ids to represent the leaderboard.
+    \item \textbf{Game History -> User-Manager:} Game History needs to connect to User Manager also to get a list of
+    (updated) usernames from a list of user-ids to return the leaderboard to users.\\
+    This is done through the \textit{/users/usernames-by-ids} endpoint of the User Manager.
     \item \textbf{User Editor:}
-    We've separated the user profile editing endpoints from the user manager to keep the user manager smaller
+    We've separated the user profile editing and data viewing endpoints from the user manager to keep the user manager smaller
     and allow horizontal scalability.
     The User Editor then connects to dedicated endpoints of the User Manager that allow it to update user information in the DB User-DB.
     \item \textbf{Separated in-game logic:}

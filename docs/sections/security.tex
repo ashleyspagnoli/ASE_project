@@ -286,6 +286,7 @@ Enabled on the repository to automatically scan for vulnerable dependencies.
         a 4 years old image that relied on a really light-weight ubuntu version with 0 vulnerabilities.
         \item This is definitely not a future-proof solution, hence the best path forward might just be to build a local image where we install mongoDB on top of alpine.
     \end{itemize}
+    \item \textbf{JWT:} The User Manager microservice used an abandoned library to handle the JWT called python-jose with a high severity vulnerability. Fortunately there was a new and updated library that had the same functions, called PyJWT.
 \end{itemize}
 
 % Da aggiungere screenshot del report di Docker Scout
@@ -305,7 +306,7 @@ trivy image --severity HIGH,CRITICAL <image_name>
 \textbf{Findings:}
 \begin{itemize}
     \item \textbf{Exposed Secrets:} Trivy detected hardcoded keys in repository
-    \item \textbf{Academic Context:} Keys are intentionally included for educational demonstration purposes
+    \item \textbf{Academic Context:} As agreed with the Professor, keys are intentionally included since it's a project with educational purposes. In a real context, we wouldn't have published neither keys on the GitHub repository
     \item \textbf{Production Mitigation:} In a real deployment, keys would be:
     \begin{itemize}
         \item Generated dynamically per environment
