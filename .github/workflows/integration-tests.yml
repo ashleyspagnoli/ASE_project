@@ -46,7 +46,6 @@ jobs:
         run: |
           newman run docs/tests/integration.postman_collection.json --insecure \
             --env-var "base_url=https://localhost:8443" \
-            --insecure \
             --reporters cli,json \
             --reporter-json-export integration-results.json
 
