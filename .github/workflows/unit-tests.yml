@@ -192,14 +192,15 @@ jobs:
 
   test-summary:
     runs-on: ubuntu-latest
-    needs: [collection-tests, game-history-tests]
+    needs: [collection-tests, game-history-tests, user-manager-tests]
     if: always()
     
     steps:
       - name: Check test results
         run: |
           if [ "${{ needs.collection-tests.result }}" = "failure" ] || \
-             [ "${{ needs.game-history-tests.result }}" = "failure" ]; then
+             [ "${{ needs.game-history-tests.result }}" = "failure" ] || \
+             [ "${{ needs.user-manager-tests.result }}" = "failure" ]; then
             echo "❌ Some tests failed"
             exit 1
           else
