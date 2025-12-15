@@ -10,6 +10,96 @@
 			"name": "IT-001: Complete Game Workflow - Happy Path",
 			"item": [
 				{
+					"name": "IT-001-01: Register Alice",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 or 201\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"",
+									"pm.test(\"User created or already exists\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.exist;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"{{alice_username}}\",\n    \"password\": \"{{alice_password}}\",\n    \"email\": \"alice@test.com\"\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/users/register",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"users",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-001-02: Register Bob",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200 or 201\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});",
+									"",
+									"pm.test(\"User created or already exists\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.exist;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"{{bob_username}}\",\n    \"password\": \"{{bob_password}}\",\n    \"email\": \"bob@test.com\"\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/users/register",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"users",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
 					"name": "IT-001-03: Login Alice and Get JWT",
 					"event": [
 						{

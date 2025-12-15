@@ -42,7 +42,6 @@ async def forward_request(request: Request, internal_url: str, body_data: dict =
         "headers": headers,
         "params": request.query_params,
         "timeout": 10.0,
-        "verify": verify_ssl
     }
     
     # 3. Aggiunge il body
@@ -57,7 +56,8 @@ async def forward_request(request: Request, internal_url: str, body_data: dict =
 
     # 4. Inoltra la richiesta
     try:
-        response = await http_client.request(**request_kwargs)
+        async with httpx.AsyncClient(verify=verify_ssl) as client:
+            response = await client.request(**request_kwargs)
         response.raise_for_status() 
         
         return Response(
