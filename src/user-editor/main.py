@@ -88,8 +88,9 @@ class UsernameUpdate(BaseModel):
     new_username: str = Field(..., min_length=1)
 
 class PasswordUpdate(BaseModel):
-    new_password: str = Field(..., min_length=3)
     old_password: str = Field(..., description="Password attuale per verifica")
+    new_password: str = Field(..., min_length=3)
+    
 
 class UpdateEmail(BaseModel):
     old_email: str = Field(..., min_length=1)
@@ -111,28 +112,37 @@ class UserUpdateInternal(BaseModel):
     """Payload interno per aggiornare solo i campi necessari.
     L'ID è essenziale per trovare l'elemento da aggiornare."""
     username: Optional[str] = None
-    email: Optional[str] = None
+    old_email: Optional[str] = None
+    new_email: Optional[str] = None
     new_password: Optional[str] = None # Solo se la password cambia
+    old_password: Optional[str] = None # Per verifica
 
 
-def _call_auth_service_update(payload: UserUpdateInternal):
+def _call_auth_service_update(payload: UserUpdateInternal, token: str):
     """Invia la richiesta di aggiornamento al Microservizio Auth."""
     
     # Aggiunge l'ID utente al payload
-    token = payload["token"]
     headers = {
             # Formato standard Bearer richiesto da get_current_user
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
             }
 
-    
-    print("Almeno")
-    print(token)
+
+    if payload.username:
+        url=f"{AUTH_SERVICE_BASE_URL}/internal/update-username"
+        print("Username da cambiare")
+    if payload.new_password:
+        url=f"{AUTH_SERVICE_BASE_URL}/internal/update-password"
+        print("Password da cambiare")
+    if payload.new_email:
+        url=f"{AUTH_SERVICE_BASE_URL}/internal/update-email"
+        print("Email da cambiare")
+        
     try:
         response = requests.post(
-            f"{AUTH_SERVICE_BASE_URL}/internal/update-user",
-            json=payload,
+            url,
+            json=payload.model_dump(exclude_none=True),
             headers=headers,
             verify=AUTH_SERVICE_CERT_PATH
             
@@ -181,15 +191,16 @@ def change_username(
         return {"message": "Il nuovo username è identico a quello attuale."}
     
     # 1. Chiama il servizio Auth per eseguire l'aggiornamento
-    payload={"username": new_username_clear,
-             "token": token}
+    payload=UserUpdateInternal(
+        username=new_username_clear
+    )
     
-    print("Dopo payload")
-    print(current_user)
+    
 
 
     _call_auth_service_update(
         payload=payload,
+        token=token
     )
     
 
@@ -217,9 +228,13 @@ def change_password(
         new_password = update_data.new_password
         
 
-
+        payload=UserUpdateInternal(
+            new_password=new_password,
+            old_password=old_password
+        )
         _call_auth_service_update(
-            payload={"new_password": new_password,"old_password": old_password, "token": token}
+            payload=payload,
+            token=token
         )
         # 2. Chiama il servizio Auth per aggiornare la password (che si occuperà dell'hashing)
         
@@ -243,8 +258,14 @@ def change_password(
         new_email = update_data.new_email
 
         # 2. Chiama il servizio Auth per aggiornare l'email (che si occuperà della crittografia e del check duplicati)
+
+        payload=UserUpdateInternal(
+            old_email=old_email,
+            new_email=new_email
+        )
         _call_auth_service_update(
-            payload={"old_email": old_email,"new_email": new_email, "token": token}
+            payload=payload,
+            token=token
         )
         
         return {"message": "Email changed successfully."}

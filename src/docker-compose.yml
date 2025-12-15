@@ -72,8 +72,8 @@ services:
       - "5004:5000"
     depends_on:
       - user-db
+
     environment:
-      MONGO_URI: mongodb://user_admin:secure_password_user@user-db:27017/user_auth_db?authSource=admin
       ALGORITHM: "HS256"
       ACCESS_TOKEN_EXPIRE_MINUTES: 30
 
@@ -110,22 +110,17 @@ services:
       uvicorn user-editor.main:app --host 0.0.0.0 --port 5000 
       --ssl-keyfile /run/secrets/user_editor_key 
       --ssl-certfile /run/secrets/user_editor_cert
-
+ 
 
   user-db:
-    image: circleci/mongo:4.0-xenial-ram
+    image: mongo:latest
     container_name: user_auth_db
     restart: always 
     ports:
       - "27017:27017" 
     volumes:
       - user_mongo_data:/data/db 
-    environment:
-      MONGO_INITDB_ROOT_USERNAME: user_admin
-      MONGO_INITDB_ROOT_PASSWORD: secure_password_user
-      MONGO_INITDB_DATABASE: user_auth_db
-      
-  # (Mantenuti i tuoi db-history, db-games, db-decks)
+
   db-history:
     image: circleci/mongo:4.0-xenial-ram
     volumes:
@@ -188,6 +183,7 @@ volumes:
   history-data:
   decks-data:
   user_mongo_data:
+
 
 secrets:
   api_gateway_cert:

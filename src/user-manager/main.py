@@ -32,9 +32,13 @@ def hash_search_key(data: str) -> str:
 
 # DB configuration (read from environment or use default)
 DB_NAME = "user_auth_db" 
-DEFAULT_MONGO_URI = f"mongodb://user_admin:secure_password_user@localhost:27017/{DB_NAME}?authSource=admin"
-MONGO_URI = environ.get("MONGO_URI", DEFAULT_MONGO_URI) 
+# -----------------------------------------------------------------------------------------
+# ❌ Rimuovi le credenziali e authSource. L'URI diventa più semplice e usa solo l'hostname.
+# DEFAULT_MONGO_URI = f"mongodb://user_admin:secure_password_user@user-db:27017/{DB_NAME}?authSource=admin"
+DEFAULT_MONGO_URI = f"mongodb://user-db:27017/{DB_NAME}"
+# -----------------------------------------------------------------------------------------
 
+MONGO_URI = environ.get("MONGO_URI", DEFAULT_MONGO_URI)
 
 # JWT Configuration (read from environment)
 SECRET_KEY = load_secret_key("/run/secrets/jwt_secret_key", default="default_secret_key_weak")
@@ -44,7 +48,10 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(environ.get("ACCESS_TOKEN_EXPIRE_MINUTES", 30)
 
 # Database Connection Initialization
 try:
-    client = MongoClient(MONGO_URI)
+    print("Connecting to MongoDB...", flush=True)
+    print(f"Using MONGO_URI: {MONGO_URI}", flush=True)  
+    client = MongoClient(MONGO_URI,serverSelectionTimeoutMS=5000)
+
     db = client.get_database(DB_NAME) 
     ITEMS_COLLECTION = db["elementi"] 
     USERS_COLLECTION = db["utenti"] 
@@ -79,7 +86,6 @@ class UserInDB(UserBase):
     hashed_password: str
     email: str 
     id: Optional[str] = None
-    hashed_username: str
     hashed_email: str
 
 class UsernameMapping(BaseModel):
@@ -134,15 +140,15 @@ def create_access_token(data: dict):
 
 def get_user(username: str):
     """Retrieves user data from MongoDB based on username."""
-    hashed_username=hash_search_key(username)
-    user_doc = USERS_COLLECTION.find_one({"hashed_username": hashed_username})
+    print(f"Fetching user from DB: {username}")
+    user_doc = USERS_COLLECTION.find_one({"username": username})
+    print(f"User document fetched: {user_doc}")
     if user_doc:
         return UserInDB(
+            username=user_doc['username'],
             id=str(user_doc['_id']),
-            username=decrypt_data(user_doc['username']), 
             email=decrypt_data(user_doc['email']),
             hashed_password=user_doc['hashed_password'],
-            hashed_username=user_doc['hashed_username'],
             hashed_email=user_doc['hashed_email'],
         )
     return None
@@ -150,6 +156,8 @@ def get_user(username: str):
 def authenticate_user(username: str, password: str):
     """Authenticates user credentials and checks verification status."""
     user = get_user(username)
+    print("User fetched for authentication:")
+    print(user)
     if not user:
         return False
     if not verify_password(password, user.hashed_password):
@@ -270,6 +278,8 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     This endpoint is used by the global 'Authorize' button in Swagger UI.
     """
     # 1. Autentica l'utente usando i dati del Form Data
+    print(f"Authenticating user: {form_data.username}")
+    print(f"Password provided: {form_data.password}")
     user = authenticate_user(form_data.username, form_data.password)
     
     if not user:
@@ -348,24 +358,24 @@ def register_user(user_in: UserCreate):
     """
     Registers a new user and grants the 'admin' role if the username is 'admin'.
     """
+    print("Registering new user:")
+    print(user_in)
     if get_user(user_in.username):
         raise HTTPException(status_code=400, detail="Username already registered")
     
     hashed_password = get_password_hash(user_in.password)
-    hashed_username=hash_search_key(user_in.username)
     hashed_email=hash_search_key(user_in.email)
 
-    if USERS_COLLECTION.find_one({"hashed_username": hashed_username}):
+    if USERS_COLLECTION.find_one({"username": user_in.username}):
         raise HTTPException(status_code=400, detail="Username already registered")
 
     if USERS_COLLECTION.find_one({"hashed_email": hashed_email}):
         raise HTTPException(status_code=400, detail="Email already registered")
 
     user_data = {
-        "username": encrypt_data(user_in.username),
+        "username": user_in.username,
         "email": encrypt_data(user_in.email), 
         "hashed_password": hashed_password,
-        "hashed_username": hashed_username,
         "hashed_email": hashed_email,
     }
     print(user_data)
@@ -536,10 +546,9 @@ def get_all_users_for_admin():
     for user_doc in USERS_COLLECTION.find():
         users_list.append(UserInDB(
             id=str(user_doc["_id"]),
-            username=decrypt_data(user_doc["username"]),
+            username=(user_doc["username"]),
             email=decrypt_data(user_doc["email"]),
             hashed_password=user_doc["hashed_password"],
-            hashed_username=user_doc["hashed_username"],
             hashed_email=user_doc["hashed_email"],   
         ))
         
@@ -560,8 +569,8 @@ class UserUpdateInternal(BaseModel):
 # 3. LOGICA CENTRALIZZATA DI AGGIORNAMENTO DB
 # =================================================================
 
-@app.post("/internal/update-user", status_code=status.HTTP_200_OK, tags=["Internal DB Access"], dependencies=[Depends(verify_internal_token)])
-def update_user_in_db(update_data: UserUpdateInternal, currentuser:UserInDB=Depends(get_current_user)):
+@app.post("/internal/update-username", status_code=status.HTTP_200_OK, tags=["Internal DB Access"], dependencies=[Depends(verify_internal_token)])
+def update_username_in_db(update_data: UserUpdateInternal, currentuser:UserInDB=Depends(get_current_user)):
     """
     Endpoint interno che gestisce l'aggiornamento, la crittografia/hashing,
     e il salvataggio dei dati utente.
@@ -583,29 +592,94 @@ def update_user_in_db(update_data: UserUpdateInternal, currentuser:UserInDB=Depe
     
     # --- Gestione Username ---
     if update_data.username:
-        encrypted_new_username = encrypt_data(update_data.username)
-        hashed_new_username = hash_search_key(update_data.username)
+        
         # Check duplicati (importante)
-        if USERS_COLLECTION.find_one({"hashed_username": hashed_new_username}):
+        if USERS_COLLECTION.find_one({"username": update_data.username}):
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Username already taken.")
             
-        update_fields["username"] = encrypted_new_username
-        update_fields["hashed_username"] = hashed_new_username
+        update_fields["username"] = update_data.username
         
     # --- Gestione Email ---
-    if update_data.new_email:
-        encrypted_new_email = encrypt_data(update_data.new_email)
-        hashed_new_email = hash_search_key(update_data.new_email)
-        #Check vecchia email
-        if decrypt_data(current_record["email"]) != update_data.old_email:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Old email does not match current email.")
-        # Check duplicati
-        if USERS_COLLECTION.find_one({"hashed_email": hashed_new_email}):
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered.")
-            
-        update_fields["email"] = encrypted_new_email
-        update_fields["hashed_email"] = hashed_new_email
+    if not update_fields:
+        return {"message": "Nessun campo da aggiornare."}
         
+    # 3. Esegue l'aggiornamento
+    result = USERS_COLLECTION.update_one(
+        {"_id": user_object_id},
+        {"$set": update_fields}
+    )
+    
+    if result.modified_count == 1:
+        return {"message": "User attributes updated successfully."}
+    else:
+        # Questo può accadere se, ad esempio, i dati sono identici
+        return {"message": "User record was not modified (data was already the same or concurrent update occurred)."}
+        
+
+@app.post("/internal/update-email", status_code=status.HTTP_200_OK, tags=["Internal DB Access"], dependencies=[Depends(verify_internal_token)])
+def update_email_in_db(update_data: UserUpdateInternal, currentuser:UserInDB=Depends(get_current_user)):
+    """
+    Endpoint interno che gestisce l'aggiornamento, la crittografia/hashing,
+    e il salvataggio dei dati utente.
+    """
+    user_id = currentuser.id
+    try:
+        user_object_id = ObjectId(user_id)
+    except:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user ID format.")
+
+    current_record = USERS_COLLECTION.find_one({"_id": user_object_id})
+
+    if not current_record:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+        
+    update_fields = {}
+    hashed_new_email = hash_search_key(update_data.new_email)
+    if decrypt_data(current_record["email"]) != update_data.old_email:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Old email does not match current email.")
+    
+    if USERS_COLLECTION.find_one({"hashed_email": hashed_new_email}):
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered.")
+    
+    encrypted_new_email = encrypt_data(update_data.new_email)
+    update_fields["email"] = encrypted_new_email
+    update_fields["hashed_email"] = hashed_new_email
+
+    # 3. Esegue l'aggiornamento
+    result = USERS_COLLECTION.update_one(
+        {"_id": user_object_id},
+        {"$set": update_fields}
+    )
+    
+    if result.modified_count == 1:
+        return {"message": "User attributes updated successfully."}
+    else:
+        # Questo può accadere se, ad esempio, i dati sono identici
+        return {"message": "User record was not modified (data was already the same or concurrent update occurred)."}
+    
+
+    
+@app.post("/internal/update-password", status_code=status.HTTP_200_OK, tags=["Internal DB Access"], dependencies=[Depends(verify_internal_token)])
+def update_password_in_db(update_data: UserUpdateInternal, currentuser:UserInDB=Depends(get_current_user)):
+    """
+    Endpoint interno che gestisce l'aggiornamento, la crittografia/hashing,
+    e il salvataggio dei dati utente.
+    """
+    user_id = currentuser.id
+    print(f"Updating user with ID: {user_id}")
+    # 1. Trova l'utente attuale per ottenere i dati esistenti e l'ObjectId
+    try:
+        user_object_id = ObjectId(user_id)
+    except:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user ID format.")
+
+    current_record = USERS_COLLECTION.find_one({"_id": user_object_id})
+    if not current_record:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found.")
+        
+    # 2. Prepara il dizionario con gli aggiornamenti
+    update_fields = {}
+    
     # --- Gestione Password ---
     if update_data.new_password:
 
