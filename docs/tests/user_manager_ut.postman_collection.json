@@ -8,24 +8,6 @@
 	},
 	"item": [
 		{
-			"name": "Clear DB (For Testing Only)",
-			"request": {
-				"method": "DELETE",
-				"header": [],
-				"url": {
-					"raw": "http://localhost:5004/devs/admin-clear-users",
-					"host": [
-						"http://localhost:5004"
-					],
-					"path": [
-						"devs",
-						"admin-clear-users"
-					]
-				}
-			},
-			"response": []
-		},
-		{
 			"name": "Login No Registered",
 			"event": [
 				{
