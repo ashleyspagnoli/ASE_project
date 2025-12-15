@@ -1,4 +1,5 @@
 \section{System Architecture}
+\subsection{Architecture schema and main microservices}
 Below is the high-level architectural drawing of the system, illustrating the interactions between microservices.
 \begin{figure}[H]
     \centering
@@ -6,8 +7,9 @@ Below is the high-level architectural drawing of the system, illustrating the in
     \label{fig:arch}
 \end{figure}
 
-All microservices are containerized using Docker and are written in Python. Some of them use the Flask framework and some FastAPI.
-
+All microservices are containerized using Docker and are written in Python.
+Some of them use the Flask framework and some FastAPI.\\
+Here is a list of the main microservices of the system:
 \begin{table}[H]
     \centering
     \begin{tabular}{|l|l|l|}
@@ -26,10 +28,28 @@ All microservices are containerized using Docker and are written in Python. Some
 
 \subsection{Design choices and microservices interactions}
 \begin{itemize}
-    \item \textbf{Centralized Authorization:} (draft)Every microservice connects to the User Manager to verify the token header (so that i can get dynamic username). User manager logs out users when they change username, this means that if we used decentralized auth, a logged-in user could see its old username using an old token, also, we don't have a way to force the log-out of an user with decentralized
-    \item \textbf{User Information Update:} We've separated the user profile editing endpoints from the user manager to keep the user manager smaller and allow horizontal scalability. The User Editor then connects to a single endpoint of the User Manager that allows to update user information in the DB.
-    \item \textbf{}
-    \item \textbf{Separated in-game logic:} The Game Engine microservice handles the whole game logic, it
-    \item \textbf{Hard-coded cards:} Since as cards we've choosen the classical French-suited deck, that we don't expect to change, we've decided to hard-code their behavior and their images in the microservices, without relying on databases.
+    \item \textbf{Centralized Authorization:}
+    every microservice connects to the User Manager to verify the token header, this is for two main reasons:
+    \begin{itemize}
+        \item The users can change their usernames that are stored in the User-DB, this is a way for microservices to verify they have the updated username.
+        \item In the future we may want to add token revocation, having a single microservice handle that would make it easier.
+    \end{itemize}
+    \item \textbf{Shared persistance smell solutions:}
+    \begin{itemize}
+        \item We connected a single microservice to each database (Games, Decks and Users).
+        \item Since as cards we've choosen the classical French-suited deck, that we don't
+        expect to change, we've decided to hard-code their behavior and their images
+        in the microservices, without relying on databases.
+    \end{itemize}
+    \item \textbf{User Editor:}
+    We've separated the user profile editing endpoints from the user manager to keep the user manager smaller
+    and allow horizontal scalability.
+    The User Editor then connects to dedicated endpoints of the User Manager that allow it to update user information in the DB User-DB.
+    \item \textbf{Cards and decks:}
+    The Collection microservice allows the users to see all the cards, their images and to \hyperref[sec:cloud-decks]{handle their decks}. 
+    \item \textbf{Separated in-game logic:}
+    The Game Engine microservice, as the name suggest, handles the whole game logic,
+    while delegating to Game History and Collection the handling of old games and decks.
+    
 \end{itemize}
 

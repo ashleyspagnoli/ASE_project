@@ -8,38 +8,73 @@
 \begin{itemize}
     \item Account
     \begin{itemize}
-        % \setcounter{usCounter}{0} % Removed to keep global numbering
         \item[\colorednum{red}{}] Create an account SO THAT I can participate to the game\\
-        
-        \item[\colorednum{red}{}] Login into the game SO THAT I can play a match
-        \item[\colorednum{red}{}] Check/modify my profile SO THAT I can update my information
-        \item[\colorednum{yellow}{}] Be safe about my account data SO THAT nobody can steal/modify them
+        /users/register (Gateway $\rightarrow$ User Manager $\rightarrow$ MongoDB $\rightarrow$ User Manager $\rightarrow$ Gateway)
+
+        \item[\colorednum{red}{}] Login into the game SO THAT I can play a match\\
+        /users/login (Gateway $\rightarrow$ User Manager $\rightarrow$ MongoDB $\rightarrow$ User Manager $\rightarrow$ Gateway)
+
+        \item[\colorednum{red}{}] Check/modify my profile SO THAT I can update my information\\
+        /userseditor/modify/change-username (Gateway $\rightarrow$ User Editor $\rightarrow$ User Manager $\rightarrow$ MongoDB $\rightarrow$ User Manager $\rightarrow$ User Editor $\rightarrow$ Gateway)\\
+        /userseditor/modify/change-password (Gateway $\rightarrow$ User Editor $\rightarrow$ User Manager $\rightarrow$ MongoDB $\rightarrow$ User Manager $\rightarrow$ User Editor $\rightarrow$ Gateway)\\
+        /userseditor/modify/change-email (Gateway $\rightarrow$ User Editor $\rightarrow$ User Manager $\rightarrow$ MongoDB $\rightarrow$ User Manager $\rightarrow$ User Editor $\rightarrow$ Gateway)\\
+        	extit{Note: Profile checking is handled via token validation or login response.}
+
+        \item[\colorednum{yellow}{}] Be safe about my account data SO THAT nobody can steal/modify them\\
+        N/A (Non-functional): Implemented via JWT Authentication, Password Hashing (Argon2) in User Manager, and HTTPS communication.
     \end{itemize}
     \item Cards
     \begin{itemize}
-        % \setcounter{usCounter}{0} % Removed to keep global numbering
-        \item[\colorednum{red}{}] See the overall card collection SO THAT I can think of a strategy
-        \item[\colorednum{red}{}] View the details of a card SO THAT I can think of a strategy
+        \item[\colorednum{red}{}] See the overall card collection SO THAT I can think of a strategy\\
+        /collection/cards (Gateway $\rightarrow$ Collection $\rightarrow$ File System [cards.json] $\rightarrow$ Collection $\rightarrow$ Gateway)
+
+        \item[\colorednum{red}{}] View the details of a card SO THAT I can think of a strategy\\
+        /collection/cards/{card\_id} (Gateway $\rightarrow$ Collection $\rightarrow$ File System [cards.json] $\rightarrow$ Collection $\rightarrow$ Gateway)
     \end{itemize}
     \item Game
     \begin{itemize}
-        % \setcounter{usCounter}{0} % Removed to keep global numbering
-        \item[\colorednum{red}{}] Start a new game SO THAT I can play
-        \item[\colorednum{red}{}] Select the subset of cards SO THAT I can start a match
-        \item[\colorednum{red}{}] Select a card SO THAT I can play my turn
-        \item[\colorednum{red}{}] Know the score SO THAT I know if I am winning or losing
-        \item[\colorednum{red}{}] Know the turns SO THAT I can know how many rounds there are till the end
-        \item[\colorednum{red}{}] See the score SO THAT I know who is winning
-        \item[\colorednum{red}{}] Know who won the turn SO THAT I know the updated score
-        \item[\colorednum{red}{}] Know who won a match SO THAT I know the result of a match
-        \item[\colorednum{yellow}{}] Ensure that the rules are not violated SO THAT I can play a fair match
+        \item[\colorednum{red}{}] Start a new game SO THAT I can play\\
+        /game/match/join (Gateway $\rightarrow$ Game Engine $\rightarrow$ Matchmaking Queue $\rightarrow$ Game Engine $\rightarrow$ Gateway)
+
+        \item[\colorednum{red}{}] Select the subset of cards SO THAT I can start a match\\
+        /game/deck/{game\_id} (Gateway $\rightarrow$ Game Engine $\rightarrow$ Game State $\rightarrow$ Gateway)\\
+        Alternatively for deck creation: /collection/decks (Gateway $\rightarrow$ Collection $\rightarrow$ MongoDB $\rightarrow$ Collection $\rightarrow$ Gateway)
+
+        \item[\colorednum{red}{}] Select a card SO THAT I can play my turn\\
+        /game/play/{game\_id} (Gateway $\rightarrow$ Game Engine $\rightarrow$ Game Logic $\rightarrow$ Game State $\rightarrow$ Gateway)
+
+        \item[\colorednum{red}{}] Know the score SO THAT I know if I am winning or losing\\
+        /game/state/{game\_id} (Gateway $\rightarrow$ Game Engine $\rightarrow$ Game State $\rightarrow$ Gateway)
+
+        \item[\colorednum{red}{}] Know the turns SO THAT I can know how many rounds there are till the end\\
+        /game/state/{game\_id} (Gateway $\rightarrow$ Game Engine $\rightarrow$ Game State $\rightarrow$ Gateway)
+
+        \item[\colorednum{red}{}] See the score SO THAT I know who is winning\\
+        /game/state/{game\_id} (Gateway $\rightarrow$ Game Engine $\rightarrow$ Game State $\rightarrow$ Gateway)
+
+        \item[\colorednum{red}{}] Know who won the turn SO THAT I know the updated score\\
+        /game/state/{game\_id} (Gateway $\rightarrow$ Game Engine $\rightarrow$ Game State $\rightarrow$ Gateway)
+
+        \item[\colorednum{red}{}] Know who won a match SO THAT I know the result of a match\\
+        /game/state/{game\_id} (Gateway $\rightarrow$ Game Engine $\rightarrow$ Game State $\rightarrow$ Gateway)
+
+        \item[\colorednum{yellow}{}] Ensure that the rules are not violated SO THAT I can play a fair match\\
+        N/A (Enforced by Logic): Handled internally by Game Engine during /game/play/{game\_id} execution.
+        (draft) zero trust for game engine and collection,
     \end{itemize}
     \item Others
     \begin{itemize}
-        % \setcounter{usCounter}{0} % Removed to keep global numbering
-        \item[\colorednum{red}{}] View the list of my old matches SO THAT I can see how I played
-        \item[\colorednum{red}{}] View the details of one of my matches SO THAT I can see how I played
-        \item[\colorednum{red}{}] View the leaderboards SO THAT I know who are the best players
-        \item[\colorednum{yellow}{}] Prevent people to tamper my old matches SO THAT I have them available
+        \item[\colorednum{red}{}] View the list of my old matches SO THAT I can see how I played\\
+        /history/matches (Gateway $\rightarrow$ Game History $\rightarrow$ MongoDB $\rightarrow$ Game History $\rightarrow$ Gateway)
+
+        \item[\colorednum{red}{}] View the details of one of my matches SO THAT I can see how I played\\
+        /history/matches (Gateway $\rightarrow$ Game History $\rightarrow$ MongoDB $\rightarrow$ Game History $\rightarrow$ Gateway)\\
+        	extit{Note: The list endpoint returns match details.}
+
+        \item[\colorednum{red}{}] View the leaderboards SO THAT I know who are the best players\\
+        /history/leaderboard (Gateway $\rightarrow$ Game History $\rightarrow$ MongoDB $\rightarrow$ Game History $\rightarrow$ Gateway)
+
+        \item[\colorednum{yellow}{}] Prevent people to tamper my old matches SO THAT I have them available\\
+        N/A (Security): Implemented via internal service isolation (only Game Engine writes to History via RabbitMQ/Internal API) and Database access controls.
     \end{itemize}
 \end{itemize}
