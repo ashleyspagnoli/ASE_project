@@ -57,7 +57,19 @@ jobs:
         run: |
           docker compose up -d --build
           echo "Waiting for services to be ready..."
-          sleep 30
+          sleep 45
+          
+      - name: Wait for API Gateway to be ready
+        run: |
+          echo "Checking API Gateway health..."
+          for i in {1..30}; do
+            if curl -k https://localhost:8443 &>/dev/null; then
+              echo "API Gateway is ready!"
+              break
+            fi
+            echo "Waiting for API Gateway... ($i/30)"
+            sleep 2
+          done
 
       - name: Check services health
         working-directory: ./src
@@ -71,6 +83,7 @@ jobs:
       - name: Run Integration Tests
         run: |
           newman run docs/tests/integration.postman_collection.json \
+            --env-var "base_url=https://localhost:8443" \
             --insecure \
             --reporters cli,json \
             --reporter-json-export integration-results.json

@@ -126,19 +126,19 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Generate secrets and certificates
+      - name: Generate secrets
         working-directory: ./src
         run: |
           mkdir -p secrets/user-manager
-          openssl req -x509 -newkey rsa:4096 -keyout secrets/user-manager/user-manager.key \
-            -out secrets/user-manager/user-manager.crt -days 1 -nodes \
-            -subj "/C=US/ST=Test/L=Test/O=Test/CN=localhost"
           python3 -c "import secrets; print(secrets.token_urlsafe(32))" > secrets/user-manager/encryption_key.txt
           python3 -c "import secrets; print(secrets.token_urlsafe(32))" > secrets/user-manager/jwt_secret_key.txt
 
+      - name: Create test network
+        run: docker network create test-network
+
       - name: Start MongoDB for user-manager
         run: |
-          docker run -d --name user-mongo -p 27017:27017 \
+          docker run -d --name user-mongo --network test-network \
             -e MONGO_INITDB_ROOT_USERNAME=user_admin \
             -e MONGO_INITDB_ROOT_PASSWORD=secure_password_user \
             -e MONGO_INITDB_DATABASE=user_auth_db \
@@ -149,14 +149,13 @@ jobs:
         working-directory: ./src
         run: |
           docker build -f user-manager/Dockerfile -t user-manager-test ./user-manager
-          docker run -d --name user-manager-test -p 5004:5000 \
-            --link user-mongo:user-db \
-            -e MONGO_URI=mongodb://user_admin:secure_password_user@user-db:27017/user_auth_db?authSource=admin \
+          docker run -d --name user-manager-test --network test-network -p 5004:5000 \
+            -e MONGO_URI=mongodb://user_admin:secure_password_user@user-mongo:27017/user_auth_db?authSource=admin \
             -e ALGORITHM=HS256 \
             -e ACCESS_TOKEN_EXPIRE_MINUTES=30 \
             -v $(pwd)/secrets/user-manager:/run/secrets:ro \
             user-manager-test \
-            uvicorn main:app --host 0.0.0.0 --port 5000 --ssl-keyfile /run/secrets/user-manager.key --ssl-certfile /run/secrets/user-manager.crt
+            uvicorn main:app --host 0.0.0.0 --port 5000
           sleep 5
 
       - name: Install Newman
@@ -165,7 +164,6 @@ jobs:
       - name: Run User Manager Postman tests
         run: |
           newman run docs/tests/user_manager_ut.postman_collection.json \
-            --insecure \
             --reporters cli,json \
             --reporter-json-export user-manager-results.json
 
@@ -189,6 +187,7 @@ jobs:
         run: |
           docker rm -f user-manager-test || true
           docker rm -f user-mongo || true
+          docker network rm test-network || true
 
   test-summary:
     runs-on: ubuntu-latest

@@ -135,7 +135,7 @@ services:
       context: ./api_gateway
     container_name: api_gateway_service
     ports:
-      - "443:8000"
+      - "8443:8000"
     depends_on:
       - user-manager
     secrets:
