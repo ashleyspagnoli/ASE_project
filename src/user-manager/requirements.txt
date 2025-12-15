@@ -1,28 +1,28 @@
 # --- DEPENDENZE CORE ---
 fastapi
-uvicorn[standard]       # Server ASGI con supporto standard (es. websockets, SSL/TLS)
+uvicorn[standard]       # Server ASGI con supporto standard
 
 # --- DATABASE & UTILITY ---
 pymongo==4.8.0          # Driver MongoDB
-pydantic                # Validazione dati (già gestita da FastAPI)
+pydantic                # Validazione dati
 python-dotenv           # Gestione variabili d'ambiente (.env)
-dnspython               # Necessario per i server DNS di MongoDB (se non stai usando un mock)
-email-validator         # Validazione formale degli indirizzi email
+dnspython               # Necessario per i server DNS di MongoDB
+email-validator         # Validazione formale indirizzi email
 
 # --- SICUREZZA & AUTENTICAZIONE ---
-# JWT: Si affida a 'cryptography' per le firme e le operazioni critiche.
-python-jose[cryptography]
+# SOSTITUITO: python-jose con pyjwt
+pyjwt                   # Nuova libreria per gestire i token JWT
 
-# PASSWORD HASHING: Argon2 (l'algoritmo più robusto e moderno)
-passlib[argon2]         # Base per l'hashing (Argon2ID)
-argon2-cffi             # Implementazione C per Argon2, necessaria per passlib[argon2]
+# PASSWORD HASHING
+passlib[argon2]         # Base per l'hashing
+argon2-cffi             # Implementazione C per Argon2
 
 # --- FILE E CRYPTOGRAPHY (utilità) ---
-python-multipart        # Supporto per il parsing di form-data e file
-cryptography            # Base per Fernet, ecc. (già presente, ma bene esplicitarlo)
+python-multipart        # Parsing form-data (necessario per OAuth2PasswordRequestForm)
+cryptography            # Mantienilo: serve per il tuo modulo 'crypto.py' (Fernet, ecc.)
 
 # --- DEPENDENZE PER TEST ---
-pytest                  # Framework di test
-pytest-asyncio          # Supporto per i test asincroni (FastAPI)
-httpx                   # Client HTTP asincrono per l'invio delle richieste ai test
-pytest-mock             # Utilità per mocking
+pytest
+pytest-asyncio
+httpx
+pytest-mock

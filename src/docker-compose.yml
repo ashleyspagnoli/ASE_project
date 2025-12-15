@@ -67,8 +67,6 @@ services:
     build: 
       context: ./user-manager
     container_name: user_manager_service
-    ports:
-      - "5004:5000"
     depends_on:
       - user-db
 
