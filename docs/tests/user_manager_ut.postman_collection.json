@@ -262,6 +262,10 @@
 			},
 			"response": []
 		},
+		
+
+
+
 		{
 			"name": "Login Ok",
 			"event": [
@@ -332,6 +336,102 @@
 			},
 			"response": []
 		},
+
+
+		{
+			"name": "My Info Ok",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 200 OK\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"// 2. Verifica la Presenza e la Correttezza dei Campi Chiave",
+							"pm.test(\"Response body contains valid token structure\", function () {",
+							"    // Tenta di analizzare il corpo della risposta come JSON",
+							"    const jsonData = pm.response.json();",
+							"    ",
+							"    pm.expect(jsonData.username).to.eql(\"string1\");",
+							"    ",
+							"    pm.expect(jsonData.email).to.eql(\"string1\");",
+							"    ",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer {{test_token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:5004/users/my-username-my-email",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5004",
+					"path": [
+						"users",
+						"my-username-my-email"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "My Info Bad Token",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 401 Unauthorized\", function () {",
+							"    pm.response.to.have.status(401);",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer token",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:5004/users/my-username-my-email",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5004",
+					"path": [
+						"users",
+						"my-username-my-email"
+					]
+				}
+			},
+			"response": []
+		},
+
 		{
 			"name": "Registration Duplicate",
 			"event": [
@@ -523,6 +623,47 @@
 					{
 						"key": "Authorization",
 						"value": "Bearer {{test_token}}",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "http://localhost:5004/users/validate-token",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5004",
+					"path": [
+						"users",
+						"validate-token"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Validate-Token Bad",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is 401 Unauthorized\", function () {",
+							"    pm.response.to.have.status(401);",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Bearer token",
 						"type": "text"
 					}
 				],

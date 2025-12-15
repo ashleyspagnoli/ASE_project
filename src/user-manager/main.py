@@ -327,8 +327,23 @@ def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
 
 
 #--- ENDPOINTS: USER REGISTRATION AND LOGIN ---
+class UsernameEmail(UserBase):
+    """Schema for username and email health check."""
+    email: str = Field(..., description="The user's email address.")
 
-
+@app.get(
+    "/users/my-username-my-email", 
+    status_code=status.HTTP_200_OK,
+    response_model=UsernameEmail,
+    tags=["My Information"],
+    summary="Service Health Check"
+)
+def get_my_username_my_email(current_user: UserInDB = Depends(get_current_user)):
+    """
+    Health check endpoint that returns the username and email of the authenticated user.
+    """
+    print(f"Health check for user: {current_user.email}")
+    return UsernameEmail(username=current_user.username, email=current_user.email)  
 
 
 class UserLogin(UserBase):
