@@ -35,6 +35,7 @@ async def forward_request(request: Request, internal_url: str, body_data: dict =
     verify_ssl = cert_path if cert_path else False
 
     # 2. Imposta i parametri della richiesta httpx
+    print(f"Forwarding request to {internal_url} with SSL verify: {verify_ssl}")
     request_kwargs = {
         "method": request.method,
         "url": internal_url,
