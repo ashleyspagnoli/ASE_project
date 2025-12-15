@@ -42,7 +42,7 @@ jobs:
 
       - name: Run Collection Postman tests
         run: |
-          newman run tests/collection_ut.postman_collection.json \
+          newman run docs/tests/collection_ut.postman_collection.json \
             --env-var "base_url=http://localhost:5000" \
             --reporters cli,json \
             --reporter-json-export collection-results.json
@@ -99,7 +99,7 @@ jobs:
 
       - name: Run Game History Postman tests
         run: |
-          newman run tests/game_history_ut.postman_collection.json \
+          newman run docs/tests/game_history_ut.postman_collection.json \
             --env-var "base_url=http://localhost:5000" \
             --reporters cli,json \
             --reporter-json-export game-history-results.json
@@ -164,7 +164,7 @@ jobs:
 
       - name: Run User Manager Postman tests
         run: |
-          newman run tests/user_manager_ut.postman_collection.json \
+          newman run docs/tests/user_manager_ut.postman_collection.json \
             --insecure \
             --reporters cli,json \
             --reporter-json-export user-manager-results.json
