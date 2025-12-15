@@ -1,6 +1,6 @@
 fastapi
 uvicorn[standard] # AGGIUNTA: [standard] assicura il supporto SSL/TLS
-pymongo
+pymongo==4.8.0
 pydantic
 python-jose[cryptography] # Libreria per JWT
 passlib[argon2] # NUOVA DIPENDENZA: Argon2 per l'hashing

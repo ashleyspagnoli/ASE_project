@@ -113,7 +113,7 @@ services:
  
 
   user-db:
-    image: mongo:latest
+    image: circleci/mongo:4.0-xenial-ram
     container_name: user_auth_db
     restart: always 
     ports:
