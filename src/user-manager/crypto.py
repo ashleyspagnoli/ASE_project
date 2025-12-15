@@ -33,6 +33,7 @@ FAKE_ENCRYPTION_KEY = load_secret_key("fake-key-crypto.txt", DEFAULT_ENCRYPTION_
 ENCRYPTION_KEY_STRING = load_secret_key("/run/secrets/user_db_encryption_secret_key", FAKE_ENCRYPTION_KEY)
 
 # ... Il resto della tua logica di cifratura che usa ENCRYPTION_KEY_STRING ...
+cipher_suite = None
 try:
     # Usiamo Fernet come implementazione robusta che gestisce IV e MAC
     # Internamente, Fernet usa AES-128 in modalità CBC o AES-256 in modalità GCM (a seconda della versione)
@@ -44,6 +45,9 @@ except Exception as e:
 def encrypt_data(data: str) -> str:
     """Cifra una stringa e restituisce una stringa Base64 URL-safe."""
     if not data:
+        return ""
+    if cipher_suite is None:
+        print("ERRORE: cipher_suite non inizializzato.")
         return ""
     # I dati cifrati sono Base64, quindi pronti per essere salvati come stringa nel DB
     return cipher_suite.encrypt(data.encode('utf-8')).decode()
