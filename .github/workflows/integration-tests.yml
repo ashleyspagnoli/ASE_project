@@ -14,47 +14,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Generate self-signed certificates and secrets
-        working-directory: ./src
-        run: |
-          mkdir -p secrets/{api_gateway,collection,game_engine,game_history,user-manager,user-editor,rabbitmq}
-          
-          # Generate certificates for all services
-          openssl req -x509 -newkey rsa:4096 -keyout secrets/api_gateway/key.pem \
-            -out secrets/api_gateway/cert.pem -days 1 -nodes \
-            -subj "/C=US/ST=Test/L=Test/O=Test/CN=localhost"
-          
-          openssl req -x509 -newkey rsa:4096 -keyout secrets/collection/key.pem \
-            -out secrets/collection/cert.pem -days 1 -nodes \
-            -subj "/C=US/ST=Test/L=Test/O=Test/CN=collection"
-          
-          openssl req -x509 -newkey rsa:4096 -keyout secrets/game_engine/key.pem \
-            -out secrets/game_engine/cert.pem -days 1 -nodes \
-            -subj "/C=US/ST=Test/L=Test/O=Test/CN=game_engine"
-          
-          openssl req -x509 -newkey rsa:4096 -keyout secrets/game_history/key.pem \
-            -out secrets/game_history/cert.pem -days 1 -nodes \
-            -subj "/C=US/ST=Test/L=Test/O=Test/CN=game_history"
-          
-          openssl req -x509 -newkey rsa:4096 -keyout secrets/user-manager/user-manager.key \
-            -out secrets/user-manager/user-manager.crt -days 1 -nodes \
-            -subj "/C=US/ST=Test/L=Test/O=Test/CN=user-manager"
-          
-          openssl req -x509 -newkey rsa:4096 -keyout secrets/user-editor/user-editor.key \
-            -out secrets/user-editor/user-editor.crt -days 1 -nodes \
-            -subj "/C=US/ST=Test/L=Test/O=Test/CN=user-editor"
-          
-          openssl req -x509 -newkey rsa:4096 -keyout secrets/rabbitmq/key.pem \
-            -out secrets/rabbitmq/cert.pem -days 1 -nodes \
-            -subj "/C=US/ST=Test/L=Test/O=Test/CN=rabbitmq"
-          
-          # Copy rabbitmq configuration
-          cp rabbitmq.conf secrets/rabbitmq/rabbitmq.conf
-
-          # Generate JWT and encryption keys
-          python3 -c "import secrets; print(secrets.token_urlsafe(32))" > secrets/user-manager/encryption_key.txt
-          python3 -c "import secrets; print(secrets.token_urlsafe(32))" > secrets/user-manager/jwt_secret_key.txt
-
       - name: Start all services with Docker Compose
         working-directory: ./src
         run: |
