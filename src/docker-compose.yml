@@ -52,8 +52,7 @@ services:
       RABBITMQ_PASSWORD: "rabbitmq_password"
 
   collection:
-    build:
-      dockerfile: ./collection
+    build: ./collection
     depends_on:
       - db-decks
       - user-manager
