@@ -125,7 +125,7 @@ paths:
           $ref: '#/components/responses/Unauthorized'
 
   # --- USER MODIFICATION ENDPOINTS ---
-  /users/modify/change-username:
+  /usereditor/change-username:
     patch:
       summary: Change username
       description: Update the authenticated user's username.
@@ -161,7 +161,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /users/modify/change-password:
+  /usereditor/change-password:
     patch:
       summary: Change password
       description: Update the authenticated user's password.
@@ -183,7 +183,7 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /users/modify/change-email:
+  /usereditor/change-email:
     patch:
       summary: Change email
       description: Update the authenticated user's email address.
@@ -202,6 +202,29 @@ paths:
           description: Email changed successfully
         '400':
           description: Old email incorrect or new email already in use
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
+  /usereditor/view-data:
+    get:
+      summary: View user data
+      description: Retrieve the authenticated user's username and email.
+      tags:
+        - User Management
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: User data retrieved successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  username:
+                    type: string
+                  email:
+                    type: string
         '401':
           $ref: '#/components/responses/Unauthorized'
 
@@ -798,12 +821,8 @@ components:
     UserModifyUsername:
       type: object
       required:
-        - old_username
         - new_username
       properties:
-        old_username:
-          type: string
-          example: "user123"
         new_username:
           type: string
           example: "updateduser"
