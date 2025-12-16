@@ -61,37 +61,44 @@ SSL_CONTEXT = get_ssl_context(GATEWAY_CERT_PATH)
 
 # --- FUNZIONI DI SERVIZIO ---
 
-async def api_login(username, password,CURRENT_USER_STATE: UserState):
+async def api_login(username, password, CURRENT_USER_STATE: UserState):
     async with httpx.AsyncClient(verify=SSL_CONTEXT) as client:
         try:
+            # ... (codice uguale a prima) ...
             login_url = f"{API_GATEWAY_URL}/users/login"
             body = {"username": username, "password": password}
             
-            response = await client.post(
-                login_url,
-                json=body,
-            )
-            
+            response = await client.post(login_url, json=body)
             response.raise_for_status() 
+            
             data = response.json()
             CURRENT_USER_STATE.token = data.get("token")
             CURRENT_USER_STATE.username = username
             return ApiResult(success=True, message="Login successful")
     
         except httpx.HTTPStatusError as e:
+            # Gestione specifica 401
             if e.response.status_code == 401:
                 return ApiResult(success=False, message="Username o password errati.") 
-            # Qui rilanciamo gli errori generici del servizio
+            
+            # 🟢 AGGIUNTA FONDAMENTALE: Gestione di TUTTI gli altri errori (es. 422, 500)
+            try:
+                # Prova a leggere il dettaglio dal JSON di errore di FastAPI
+                detail = e.response.json().get('detail', e.response.text)
+            except:
+                detail = e.response.text
+            
+            return ApiResult(success=False, message=f"Errore Login ({e.response.status_code}): {detail}")
 
         except httpx.RequestError:
             return ApiResult(success=False, message="Servizio di autenticazione non raggiungibile.")
         
         except Exception as e:
             return ApiResult(success=False, message=f"Errore sconosciuto: {str(e)}")
-    
+        
 
-async def api_register(username, password, email,CURRENT_USER_STATE: UserState):
-    # Logica di registrazione: OK
+
+async def api_register(username, password, email, CURRENT_USER_STATE: UserState):
     async with httpx.AsyncClient(verify=SSL_CONTEXT) as client:
         try:
             register_url = f"{API_GATEWAY_URL}/users/register"
@@ -100,19 +107,31 @@ async def api_register(username, password, email,CURRENT_USER_STATE: UserState):
             response = await client.post(register_url, json=body)
             response.raise_for_status() 
             
-            return ApiResult(success=True, message="Registration successful. Please login to continue.")
+            return ApiResult(success=True, message="Registration successful. Please login.")
 
         except httpx.HTTPStatusError as e:
-            # Cattura errori 400 (utente/email già registrato)
+            # Recuperiamo il dettaglio dell'errore
+            try:
+                error_detail = e.response.json().get('detail', "Errore sconosciuto")
+            except:
+                error_detail = e.response.text
+
             if e.response.status_code == 400:
-                detail = e.response.json().get('detail', "Errore di registrazione sconosciuto.")
-                return ApiResult(success=False, message=detail)
+                return ApiResult(success=False, message=f"Dati non validi: {error_detail}")
+            
+            # 🟢 GESTIONE 422 (Password corta, email non valida, campi mancanti)
+            elif e.response.status_code == 422:
+                # error_detail spesso è una lista in caso di 422, lo rendiamo stringa
+                return ApiResult(success=False, message=f"Errore validazione: {error_detail}")
+            
+            else:
+                return ApiResult(success=False, message=f"Errore Server ({e.response.status_code}): {error_detail}")
             
         except httpx.RequestError:
-            return ApiResult(success=False, message="Servizio di autenticazione non raggiungibile.")
+            return ApiResult(success=False, message="Servizio non raggiungibile.")
         
         except Exception as e:
-            return ApiResult(success=False, message=f"Errore sconosciuto: {str(e)}")
+            return ApiResult(success=False, message=f"Errore imprevisto: {str(e)}")
 
 # api_validate_token è ora api_validate_token_internal
 

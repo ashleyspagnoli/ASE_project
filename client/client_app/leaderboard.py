@@ -30,36 +30,42 @@ def schermata_leaderboard(console: Console, CURRENT_USER_STATE: UserState):
             ]
         ).ask()
 
-        if scelta_menu == "🏆 Global Leaderboard":
+        if scelta_menu == "Global Leaderboard":
             _visualizza_leaderboard(console, CURRENT_USER_STATE)
             
-        elif scelta_menu == "📜 My Match History":
+        elif scelta_menu == "My Match History":
             _visualizza_storico(console, CURRENT_USER_STATE)
             
-        elif scelta_menu == "🔙 Indietro" or scelta_menu is None:
+        elif scelta_menu == "Indietro" or scelta_menu is None:
             break
 
 # --- SOTTO-FUNZIONE: LEADERBOARD PAGINATA ---
+
+# Costante per facilitare modifiche future
+ITEMS_PER_PAGE = 10
+
 def _visualizza_leaderboard(console: Console, state: UserState):
-    SELECTED_PAGE = 0
+    SELECTED_PAGE = 0  # Pagina interna (0 = Pagina 1 visualizzata)
     
     while True:
         console.clear()
-        console.print(f"[bold blue]--- GLOBAL LEADERBOARD (Page {SELECTED_PAGE}) ---[/]")
+        # Mostriamo +1 per l'utente, così vede "Page 1" invece di "Page 0"
+        console.print(f"[bold blue]--- GLOBAL LEADERBOARD (Page {SELECTED_PAGE + 1}) ---[/]")
         
-        # Chiamata API
+        # Chiamata API (passiamo l'indice 0-based)
         result = asyncio.run(api_get_leaderboard(SELECTED_PAGE, CURRENT_USER_STATE=state))
         
         if result:
-            # Creiamo una tabella bella da vedere
-            table = Table(title=f"Page {SELECTED_PAGE}", style="magenta")
+            table = Table(title=f"Page {SELECTED_PAGE + 1}", style="magenta")
             table.add_column("Rank", justify="right", style="cyan", no_wrap=True)
             table.add_column("Username", style="white")
             table.add_column("Wins", justify="right", style="green")
             table.add_column("Losses", justify="right", style="red")
 
-            # Calcolo del rank assoluto in base alla pagina (assumendo 10 item per pagina)
-            start_rank = 1 + (SELECTED_PAGE - 1) * 10
+            # --- CORREZIONE QUI ---
+            # Se siamo a pagina 0: (0 * 10) + 1 = 1
+            # Se siamo a pagina 1: (1 * 10) + 1 = 11
+            start_rank = (SELECTED_PAGE * ITEMS_PER_PAGE) + 1
             
             for idx, entry in enumerate(result):
                 rank = str(start_rank + idx)
@@ -70,13 +76,13 @@ def _visualizza_leaderboard(console: Console, state: UserState):
 
             console.print(table)
         else:
-            console.print(f"\n[italic red]Nessun giocatore trovato a pagina {SELECTED_PAGE}.[/]")
+            console.print(f"\n[italic red]Nessun giocatore trovato a pagina {SELECTED_PAGE + 1}.[/]")
 
         # Menu di Navigazione
-        console.print("") # Spazio vuoto
+        console.print("") 
         nav_choices = ["-> Next Page"]
         
-        if SELECTED_PAGE > 1:
+        if SELECTED_PAGE > 0:
             nav_choices.insert(0, "<- Prev Page")
         
         nav_choices.append("Go to Page...")
@@ -93,11 +99,11 @@ def _visualizza_leaderboard(console: Console, state: UserState):
             SELECTED_PAGE += 1
         elif scelta == "Go to Page...":
             num = questionary.text("Inserisci numero pagina:").ask()
+            # Corretto: se l'utente scrive "1", internamente diventa 0
             if num.isdigit() and int(num) > 0:
-                SELECTED_PAGE = int(num)
+                SELECTED_PAGE = int(num) - 1 
         elif scelta == "Back to Menu" or scelta is None:
             break
-
 # --- SOTTO-FUNZIONE: STORICO PARTITE ---
 
 

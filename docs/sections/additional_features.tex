@@ -50,22 +50,20 @@ Ensure that the backend services are running before starting the client.
 \begin{itemize}
     \item \textbf{Login/Register:} Users are prompted to authenticate via the API Gateway and Authentication microservice upon startup.
     \item \textbf{Token Management:} The client locally stores the username and JWT token. The token is included in the headers of every request (defined in \textbf{$``$apicalls.py$``$}).
-    \item \textbf{Navigation:} Post-authentication, the main menu is displayed.
-    \item \textbf{Prerequisite:} Users must navigate to \textbf{$``$Manage Decks$``$} to create at least one deck before playing.
+    \item \textbf{Prerequisite:} Users must navigate to \textbf{$``$Decks$``$} to create at least one deck before playing.
 \end{itemize}
 
 \subsubsection{Card Collection and Deck Management}
 \begin{itemize}
-    \item \textbf{Capabilities:} Users can view the collection, create new decks, view existing decks, and delete decks.
-    \item \textbf{Visuals:} Selecting a card in the local version opens its image in a new window.
+    \item \textbf{Capabilities:} Users can view the collection, create new decks (Deck Page), view existing decks, and delete decks (View Deck).
+    \item \textbf{Visuals:} Selecting a card in the local version opens its image in a new window (not in Containerized version).
     \item \textbf{Deck Creation:} Simplified logic grants the maximum value for every suit during creation.
-    \item \textbf{Next Step:} Once a deck is prepared, the user can proceed to \textbf{$``$Play Game$``$}.
 \end{itemize}
 
 \subsubsection{Game Engine Interaction}
 \begin{itemize}
     \item \textbf{Testing Setup:} Requires two terminal instances logged in with different user accounts.
-    \item \textbf{Matchmaking:} Select \textbf{$``$Start Match$``$} to enter the queue and await an opponent.
+    \item \textbf{Matchmaking:} Select \textbf{$``$Play a Match$``$} to enter the queue and await an opponent.
     \item \textbf{Gameplay:} The interface displays real-time game state (hand, scores, opponent name) and enables interactive card play per turn.
     \item \textbf{Conclusion:} Displays final results and automatically updates the user's game history.
 \end{itemize}
