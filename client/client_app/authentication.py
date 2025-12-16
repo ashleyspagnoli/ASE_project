@@ -44,7 +44,7 @@ def schermata_login(console:Console, CURRENT_USER_STATE: UserState):
     
     with console.status("[bold green]Verifica credenziali in corso..."):
         # api_login ora imposta direttamente CURRENT_USER_STATE.token/.username
-        result = asyncio.run(api_login(username, password,CURRENT_USER_STATE ))
+        result = asyncio.run(api_login(username, password, CURRENT_USER_STATE ))
         
     if result.success:
         # Qui leggiamo CURRENT_USER_STATE per l'username
@@ -75,6 +75,7 @@ def schermata_register(console:Console, CURRENT_USER_STATE: UserState):
 
         with console.status("[bold green]User Creation..."):
             result = asyncio.run(api_register(username, password, email,CURRENT_USER_STATE ))
+
         
         if result.success:
             console.print("[bold green]Registration succesful! Please log in.[/]")

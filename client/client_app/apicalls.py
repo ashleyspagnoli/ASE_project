@@ -5,7 +5,8 @@ import os
 import time
 
 DEFAULT_URL = "https://localhost:8443"
-API_GATEWAY_URL = os.getenv("API_GATEWAY_URL", DEFAULT_URL)
+
+API_GATEWAY_URL = os.getenv("API_GATEWAY_URL", DEFAULT_URL).rstrip("/")
 
 
 
@@ -84,6 +85,9 @@ async def api_login(username, password,CURRENT_USER_STATE: UserState):
 
         except httpx.RequestError:
             return ApiResult(success=False, message="Servizio di autenticazione non raggiungibile.")
+        
+        except Exception as e:
+            return ApiResult(success=False, message=f"Errore sconosciuto: {str(e)}")
     
 
 async def api_register(username, password, email,CURRENT_USER_STATE: UserState):
@@ -106,6 +110,9 @@ async def api_register(username, password, email,CURRENT_USER_STATE: UserState):
             
         except httpx.RequestError:
             return ApiResult(success=False, message="Servizio di autenticazione non raggiungibile.")
+        
+        except Exception as e:
+            return ApiResult(success=False, message=f"Errore sconosciuto: {str(e)}")
 
 # api_validate_token è ora api_validate_token_internal
 
@@ -132,6 +139,9 @@ async def api_view_data(CURRENT_USER_STATE: UserState):
             return None
             
         except httpx.RequestError:
+            return None
+        
+        except Exception as e:
             return None
         
 
@@ -174,6 +184,9 @@ async def api_change_password(old_password, new_password,CURRENT_USER_STATE: Use
             
         except httpx.RequestError:
             return ApiResult(success=False, message="Servizio di autenticazione non raggiungibile.")
+        
+        except Exception as e:
+            return ApiResult(success=False, message=f"Errore sconosciuto: {str(e)}")
 
 async def api_change_email(old_email,new_email,CURRENT_USER_STATE: UserState):
     # ORA C'È DA IMPLEMENTARE BENE LE API PER CAMBIO EMAIL E USERNAME
@@ -210,6 +223,9 @@ async def api_change_email(old_email,new_email,CURRENT_USER_STATE: UserState):
             
         except httpx.RequestError:
             return ApiResult(success=False, message="Servizio di autenticazione non raggiungibile.")
+        
+        except Exception as e:
+            return ApiResult(success=False, message=f"Errore sconosciuto: {str(e)}")
 
 async def api_change_username(new_username,CURRENT_USER_STATE: UserState):
     # ORA C'È DA IMPLEMENTARE BENE LE API PER CAMBIO EMAIL E USERNAME
@@ -250,6 +266,10 @@ async def api_change_username(new_username,CURRENT_USER_STATE: UserState):
             
         except httpx.RequestError:
             return ApiResult(success=False, message="Servizio di autenticazione non raggiungibile.")
+        
+        except Exception as e:
+            return ApiResult(success=False, message=f"Errore sconosciuto: {str(e)}")
+        
 # --- LEADERBOARD ---
 async def api_get_leaderboard(page:int, CURRENT_USER_STATE: UserState):
     token = CURRENT_USER_STATE.token # Lettura dal globale
@@ -274,6 +294,9 @@ async def api_get_leaderboard(page:int, CURRENT_USER_STATE: UserState):
             return None
             
         except httpx.RequestError:
+            return None
+        
+        except Exception as e:
             return None
         
 # In client_app/apicalls.py
@@ -322,6 +345,9 @@ async def api_get_card_collection(CURRENT_USER_STATE: UserState):
         except httpx.RequestError:
             return None
         
+        except Exception as e:
+            return None
+        
 async def api_get_deck_collection(CURRENT_USER_STATE: UserState):
     token = CURRENT_USER_STATE.token # Lettura dal globale
     
@@ -344,6 +370,9 @@ async def api_get_deck_collection(CURRENT_USER_STATE: UserState):
             return None
             
         except httpx.RequestError:
+            return None
+        
+        except Exception as e:
             return None
         
 async def api_create_deck(deck:list,deck_slot:int,deck_name:str,CURRENT_USER_STATE: UserState):
@@ -375,6 +404,9 @@ async def api_create_deck(deck:list,deck_slot:int,deck_name:str,CURRENT_USER_STA
             
         except httpx.RequestError:
             return ApiResult(success=False, message="Servizio di gestione collezione non raggiungibile.")
+        
+        except Exception as e:
+            return ApiResult(success=False, message=f"Errore sconosciuto: {str(e)}")
         
 # In client_app/apicalls.py
 

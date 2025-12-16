@@ -3,6 +3,10 @@ import asyncio
 from rich.console import Console
 from client_app.apicalls import api_get_leaderboard, api_get_match_history
 import questionary
+from datetime import datetime
+from rich.table import Table
+from rich.text import Text
+from rich import box
 
 class UserState:
     """Contiene lo stato globale dell'utente loggato."""
@@ -20,9 +24,9 @@ def schermata_leaderboard(console: Console, CURRENT_USER_STATE: UserState):
         scelta_menu = questionary.select(
             "Cosa vuoi visualizzare?",
             choices=[
-                "🏆 Global Leaderboard",
-                "📜 My Match History",
-                "🔙 Indietro"
+                "Global Leaderboard",
+                "My Match History",
+                "Indietro"
             ]
         ).ask()
 
@@ -37,7 +41,7 @@ def schermata_leaderboard(console: Console, CURRENT_USER_STATE: UserState):
 
 # --- SOTTO-FUNZIONE: LEADERBOARD PAGINATA ---
 def _visualizza_leaderboard(console: Console, state: UserState):
-    SELECTED_PAGE = 1
+    SELECTED_PAGE = 0
     
     while True:
         console.clear()
@@ -95,37 +99,116 @@ def _visualizza_leaderboard(console: Console, state: UserState):
             break
 
 # --- SOTTO-FUNZIONE: STORICO PARTITE ---
+
+
+# Funzione helper per convertire "K of diamonds" in "K ♦️"
+def _parse_card_text(card_text):
+    if not card_text or card_text == "None": return ""
+    if "JOKER" in card_text: return "🃏"
+    
+    parts = card_text.split(" of ")
+    if len(parts) != 2: return card_text
+    
+    val, suit = parts[0], parts[1].lower()
+    suit_map = {
+        'hearts': '❤️', 'diamonds': '♦️', 
+        'clubs': '♣️', 'spades': '♠️', 'none': ''
+    }
+    return f"{val} {suit_map.get(suit, '')}"
+
 def _visualizza_storico(console: Console, state: UserState):
     console.clear()
-    console.print("[bold blue]--- MY MATCH HISTORY ---[/]")
-    console.print("Caricamento storico...")
+    console.print("[bold blue]--- 📜 MY MATCH HISTORY ---[/]")
+    console.print("Caricamento partite...")
 
     # Chiamata API
-    history = asyncio.run(api_get_match_history(state))
-    print(history)
-    if not history:
-        console.print("[italic yellow]Non hai ancora giocato nessuna partita (o errore nel recupero).[/]")
-    else:
-        # Creiamo tabella storico
-        table = Table(title=f"Storico di {state.username}")
-        table.add_column("Data", style="dim")
-        table.add_column("Avversario", style="bold white")
-        table.add_column("Risultato", justify="center")
-        table.add_column("Score", justify="right")
+    history_list = asyncio.run(api_get_match_history(state))
 
-        for match in history:
-            # Adatta le chiavi in base a come il tuo backend restituisce il JSON
-            date = match.get('date', 'N/A')
-            opponent = match.get('opponent', 'Unknown')
-            result = match.get('result', '-') # WIN / LOSS
-            score = match.get('score', '0-0')
+    if not history_list:
+        console.print("\n[italic yellow]Non hai ancora giocato nessuna partita.[/]")
+        questionary.text("Premi Invio per tornare indietro...").ask()
+        return
+
+    # Creazione Tabella Fancy
+    table = Table(
+        title=f"Storico Partite di {state.username}", 
+        box=box.ROUNDED,
+        header_style="bold cyan",
+        expand=True
+    )
+
+    table.add_column("Date", style="dim", width=12)
+    table.add_column("Opponent", style="white")
+    table.add_column("Result", justify="center")
+    table.add_column("Score", justify="center")
+    table.add_column("Timeline (Turni)", justify="left") 
+
+    for match in history_list:
+        # 1. Parsing Dati Base
+        my_username = state.username
+        
+        # Identifica chi è Player 1 e Player 2
+        p1_name = match.get('player1')
+        p2_name = match.get('player2')
+        
+        # Identifica l'avversario
+        is_p1 = (my_username == p1_name)
+        opponent = p2_name if is_p1 else p1_name
+        
+        # Punteggi
+        score1 = match.get('points1', 0)
+        score2 = match.get('points2', 0)
+        my_score = score1 if is_p1 else score2
+        opp_score = score2 if is_p1 else score1
+        score_str = f"{my_score} - {opp_score}"
+
+        # 2. Determinare Vincitore
+        winner_code = match.get('winner') # '1' o '2'
+        
+        am_i_winner = False
+        if (is_p1 and winner_code == '1') or (not is_p1 and winner_code == '2'):
+            am_i_winner = True
             
-            # Colora il risultato
-            res_style = "[green]WIN[/]" if result == "WIN" else f"[red]{result}[/]"
+        # Badge Risultato
+        if am_i_winner:
+            res_badge = "[bold white on green] WIN [/]"
+        elif winner_code == '0': # Pareggio (se gestito)
+            res_badge = "[bold black on yellow] DRAW [/]"
+        else:
+            res_badge = "[bold white on red] LOSS [/]"
+
+        # 3. Formattazione Data
+        started_at = match.get('started_at')
+        date_str = "N/A"
+        if started_at:
+            try:
+                # Parsa la stringa ISO (es. 2025-12-16T19:47:57.816527)
+                dt_obj = datetime.fromisoformat(started_at)
+                date_str = dt_obj.strftime("%d/%m %H:%M")
+            except:
+                pass
+
+        # 4. Creazione Timeline Turni (Fancy!)
+        # Analizziamo il log per vedere chi ha vinto ogni singolo turno
+        log = match.get('log', [])
+        timeline_dots = ""
+        
+        for turn in log:
+            turn_winner = turn.get('winner') # Qui ritorna lo username es 'aa'
             
-            table.add_row(str(date), str(opponent), res_style, str(score))
+            if turn_winner == my_username:
+                timeline_dots += "🟢" # Ho vinto io il turno
+            elif turn_winner == opponent:
+                timeline_dots += "🔴" # Ha vinto lui
+            else:
+                timeline_dots += "⚪" # Pareggio o nessuno
+        
+        # Aggiungiamo riga alla tabella
+        table.add_row(date_str, opponent, res_badge, score_str, timeline_dots)
 
-        console.print(table)
-
+    console.print(table)
+    console.print("\n[dim]Legenda Timeline: 🟢=Tuo Turno Vinto, 🔴=Turno Perso[/]")
     console.print("\n")
-    questionary.text("Premi Invio per tornare indietro...").ask()
+    
+    # Opzionale: Visualizzare dettagli di una partita specifica?
+    questionary.text("Premi Invio per tornare al menu...").ask()
