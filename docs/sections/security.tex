@@ -73,7 +73,7 @@ To protect confidentiality in case of database compromise email addresses and us
 user_data = {
     "username": user_in.username,
     "email": encrypt_data(user_in.email),  # Encrypted before storage
-    "hashed_password": get_password_hash(user_in.password),
+    "hashed_password": get_password_hash(user_in.password), # Hashed password+salt
     "hashed_email": hash_search_key(user_in.email)
 }
 USERS_COLLECTION.insert_one(user_data)
@@ -194,7 +194,7 @@ def create_access_token(data: dict):
 
 \textbf{Mechanism:}
 \begin{enumerate}
-    \item JWT library (\texttt{python-jose}) automatically validates \texttt{exp} claim during decoding
+    \item JWT library (\texttt{pyJWT}) automatically validates \texttt{exp} claim during decoding
     \item \texttt{JWTError} exception is raised if token is expired
     \item Client receives HTTP 401 Unauthorized response
     \item Client must re-authenticate to obtain new token
