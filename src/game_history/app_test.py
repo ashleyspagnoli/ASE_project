@@ -33,9 +33,9 @@ user_id_to_username = {}  # Store user_id -> username associations
 def mock_get_usernames_by_ids(user_ids):
     """
     Simulates fetching usernames for a list of user IDs.
-    Returns a dictionary mapping IDs to usernames from the stored associations.
+    Returns a list of dictionaries [{'id': user_id, 'username': username}, ...]
     """
-    return {user_id: user_id_to_username.get(user_id, "Unknown user") for user_id in user_ids}
+    return [{'id': user_id, 'username': user_id_to_username.get(user_id, "Unknown user")} for user_id in user_ids]
 
 def mock_validate_user_token(token_header):
     """The token IS the user_id for testing. Return the association."""
@@ -58,6 +58,7 @@ def add_usernames():
     if not isinstance(data, dict):
         return jsonify({'error': 'Expected dictionary of user_id: username'}), 400
     user_id_to_username.update(data)
+    print("Received data for /addusernames:", data)
     return jsonify({'status': 'ok'}), 201
 
 # Add the addmatches endpoint for testing

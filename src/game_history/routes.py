@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from logic import get_matches, get_leaderboard
-from utils import validate_user_token, get_usernames_by_ids
+from utils import validate_user_token, associate_usernames_to_ids
 from config import PAGE_SIZE
 
 history_blueprint = Blueprint('game_history', __name__)
@@ -28,7 +28,7 @@ def list_matches():
         for m in matches:
             if m.get('player1'): all_ids.add(m.get('player1'))
             if m.get('player2'): all_ids.add(m.get('player2'))
-        id_to_username = get_usernames_by_ids(all_ids)
+        id_to_username = associate_usernames_to_ids(all_ids)
         
         for m in matches:
             p1 = m.get('player1')
@@ -61,7 +61,7 @@ def leaderboard():
         all_ids = set()
         for m in matches:
             all_ids.add(m.get('_id'))
-        id_to_username = get_usernames_by_ids(all_ids)
+        id_to_username = associate_usernames_to_ids(all_ids)
 
 
         # Build response replacing _id with username
