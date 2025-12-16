@@ -5,7 +5,7 @@ from client_app.profilescreen import schermata_profilo
 from client_app.authentication import flusso_autenticazione
 from client_app.leaderboard import schermata_leaderboard
 from client_app.cardcollection import schermata_cardcollection
-#from client_app.matchscreen import schermata_partita
+from client_app.matchscreen import schermata_partita
 
 console = Console()
 
@@ -59,7 +59,7 @@ def menu_principale_gioco(): # Rimosso 'user'
             schermata_cardcollection(console,CURRENT_USER_STATE)
 
         elif azione == "Play a Match":
-            #schermata_partita(console,CURRENT_USER_STATE)
+            schermata_partita(console,CURRENT_USER_STATE)
             time.sleep(2)
 
         elif azione == "Quit":
