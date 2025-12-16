@@ -32,6 +32,6 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Audit ${{ matrix.service.name }}
-        uses: docker://pypa/pip-audit:latest
+        uses: pypa/gh-action-pip-audit@v1.1.0
         with:
-          args: -r ${{ matrix.service.path }}
+          inputs: ${{ matrix.service.path }}
