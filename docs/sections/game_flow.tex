@@ -1,10 +1,67 @@
-\section{API Calls of the Game Flow}
-\subsection{Deck Building Phase}
-We've separated the deck building from the game (More information in \hyperref[sec:cloud-decks]{Cloud Storage of Decks})
-\begin{itemize}
-    \item 
-\end{itemize}
-\subsection{Game Phase}
-\begin{itemize}
-    \item 
-\end{itemize}
+\section{Game Flow Guide}
+
+This guide outlines the steps to play a game, from deck creation to gameplay, assuming the user is already logged in.
+
+\subsection{1. Deck Building Phase}
+Before joining a game, a player must create a valid deck.
+
+\begin{enumerate}
+    \item \textbf{Retrieve Available Cards} \\
+    Endpoint: \texttt{GET /collection/cards} \\
+    Returns a list of all available cards with their IDs.
+
+    \item \textbf{Create a Deck} \\
+    Endpoint: \texttt{POST /collection/decks} \\
+    Body (JSON):
+    \begin{verbatim}
+    {
+        "deckSlot": 1,          // 1-5
+        "deckName": "My Deck",
+        "cards": ["c1", "c2", ...] // List of 8 card IDs
+    }
+    \end{verbatim}
+    \textbf{Constraints:}
+    \begin{itemize}
+        \item Exactly 8 cards.
+        \item Exactly 2 cards per suit.
+        \item Max 15 points per suit.
+    \end{itemize}
+\end{enumerate}
+
+\subsection{2. Matchmaking Phase}
+Once a deck is ready, the player can join the queue.
+
+\begin{enumerate}
+    \item \textbf{Join Queue} \\
+    Endpoint: \texttt{POST /game/match/join} \\
+    Adds the player to the matchmaking pool.
+
+    \item \textbf{Check Status} \\
+    Endpoint: \texttt{GET /game/match/status} \\
+    Poll this endpoint until a match is found. \\
+    Returns: \texttt{\{"status": "matched", "game\_id": "..."\}} when a game is found.
+\end{enumerate}
+
+\subsection{3. Gameplay Phase}
+After a match is found, the game begins.
+
+\begin{enumerate}
+    \item \textbf{Select Deck} \\
+    Endpoint: \texttt{POST /game/deck/\{game\_id\}} \\
+    Body (JSON): \texttt{\{"deck\_slot": 1\}} \\
+    Selects the deck to use for this match.
+
+    \item \textbf{Game Loop} \\
+    Repeat these steps until the game ends:
+    \begin{itemize}
+        \item \textbf{Check Game State}: \texttt{GET /game/state/\{game\_id\}} \\
+        Returns the current turn, board cards, and scores.
+        
+        \item \textbf{Get Hand}: \texttt{GET /game/hand/\{game\_id\}} \\
+        Returns the cards currently in the player's hand.
+        
+        \item \textbf{Play Card}: \texttt{POST /game/play/\{game\_id\}} \\
+        Body (JSON): \texttt{\{"card": "card\_id"\}} \\
+        Plays a card when it is the player's turn.
+    \end{itemize}
+\end{enumerate}

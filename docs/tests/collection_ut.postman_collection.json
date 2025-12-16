@@ -268,7 +268,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\"userId\": \"testUser123\", \"deckSlot\": 1, \"deckName\": \"Cards deck 1\", \"cards\": [\"hA\", \"h5\", \"dA\", \"d9\", \"c7\", \"c8\", \"sA\", \"s5\"]}",
+					"raw": "{\"deckSlot\": 1, \"deckName\": \"Cards deck 1\", \"cards\": [\"hA\", \"h5\", \"dA\", \"d9\", \"c7\", \"c8\", \"sA\", \"s5\"]}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -318,7 +318,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\"userId\": \"testUser123\", \"deckSlot\": 1, \"deckName\": \"Cards deck 1\", \"cards\": [\"hA\", \"h5\", \"hA\", \"d9\", \"c7\", \"c8\", \"sA\", \"s5\"]}",
+					"raw": "{\"deckSlot\": 1, \"deckName\": \"Cards deck 1\", \"cards\": [\"hA\", \"h5\", \"hA\", \"d9\", \"c7\", \"c8\", \"sA\", \"s5\"]}",
 					"options": {
 						"raw": {
 							"language": "json"
@@ -371,7 +371,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "{\"userId\": \"testUser123\", \"deckSlot\": 1, \"deckName\": \"Cards deck 1\", \"cards\": [\"hA\", \"h5\", \"dA\", \"d8\", \"c7\", \"c8\", \"sA\", \"s5\"]}",
+					"raw": "{\"deckSlot\": 1, \"deckName\": \"Cards deck 1\", \"cards\": [\"hA\", \"h5\", \"dA\", \"d8\", \"c7\", \"c8\", \"sA\", \"s5\"]}",
 					"options": {
 						"raw": {
 							"language": "json"
