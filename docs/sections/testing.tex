@@ -61,32 +61,9 @@ newman run docs/tests/integration.postman_collection.json --insecure
     \end{lstlisting}
 \end{itemize}
 
-Those tests can also 
-
-\begin{center}
-    {\Huge\color{red}\textbf{!}}
-\end{center}
-\textbf{Using Python Script:}
-A complete game simulation can be executed programmatically:
-\begin{lstlisting}[language=bash]
-cd src
-python test_match.py
-\end{lstlisting}
-
-This script performs:
-\begin{enumerate}
-    \item Registers two random users with unique credentials
-    \item Creates valid decks for both players
-    \item Initiates matchmaking and pairs the users
-    \item Simulates a complete game with card plays
-    \item Displays comprehensive game statistics including:
-    \begin{itemize}
-        \item Round-by-round results
-        \item Final scores
-        \item Winner determination
-        \item Game duration
-    \end{itemize}
-\end{enumerate}
+Those tests are also automatically executed at each push on GitHub with GitHub Actions.\\
+The unit tests will start after the pip-audit actions doesn't find vulnerabilities.\\
+The integration test will start after the unit tests finish successfully.
 
 \subsection{Performance Testing with Locust}
 
