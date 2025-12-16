@@ -1,0 +1,37 @@
+name: Security Audit
+
+on:
+  push:
+    branches: [ master, main, develop ]
+  pull_request:
+    branches: [ master, main, develop ]
+
+jobs:
+  pip-audit:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - path: client/requirements.txt
+            name: client
+          - path: src/api_gateway/requirements.txt
+            name: api_gateway
+          - path: src/collection/requirements.txt
+            name: collection
+          - path: src/game_engine/requirements.txt
+            name: game_engine
+          - path: src/game_history/requirements.txt
+            name: game_history
+          - path: src/user-editor/requirements.txt
+            name: user-editor
+          - path: src/user-manager/requirements.txt
+            name: user-manager
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Audit ${{ matrix.service.name }}
+        uses: pypa/gh-action-pip-audit@v1.1.0
+        with:
+          inputs: ${{ matrix.service.path }}

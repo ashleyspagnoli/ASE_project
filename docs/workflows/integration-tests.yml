@@ -1,0 +1,80 @@
+name: Integration Tests
+
+on:
+  workflow_run:
+    workflows: ["Postman Unit Tests"]
+    types:
+      - completed
+
+jobs:
+  integration-tests:
+    runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Start all services with Docker Compose
+        working-directory: ./src
+        run: |
+          docker compose up -d --build
+          echo "Waiting for services to be ready..."
+          sleep 45
+          
+      - name: Wait for API Gateway to be ready
+        run: |
+          echo "Checking API Gateway health..."
+          for i in {1..30}; do
+            if curl -k https://localhost:8443 &>/dev/null; then
+              echo "API Gateway is ready!"
+              break
+            fi
+            echo "Waiting for API Gateway... ($i/30)"
+            sleep 2
+          done
+
+      - name: Check services health
+        working-directory: ./src
+        run: |
+          docker compose ps
+          docker compose logs
+
+      - name: Install Newman
+        run: npm install -g newman
+
+      - name: Run Integration Tests
+        run: |
+          newman run docs/tests/integration.postman_collection.json --insecure \
+            --env-var "base_url=https://localhost:8443" \
+            --reporters cli,json \
+            --reporter-json-export integration-results.json
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-test-results
+          path: integration-results.json
+
+      - name: Show logs on failure
+        if: failure()
+        working-directory: ./src
+        run: |
+          echo "=== API Gateway Logs ==="
+          docker compose logs api-gateway
+          echo "=== User Manager Logs ==="
+          docker compose logs user-manager
+          echo "=== Collection Logs ==="
+          docker compose logs collection
+          echo "=== Game Engine Logs ==="
+          docker compose logs game-engine
+          echo "=== Game History Logs ==="
+          docker compose logs game-history
+          echo "=== RabbitMQ Logs ==="
+          docker compose logs rabbitmq
+
+      - name: Cleanup
+        if: always()
+        working-directory: ./src
+        run: docker compose down -v

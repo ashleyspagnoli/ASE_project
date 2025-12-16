@@ -201,7 +201,7 @@ trivy image --severity HIGH,CRITICAL <image_name>
         \item \textit{Threat}: Impersonating a user.
         \item \textit{Mitigation}: JWT authentication required for all protected endpoints. Tokens are signed with a secret key known only to \texttt{user-manager}.
         \item \textit{Threat}: Impersonating a microservice.
-        \item \textit{Mitigation}: Internal communication uses TLS. Services must present a valid certificate signed by the internal CA.
+        \item \textit{Mitigation}: Internal communication uses TLS. Services must present a valid certificate signed with internal certificates.
     \end{itemize}
     
     \item \textbf{Tampering}:
