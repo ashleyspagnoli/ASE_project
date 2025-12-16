@@ -14,9 +14,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Generate self-signed certificates
-        working-directory: ./src
-
       - name: Build and start collection test service
         working-directory: ./src
         run: |
@@ -56,8 +53,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Generate self-signed certificates
-        working-directory: ./src
       - name: Build and start game history test service
         working-directory: ./src
         run: |
@@ -101,8 +96,8 @@ jobs:
         working-directory: ./src
         run: |
           mkdir -p secrets/user-manager
-          python3 -c "import secrets; print(secrets.token_urlsafe(32))" > secrets/user-manager/encryption_key.txt
-          python3 -c "import secrets; print(secrets.token_urlsafe(32))" > secrets/user-manager/jwt_secret_key.txt
+          python3 -c "import secrets; print(secrets.token_urlsafe(32))" > secrets/user-manager/user_db_encryption_secret_key
+          python3 -c "import secrets; print(secrets.token_urlsafe(32))" > secrets/user-manager/jwt_secret_key
 
       - name: Create test network
         run: docker network create test-network
