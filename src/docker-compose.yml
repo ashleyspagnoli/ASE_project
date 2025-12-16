@@ -114,7 +114,6 @@ services:
   user-db:
     image: circleci/mongo:4.0-xenial-ram
     container_name: user_auth_db
-    restart: always 
     volumes:
       - user_mongo_data:/data/db 
 
@@ -184,7 +183,6 @@ volumes:
   history-data:
   decks-data:
   user_mongo_data:
-
 
 secrets:
   api_gateway_cert:
