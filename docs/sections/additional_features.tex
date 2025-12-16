@@ -42,3 +42,7 @@ In this interaction we replaced the timeout with RabbitMQ, a Message Broker, tha
 This meant a new docker container for RrabbitMQ and running code to fill up the RabbitMQ queue in Game Engine and to ping it for new data in Game History.
 \subsection{Test-match}
 As already said in \hyperref[sec:test-match]{Test Match} we made a simple script to test the system. You can find it in \texttt{/docs/tests/test\_match.py}.
+
+\subsection{Pip Audit}
+Together with the actions for unit tests and integration tests, we implemented a GitHub Action that runs \texttt{pip-audit} to automatically check for known vulnerabilities in our Python dependencies.
+
