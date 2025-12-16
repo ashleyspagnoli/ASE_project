@@ -3,233 +3,62 @@
 \subsection{Security – Data}
 
 \subsubsection{Input Sanitization}
+\textbf{Target:} User email addresses (Registration/Modification).
 
-\textbf{Selected Input:} User email addresses during registration and modification.
+\textbf{Threats Mitigated:} NoSQL injection, XSS, Duplicate accounts.
 
-\paragraph{Description:}
-The email input is a critical user identifier used for account recovery and communication. It must be sanitized to prevent:
+\textbf{Implementation:}
 \begin{itemize}
-    \item NoSQL injection attacks
-    \item Cross-site scripting (XSS) attempts
-    \item Duplicate account creation
+    \item \textbf{Type Validation:} Pydantic models enforce strict typing (e.g., \texttt{email: str}).
+    \item \textbf{Duplicate Prevention:} SHA-256 hashing of emails for secure, consistent search keys without exposing raw data.
+    \item \textbf{Query Safety:} Explicit type casting of query parameters (e.g., \texttt{page=int}) to prevent injection.
 \end{itemize}
-
-\paragraph{Microservices Involved:}
-\begin{itemize}
-    \item \textbf{User-Manager:} Handles registration and email validation
-    \item \textbf{User-Editor:} Manages email modification requests
-    \item \textbf{API Gateway:} Performs initial validation before forwarding requests
-\end{itemize}
-
-\paragraph{Sanitization Strategy:}
-
-\textbf{Type Validation:}
-\begin{lstlisting}
-class UserCreate(UserBase):
-    password: str = Field(..., min_length=3)
-    email: str = Field(..., description="User's email")
-\end{lstlisting}
-
-\textbf{Hash-based Duplicate Prevention:}
-\begin{lstlisting}
-def hash_search_key(data: str) -> str:
-    """SHA-256 hash for consistent, secure searching"""
-    return hashlib.sha256(data.lower().encode('utf-8')).hexdigest()
-
-# Usage in registration
-hashed_email = hash_search_key(user_in.email)
-if USERS_COLLECTION.find_one({"hashed_email": hashed_email}):
-    raise HTTPException(status_code=400, 
-                       detail="Email already registered")
-\end{lstlisting}
-
-\textbf{Query Parameter Validation:}
-\begin{lstlisting}
-# Explicit type enforcement prevents injection
-page = request.args.get('page', default=0, type=int)
-\end{lstlisting}
 
 \subsubsection{Data Encryption at Rest}
+\textbf{Scope:} Sensitive user data (Email, Username) in \texttt{user-db}.
 
-\paragraph{Encrypted Data:}
-To protect confidentiality in case of database compromise email addresses and usernames in user-db have been encrypted at rest. 
-
-\paragraph{Encryption Implementation:}
-
-\textbf{Encryption Method:} Fernet
-
-\textbf{Key Management:}
+\textbf{Mechanism:}
 \begin{itemize}
-    \item Encryption key stored as Docker secret at \texttt{/run/secrets/user\_db\_encryption\_secret\_key}
-    \item Generated using cryptographically secure random bytes (32 bytes/256 bits)
-    \item Encoded in Base64 URL-safe format for compatibility
-\end{itemize}
-
-\textbf{Encryption Location:} \texttt{user-manager} microservice
-
-\textbf{Usage in Data Storage:}
-\begin{lstlisting}
-# main.py - User registration
-user_data = {
-    "username": user_in.username,
-    "email": encrypt_data(user_in.email),  # Encrypted before storage
-    "hashed_password": get_password_hash(user_in.password), # Hashed password+salt
-    "hashed_email": hash_search_key(user_in.email)
-}
-USERS_COLLECTION.insert_one(user_data)
-\end{lstlisting}
-
-\textbf{Decryption Location:} \texttt{user-manager} microservice (during token validation and user data retrieval)
-
-\begin{lstlisting}
-# Automatic decryption when retrieving user data
-user = UserInDB(
-    username=user_doc['username'],
-    email=decrypt_data(user_doc['email']),  # Decrypted on read
-    hashed_password=user_doc['hashed_password']
-)
-\end{lstlisting}
-
-\paragraph{Reasons:}
-\begin{itemize}
-    \item \textbf{Defense in Depth:} Even if the database is compromised, sensitive data remains encrypted
-    \item \textbf{Dual Hashing Strategy:} Email addresses are both encrypted (for storage) and hashed (for duplicate checking), preventing inference attacks
-    \item \textbf{Separation of Concerns:} Encryption keys are managed externally via Docker secrets
+    \item \textbf{Algorithm:} Fernet (Symmetric encryption).
+    \item \textbf{Key Management:} 32-byte cryptographically secure key, stored as Docker secret (\texttt{/run/secrets/user\_db\_encryption\_secret\_key}).
+    \item \textbf{Process:} 
+    \begin{itemize}
+        \item \textbf{Write:} Encrypt data before insertion.
+        \item \textbf{Read:} Decrypt data on retrieval.
+        \item \textbf{Search:} Use hashed values for lookups to avoid decrypting entire collections.
+    \end{itemize}
 \end{itemize}
 
 \subsection{Security – Authentication and Authorization}
 
-\subsubsection{Architecture: Centralized Authentication}
+\subsubsection{Architecture}
+\textbf{Model:} Centralized Authentication via \texttt{user-manager}.
 
-Our system implements a \textbf{centralized authentication model} where the \texttt{user-manager} microservice acts as the single source of truth for authentication and token validation.
-
-\paragraph{Token Validation Flow:}
-
+\textbf{Flow:}
 \begin{enumerate}
-    \item \textbf{Client Request:} User sends credentials to API Gateway
-    \item \textbf{Authentication:} API Gateway forwards to \texttt{user-manager}
-    \item \textbf{Token Generation:} \texttt{user-manager} creates JWT and returns to client
-    \item \textbf{Subsequent Requests:} Client includes JWT in Authorization header
-    \item \textbf{Token Validation:} Each microservice calls \texttt{user-manager} to validate token
-    \item \textbf{Authorization:} Microservice proceeds with request if token is valid
+    \item \textbf{Login:} Client credentials $\rightarrow$ API Gateway $\rightarrow$ \texttt{user-manager} $\rightarrow$ JWT issued.
+    \item \textbf{Access:} Client sends JWT $\rightarrow$ Microservice $\rightarrow$ Validate with \texttt{user-manager}.
 \end{enumerate}
 
-\begin{figure}[h]
-\centering
-\begin{minipage}{0.9\textwidth}
-\textbf{Token Validation Process:}
-% \begin{verbatim}
-% ┌─────────┐        ┌─────────────┐        ┌──────────────┐
-% │ Client  │───1───>│ API Gateway │───2───>│ Microservice │
-% └─────────┘        └─────────────┘        └──────────────┘
-%      │                                            │
-%      │                                            │3. Validate
-%      │                                            ▼
-%      │                                     ┌──────────────┐
-%      │<──────────────6. Response──────────│ user-manager │
-%      │                                     └──────────────┘
-%      │                                            │
-%      │                                            │4. JWT decode
-%      │                                            │5. DB lookup
-% \end{verbatim}
-\end{minipage}
-\caption{Centralized token validation architecture}
-\end{figure}
-
-\paragraph{Key Management and Storage:}
-
-\begin{table}[h]
-\centering
-\begin{tabular}{@{}lp{8cm}@{}}
-\toprule
-\textbf{Aspect} & \textbf{Implementation} \\ \midrule
-\textbf{Signing Key} & 256-bit secret key (HS256 algorithm) \\
-\textbf{Storage Location} & Docker secret: \texttt{/run/secrets/jwt\_secret\_key} \\
-\textbf{Access Control} & Only \texttt{user-manager} container has read access \\
-\textbf{Generation} & Cryptographically secure random bytes (Base64 URL-safe) \\
-\textbf{Rotation Strategy} & Manual rotation via Docker secret update and container restart \\ \bottomrule
-\end{tabular}
-\caption{JWT signing key management}
-\end{table}
-
-\subsubsection{Access Token Payload Format}
-
-\begin{lstlisting}
-{
-  "sub": "username",                 # Subject (username identifier)
-  "username": "john_doe",            # Explicit username field
-  "id": "507f1f77bcf86cd799439011",  # MongoDB ObjectId
-  "exp": 1735220400                  # Expiration timestamp (Unix epoch)
-}
-\end{lstlisting}
-
-\textbf{Field Descriptions:}
+\subsubsection{JWT Implementation}
+\textbf{Configuration:}
 \begin{itemize}
-    \item \texttt{sub}: Standard JWT subject claim containing the username
-    \item \texttt{username}: Redundant field for backward compatibility
-    \item \texttt{id}: User's unique database identifier for efficient lookups
-    \item \texttt{exp}: Expiration timestamp (30 minutes from issuance)
+    \item \textbf{Algorithm:} HS256.
+    \item \textbf{Secret Storage:} Docker secret (\texttt{/run/secrets/jwt\_secret\_key}), accessible only to \texttt{user-manager}.
+    \item \textbf{Payload:}
+    \begin{itemize}
+        \item \texttt{sub}: Username (Subject).
+        \item \texttt{id}: Database ObjectId.
+        \item \texttt{exp}: Expiration timestamp (30 minutes).
+    \end{itemize}
 \end{itemize}
 
-\subsubsection{Token Generation Process}
-
-\begin{lstlisting}
-def create_access_token(data: dict):
-    to_encode = data.copy()
-    # Ensure 'sub' claim for OAuth2 compatibility
-    if "sub" not in to_encode and "username" in to_encode:
-        to_encode["sub"] = to_encode["username"]
-    
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire})
-    
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
-\end{lstlisting}
-
-\subsubsection{Expired Token Handling}
-
-\paragraph{Strategy:} \textbf{Automatic rejection with explicit error messaging}
-
-\textbf{Mechanism:}
-\begin{enumerate}
-    \item JWT library (\texttt{pyJWT}) automatically validates \texttt{exp} claim during decoding
-    \item \texttt{JWTError} exception is raised if token is expired
-    \item Client receives HTTP 401 Unauthorized response
-    \item Client must re-authenticate to obtain new token
-\end{enumerate}
-
-\begin{lstlisting}
-def get_current_user(token: str = Depends(oauth2_scheme)):
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Invalid credentials",
-        headers={"Authenticate": "Bearer"},
-    )
-    try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        username: str = payload.get("sub")
-        if username is None:
-            raise credentials_exception
-    except JWTError:  # Catches ExpiredSignatureError automatically
-        raise credentials_exception
-    
-    user = get_user(username)
-    if user is None:
-        raise credentials_exception
-    return user
-\end{lstlisting}
-
-\textbf{Client-Side Handling:}
+\subsubsection{Token Lifecycle}
 \begin{itemize}
-    \item Client detects 401 response
-    \item Redirects user to login page
-    \item Clears stored token from local state
-    \item User re-authenticates to receive fresh token
+    \item \textbf{Validation:} \texttt{pyJWT} library automatically verifies signature and expiration.
+    \item \textbf{Expiration Policy:} For simplicity and security, we do not implement refresh tokens. Users must re-authenticate after 30 minutes of inactivity. This reduces the attack surface by limiting token lifetime.
+    \item \textbf{Error Handling:} Expired/Invalid tokens return HTTP 401, triggering client-side logout.
 \end{itemize}
-
-\textbf{No Token Refresh Mechanism:}
-For simplicity and security, we do not implement refresh tokens. Users must re-authenticate after 30 minutes of inactivity. This reduces the attack surface by limiting token lifetime.
 
 \newpage
 \subsection{Security – Analyses}
