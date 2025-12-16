@@ -6,6 +6,7 @@ A multi-service card game platform for two players, featuring authentication, de
 
 - [Prerequisites](#prerequisites)
 - [Quick Start](#quick-start)
+- [Running the Client](#running-the-client)
 - [Running Tests](#running-tests)
   - [Unit Tests](#unit-tests)
   - [Integration Tests](#integration-tests)
@@ -19,7 +20,8 @@ A multi-service card game platform for two players, featuring authentication, de
 
 - **Docker**
 - **Docker Compose**
-- **Postman** (for running tests)
+- **Node.js & Newman** (for running tests via CLI: `npm install -g newman`)
+- **Postman** (optional, for manual testing)
 - **Locust** (for performance tests)
 
 ## 🚀 Quick Start
@@ -37,31 +39,47 @@ docker compose up --build
 
 This will start all microservices, accessible through the **API Gateway** on https://localhost:8443
 
-### 4. Stop Services
+### 3. Stop Services
 ```bash
 docker compose down
 ```
+
+## 🖥️ Client
+
+The project includes a Python-based Command Line Interface (CLI) client located in the `/client` directory. This client serves as the frontend for the game, communicating with the backend services via the API Gateway. It uses the `rich` and `questionary` libraries to provide an interactive terminal experience.
+
+To run the client using Docker, execute the following command (Linux):
+```bash
+cd client/
+docker build -t ase-client . --no-cache
+docker run -it --rm \
+  --add-host=host.docker.internal:host-gateway \
+  -e API_GATEWAY_URL="https://host.docker.internal:8443/" \
+  -e GATEWAY_CERT_PATH="./gateway_cert.pem" \
+  ase-client
+```
+Ensure that the backend services are running before starting the client.
 
 ## 🧪 Running Tests
 
 ### Unit Tests
 
 Unit tests verify individual microservice functionality in isolation using mocked dependencies.
+They are executed using `newman` (Postman CLI) against the test containers.
 
 #### Collection Service Unit Tests
 ```bash
 # 1. Build and run the test container
 cd src
 docker build -f collection/Dockerfile_test -t collection-test .
-docker run -d -p 5006:5000 --name collection-test collection-test
+docker run -d -p 5000:5000 --name collection-test collection-test
 
-# 2. Import and run the Postman collection
-# Open Postman and import: docs/tests/collection_ut.postman_collection.json
-# Run the entire collection
+# 2. Run the tests
+newman run ../docs/tests/collection_ut.postman_collection.json --insecure
 
 # 3. Cleanup
-docker stop collection-test-container
-docker rm collection-test-container
+docker stop collection-test
+docker rm collection-test
 ```
 
 #### Game History Unit Tests
@@ -69,16 +87,14 @@ docker rm collection-test-container
 # 1. Build and run the test container
 cd src
 docker build -f game_history/Dockerfile_test -t history-test .
-docker run -d -p 5007:5000 --name history-test history-test
+docker run -d -p 5000:5000 --name history-test history-test
 
-# 2. Import and run the Postman collection
-# Open Postman and import: docs/tests/game_history_ut.postman_collection.json
-# Set base URL to: http://localhost:5007
-# Run the entire collection
+# 2. Run the tests
+newman run ../docs/tests/game_history_ut.postman_collection.json --insecure
 
 # 3. Cleanup
-docker stop history-test-container
-docker rm history-test-container
+docker stop history-test
+docker rm history-test
 ```
 
 #### User Manager Unit Tests
@@ -86,15 +102,13 @@ docker rm history-test-container
 # 1. Build and run the test container
 cd src
 docker build -f user-manager/Dockerfile_test -t user-manager-test .
-docker run -d -p 5007:5000 --name user-manager-test user-manager-test
+docker run -d -p 5004:5000 --name user-manager-test user-manager-test
 
-# 2. Import and run the Postman collection
-# Open Postman and import: docs/tests/user_manager_ut.postman_collection.json
-# Set base URL to: http://localhost:5004
-# Run the entire collection
+# 2. Run the tests
+newman run ../docs/tests/user_manager_ut.postman_collection.json --insecure
 
 # 3. Cleanup
-docker user-manager-test
+docker stop user-manager-test
 docker rm user-manager-test
 ```
 
@@ -107,36 +121,33 @@ Integration tests verify the complete workflow across all microservices.
 Ensure all services are running:
 ```bash
 cd src
-docker compose up --build
+docker compose up --build -d
 ```
 
 #### Running Integration Tests
 ```bash
-# 1. Import the integration test collection
-# Open Postman and import: tests/integration.postman_collection.json
-
-# 2. Verify environment variables are set correctly:
-#    - gateway_url: https://localhost:8443
-#    - User credentials will be auto-generated
-
-# 3. Run the entire collection or specific test suites:
-#    - IT-001: Complete Game Workflow - Happy Path
-#    - IT-002: Authentication & Authorization Tests
-#    - IT-003: Deck Validation Tests
-#    - IT-004: Game History & Leaderboard Tests
-#    - IT-005: Cross-Service Data Consistency Tests
-#    - IT-007: Error Handling & Edge Cases
-
-# Note: Some tests depend on previous tests in the sequence.
-# Run tests in order for best results.
+# From the project root directory:
+newman run docs/tests/integration.postman_collection.json --insecure
 ```
+
+The integration test suite covers:
+- **IT-001**: Complete Game Workflow - Happy Path
+- **IT-002**: Authentication & Authorization Tests
+- **IT-003**: Deck Validation Tests
+- **IT-004**: Game History & Leaderboard Tests
+- **IT-005**: Cross-Service Data Consistency Tests
+- **IT-007**: Error Handling & Edge Cases
+- **IT-008**: User Editor Integration
+- **IT-009**: Complete Game Playthrough
+- **IT-010**: Complete Game Until Winner
+- **IT-011**: Leaderboard and Statistics
 
 #### Quick Integration Test with Python Script
 
 Alternatively, run a complete game simulation:
 ```bash
-cd src
-python test_match.py
+# From the project root directory:
+python docs/tests/test_match.py
 ```
 
 This script will:
@@ -160,11 +171,10 @@ pip install locust
 ```bash
 # 1. Ensure all services are running
 cd src
-docker compose up -d
+docker compose up --build -d
 
-# 2. Start Locust
-cd docs
-locust
+# 2. Start Locust (from project root)
+locust -f docs/locustfile.py
 
 # 3. Open browser to http://localhost:8089
 
@@ -187,55 +197,6 @@ The performance test simulates realistic user behavior:
 5. **Gameplay** - Complete game sessions
 6. **History Access** - Match history and leaderboard queries
 
-## 📚 Service Documentation
-
-Each microservice its own API documentation:
-
-- **API Gateway**: See `docs/openapi.yml`
-- **User Manager**: See `src/user-manager/openapi.yml`
-- **Collection**: See `src/collection/openapi.yml`
-- **Game Engine**: See `src/game_engine/static/openapi.yml`
-- **Game History**: See `src/game_history/openapi.yml`
-
-### Key Endpoints
-
-#### Authentication
-- `POST /users/register` - Register new user
-- `POST /users/login` - Login and get JWT
-- `POST /token` - OAuth2 token exchange
-
-#### Collection Management
-- `GET /collection/cards` - Get all available cards
-- `GET /collection/cards/{card_id}` - Get card details
-- `POST /collection/decks` - Create a new deck
-- `GET /collection/decks` - Get user's decks
-- `DELETE /collection/decks/{deck_id}` - Delete a deck
-
-#### Game Engine
-- `POST /game/match/join` - Join matchmaking queue
-- `GET /game/match/status` - Check matchmaking status
-- `POST /game/deck/{game_id}` - Select deck for game
-- `GET /game/hand/{game_id}` - Get current hand
-- `POST /game/play/{game_id}` - Play a card
-- `GET /game/state/{game_id}` - Get game state
-
-#### Game History
-- `GET /history/matches` - Get match history (paginated)
-- `GET /history/leaderboard` - Get global leaderboard (paginated)
-
-## 🎮 Game Rules
-
-See **`Game_Rules.md`** for complete game rules including:
-- Deck building constraints
-- Card values and hierarchy
-- Suit priority
-- Win conditions
-- Example gameplay
 
 ## 👥 Contributors
 Federico Fornaciari, Filippo Morelli, Marco Pernisco, Ashley Spagnoli
-
----
-
-For detailed information about game rules, see `Game_Rules.md`.  
-For detailed informations about the entire project, see `docs/main.tex`. 
