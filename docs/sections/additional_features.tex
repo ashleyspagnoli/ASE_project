@@ -2,6 +2,34 @@
 %3 user stories verdi, client, salvataggio deck in collection, uso di rabbitmq come proof of concept
 
 \subsection{Green User Stories}
+\label{sec:green-user-stories}
+
+The project implements two green user stories that enhance the player's gameplay experience by providing essential game state information.
+
+\subsubsection{Viewing Cards in Hand}
+The first green user story addresses the player's need to see their available cards: \textit{"I want to see the cards in my hand so that I know which cards I have to play"}. 
+
+The \textbf{Game Engine} implements the \texttt{GET /hand/\{game\_id\}} endpoint that returns the authenticated player's current hand as a JSON array of card objects. Each card object contains the \texttt{value} and \texttt{suit} properties (e.g., \texttt{\{"value": "K", "suit": "hearts"\}}). This allows the client application to display exactly which cards the player currently holds and can play during their turn.
+
+The endpoint is protected by JWT authentication, ensuring that each player can only view their own cards and not their opponent's hand, maintaining game fairness and competitive integrity.
+
+\subsubsection{Turn State Tracking}
+The second green user story addresses the need for players to know when they can act: \textit{"I want to know who's turn it is so that I know if I can play or not"}. The Game Engine implements turn state tracking through the \texttt{current\_round} mechanism.
+
+During each round, the game tracks which players have submitted their cards. The \texttt{GET /state/\{game\_id\}} endpoint can be polled by clients to determine the current turn state by examining:
+\begin{itemize}
+    \item \textbf{Empty current round}: Both players can play (new round starting)
+    \item \textbf{One card played}: The opponent is waiting for the current player to submit their card
+    \item \textbf{Both cards played}: The round is being resolved, and players will draw new cards
+\end{itemize}
+
+Additionally, when a player submits a card via \texttt{POST /play/\{game\_id\}}, the response includes a \texttt{status} field:
+\begin{itemize}
+    \item \texttt{"waiting"}: The player has submitted their card and is now waiting for the opponent
+    \item \texttt{"resolved"}: Both players submitted cards, the round is complete, and results are provided
+    \item \texttt{"finished"}: The match has ended with a winner
+\end{itemize}
+This mechanism allows players to understand the flow of the game and know when they can take action.
 
 \subsection{Cloud Storage of Decks}
 \label{sec:cloud-decks}
