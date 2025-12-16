@@ -67,113 +67,27 @@ The integration test will start after the unit tests finish successfully.
 
 \subsection{Performance Testing with Locust}
 
-Performance tests simulate realistic user load to measure system behavior under concurrent access and identify bottlenecks. 
-The tests use Locust, a Python-based load testing framework.
+Performance tests were conducted using Locust (\texttt{docs/locustfile.py}) to simulate realistic user workflows and measure system behavior under load.
 
-\subsubsection{Test Scenarios}
-
-The performance test suite simulates a complete user workflow representing realistic usage patterns:
-
-\begin{enumerate}
-    \item \textbf{User Registration}: Creates new accounts with random credentials
-    \item \textbf{Authentication}: Performs login and JWT token generation
-    \item \textbf{Deck Creation}: Builds valid 8-card decks following game rules
-    \item \textbf{Matchmaking}: Joins queue and waits for opponent matching
-    \item \textbf{Gameplay}: Simulates complete game sessions with:
-    \begin{itemize}
-        \item Deck selection for matched game
-        \item Iterative card plays
-        \item Hand retrieval between turns
-        \item Game state validation
-    \end{itemize}
-    \item \textbf{History Access}: Queries match history and leaderboard data
-\end{enumerate}
-
-\subsubsection{User Types}
-
-Three user types with different think times simulate varied usage patterns:
-
+\textbf{Tested Workflow:}
 \begin{itemize}
-    \item \textbf{QuickUser}: 1-3 second wait time between actions (rapid gameplay)
-    \item \textbf{NormalUser}: 3-7 second wait time (typical gameplay)
-    \item \textbf{SlowUser}: 5-15 second wait time (casual gameplay)
+    \item User registration and login
+    \item Deck creation
+    \item Matchmaking and gameplay (card play, hand retrieval)
+    \item History and leaderboard queries
 \end{itemize}
 
-\subsubsection{Implementation Details}
+Three user profiles (quick, normal, slow) with different wait times were used to mimic varied usage patterns.
 
-The Locust test implementation (\texttt{docs/locustfile.py}) features:
-
+\textbf{Execution:}
 \begin{itemize}
-    \item \textbf{Sequential Task Execution}: \texttt{GameUserFlow} class orchestrates the complete workflow
-    \item \textbf{Session Management}: Each user maintains state across requests:
-    \begin{itemize}
-        \item Username with random suffix (e.g., \texttt{loadtest\_user\_12345})
-        \item JWT token for authenticated requests
-        \item Active game ID during matches
-        \item Selected deck slot
-    \end{itemize}
-    \item \textbf{SSL Configuration}: Disables certificate verification for self-signed certificates
-    \item \textbf{Error Handling}: Graceful handling of concurrent access scenarios:
-    \begin{itemize}
-        \item 400 responses during registration marked as success, duplicate usernames expected and should not impact on the test results
-        \item 401 responses during opponent's turn marked as success, they indicate it's not the user's turn and should not impact on the test results
-        \item Failed operations are logged but don't interrupt test flow
-    \end{itemize}
+    \item 100 concurrent users, spawn rate 20 users/sec
+    \item No errors observed during the test
+    \item The slowest part of the system was the one handled by User Manager. This was probably because of the Argon2 hashing algorithm used for passwords, which is intentionally slow to prevent brute-force attacks.
 \end{itemize}
 
-\subsubsection{Test Execution}
-
-\textbf{Setup:}
-\begin{lstlisting}[language=bash]
-# Install Locust
-pip install locust
-
-# Ensure all services are running
-cd src
-docker compose up -d
-\end{lstlisting}
-
-\textbf{Running Tests:}
-\begin{lstlisting}[language=bash]
-# Start Locust web interface
-cd docs
-locust
-
-# Access web UI at http://localhost:8089
-\end{lstlisting}
-
-\textbf{Configuration:}
-\begin{enumerate}
-    \item Set number of users (e.g., 50 concurrent users)
-    \item Set spawn rate (e.g., 4 users/second)
-    \item Set host: \texttt{https://localhost:8443}
-    \item Click "Start" to begin test
-\end{enumerate}
-
-\subsubsection{Metrics and Analysis}
-
-Locust provides real-time metrics during test execution:
-
-\begin{itemize}
-    \item \textbf{Request Statistics}:
-    \begin{itemize}
-        \item Requests per second (RPS) by endpoint
-        \item Response time percentiles (50th, 95th, 99th)
-        \item Failure rates and error types
-        \item Average response sizes
-    \end{itemize}
-    
-    \item \textbf{Endpoints}:
-    \begin{itemize}
-        \item \texttt{/users/register}: user creation
-        \item \texttt{/users/login}: authentication
-        \item \texttt{/collection/decks}: deck management operations
-        \item \texttt{/game/match/join}: matchmaking queue
-        \item \texttt{/game/hand}: cards in hand
-        \item \texttt{/game/play}: card play action
-        \item \texttt{/history/matches}: user's matches history
-        \item \texttt{/history/leaderboard}: leaderboard
-    \end{itemize}
-
-    % Analisi da terminare
-\end{itemize}
+\begin{figure}[h]
+    \centering
+    \includegraphics[width=0.9\linewidth]{images/locust1.png}
+    \includegraphics[width=0.9\linewidth]{images/locust2.png}
+\end{figure}

@@ -537,45 +537,6 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthorized'
 
-  /game/deck/{game_id}:
-    post:
-      summary: Select deck for game
-      description: Player selects which deck slot to use for the match.
-      tags:
-        - Game
-      security:
-        - BearerAuth: []
-      parameters:
-        - $ref: '#/components/parameters/GameId'
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - deck_slot
-              properties:
-                deck_slot:
-                  type: integer
-                  minimum: 1
-                  maximum: 5
-                  example: 1
-      responses:
-        '200':
-          description: Deck selected
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  message:
-                    type: string
-                    example: "user1 deck selected. Waiting for opponent."
-        '400':
-          description: Invalid game ID or deck slot
-        '401':
-          $ref: '#/components/responses/Unauthorized'
 
   /game/hand/{game_id}:
     get:

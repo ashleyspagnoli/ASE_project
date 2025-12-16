@@ -97,7 +97,6 @@ user = UserInDB(
     \item \textbf{Separation of Concerns:} Encryption keys are managed externally via Docker secrets
 \end{itemize}
 
-\newpage
 \subsection{Security – Authentication and Authorization}
 
 \subsubsection{Architecture: Centralized Authentication}
@@ -245,7 +244,7 @@ bandit -r src/
 \end{lstlisting}
 \begin{figure}[h]
 \centering
-\includegraphics[width=0.4\textwidth]{bandit.png}
+\includegraphics[width=0.4\textwidth]{images/bandit.png}
 \end{figure}
 
 % Da aggiungre screenshot del report di Bandit
@@ -314,13 +313,14 @@ trivy image --severity HIGH,CRITICAL <image_name>
 \textbf{Findings:}
 \begin{itemize}
     \item \textbf{Exposed Secrets:} Trivy detected hardcoded keys in repository
-    \item \textbf{Academic Context:} As agreed with the Professor, keys are intentionally included since it's a project with educational purposes. In a real context, we wouldn't have published neither keys on the GitHub repository, neither the databases passwords in the docker compose file, but we would've passed passwords as environment variables and used certificates provided by CAs stored locally and added to .gitignore.
+    \item \textbf{Academic Context:} As agreed with the Professor, keys are intentionally included since it's a project with educational purposes.
     \item \textbf{Production Mitigation:} In a real deployment, keys would be:
     \begin{itemize}
-        \item Generated dynamically per environment
+        \item Generated dynamically per environment or, even better, we could've used certificates provided by a CA.
         \item Stored in secure secret management systems
-        \item Never committed to version control
+        \item Never committed
     \end{itemize}
+    The same principles would apply for databases passwords hardcoded in the docker compose file.
 \end{itemize}
 
 
