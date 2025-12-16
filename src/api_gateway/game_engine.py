@@ -10,7 +10,7 @@ router = APIRouter()
 @router.post("/match/join")
 async def game_join(request: Request):
     URL = GAME_URL + '/match/join'
-    return await forward_request(request, URL, body_data=None)
+    return await forward_request(request, URL, body_data=await request.json(), is_json=True)
 
 @router.get("/match/status")
 async def game_status(request: Request):

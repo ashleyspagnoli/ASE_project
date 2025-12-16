@@ -63,17 +63,36 @@ class GameController:
     def join_matchmaking(self):
         try:
             user_uuid, username = validate_user_token(request.headers.get("Authorization"))
-            result = process_matchmaking_request(user_uuid, username, self.games)
+        except ValueError as e:
+            # Authentication error (invalid/missing token)
+            return jsonify({"error": str(e)}), 401
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+        
+        try:
+            data = request.get_json() or {}
+            deck_slot = data.get("deck_slot")
+            
+            if not deck_slot:
+                return jsonify({"error": "deck_slot is required (1-5)"}), 400
+            
+            result = process_matchmaking_request(user_uuid, username, deck_slot, self.games)
             return jsonify(result), 200
-        except ValueError as e: return jsonify({"error": str(e)}), 401
-        except Exception as e: return jsonify({"error": str(e)}), 500
+        except ValueError as e:
+            # Validation error (invalid deck, etc.)
+            return jsonify({"error": str(e)}), 400
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
     def status_matchmaking(self):
         try:
             user_uuid, username = validate_user_token(request.headers.get("Authorization"))
             result = check_matchmaking_status(user_uuid)
             return jsonify(result), 200
-        except ValueError as e: return jsonify({"error": str(e)}), 401
+        except ValueError as e:
+            return jsonify({"error": str(e)}), 401
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
 
 controller = GameController()
 

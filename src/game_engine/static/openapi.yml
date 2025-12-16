@@ -14,20 +14,54 @@ paths:
   /match/join:
     post:
       summary: Join matchmaking queue
-      description: Adds an authenticated player to the matchmaking queue. If an opponent is waiting, a match is created immediately.
+      description: Adds an authenticated player to the matchmaking queue with a pre-selected deck. If an opponent is waiting, a match is created immediately and decks are automatically loaded for both players.
       tags:
         - Matchmaking
       security:
         - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                deck_slot:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                  description: The deck slot (1-5) to use for this match
+                  example: 2
+              required:
+                - deck_slot
       responses:
         '200':
-          description: Matchmaking result.
+          description: Matchmaking result. When matched, decks are automatically loaded and 3 cards are drawn for each player.
           content:
             application/json:
               schema:
                 oneOf:
                   - $ref: '#/components/schemas/WaitingForMatch'
                   - $ref: '#/components/schemas/MatchCreated'
+        '400':
+          description: Bad request - Invalid or missing deck_slot, or deck not found/invalid.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                missing_slot:
+                  value:
+                    error: "deck_slot is required (1-5)"
+                invalid_slot:
+                  value:
+                    error: "deck_slot must be between 1 and 5"
+                deck_not_found:
+                  value:
+                    error: "Deck slot 2 not found. Please create a deck in this slot first."
+                invalid_deck:
+                  value:
+                    error: "Deck must contain exactly 9 cards (8 + 1 Joker)."
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':
@@ -335,7 +369,7 @@ components:
           example: "waiting"
         message:
           type: string
-          example: "Waiting for opponent..."
+          example: "Waiting for opponent... (Using deck #2)"
           
     MatchCreated:
       type: object
@@ -352,6 +386,9 @@ components:
         role:
           type: string
           example: "player2"
+        message:
+          type: string
+          example: "Match found! Decks loaded and 3 cards drawn. Ready to play!"
 
     FinishedResponse:
       type: object

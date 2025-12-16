@@ -411,11 +411,26 @@ paths:
   /game/match/join:
     post:
       summary: Join matchmaking
-      description: Adds the authenticated player to the matchmaking queue.
+      description: Adds the authenticated player to the matchmaking queue with a pre-selected deck. When matched, decks are automatically loaded and 3 cards are drawn for both players.
       tags:
         - Game
       security:
         - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                deck_slot:
+                  type: integer
+                  minimum: 1
+                  maximum: 5
+                  description: The deck slot (1-5) to use for this match
+                  example: 2
+              required:
+                - deck_slot
       responses:
         '200':
           description: Matchmaking result
@@ -430,7 +445,7 @@ paths:
                         example: "waiting"
                       message:
                         type: string
-                        example: "Waiting for opponent..."
+                        example: "Waiting for opponent... (Using deck #2)"
                   - type: object
                     properties:
                       status:
@@ -444,6 +459,25 @@ paths:
                       role:
                         type: string
                         example: "player2"
+                      message:
+                        type: string
+                        example: "Match found! Decks loaded and 3 cards drawn. Ready to play!"
+        '400':
+          description: Bad request - Invalid or missing deck_slot, or deck not found/invalid
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                examples:
+                  missing_slot:
+                    value:
+                      error: "deck_slot is required (1-5)"
+                  deck_not_found:
+                    value:
+                      error: "Deck slot 2 not found. Please create a deck in this slot first."
         '401':
           $ref: '#/components/responses/Unauthorized'
         '500':

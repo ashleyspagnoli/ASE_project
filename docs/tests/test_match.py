@@ -194,14 +194,24 @@ def player_routine(username, password, deck_slot):
 
     # Step 3: Matchmaking
     print(f"\n{'='*60}")
-    print(f"🔵 [{username}] Joining Matchmaking Queue")
+    print(f"🔵 [{username}] Joining Matchmaking Queue with Deck #{deck_slot}")
     print(f"{'='*60}")
     
     while True:
         try:
-            resp = requests.post(f"{GATEWAY_URL}/game/match/join", headers=headers, verify=False)
+            resp = requests.post(
+                f"{GATEWAY_URL}/game/match/join", 
+                headers=headers, 
+                json={"deck_slot": deck_slot},  # Pre-select deck
+                verify=False
+            )
             if resp.status_code == 401:
                 print(f"❌ [{username}] Unauthorized by Game Engine!")
+                return
+            
+            if resp.status_code == 400:
+                error_msg = resp.json().get('error', 'Unknown error')
+                print(f"❌ [{username}] Matchmaking failed: {error_msg}")
                 return
             
             data = resp.json()
@@ -211,6 +221,7 @@ def player_routine(username, password, deck_slot):
                     game_stats["game_id"] = game_id
                     game_stats["start_time"] = datetime.now()
                 print(f"✅ [{username}] MATCH FOUND! Game ID: {game_id}")
+                print(f"💡 [{username}] Deck automatically loaded, cards drawn. Ready to play!")
                 break
             elif data.get("status") == "waiting":
                 print(f"⏳ [{username}] Waiting for opponent...")
@@ -232,19 +243,11 @@ def player_routine(username, password, deck_slot):
             print(f"❌ [{username}] Matchmaking error: {e}")
             return
 
-    # Step 4: Deck Selection
+    # Step 4: Start Playing (Deck already loaded, skip deck selection)
     print(f"\n{'='*60}")
-    print(f"🎴 [{username}] Selecting Deck for Battle")
+    print(f"⚡ [{username}] Starting Game (Deck Pre-Loaded)")
     print(f"{'='*60}")
-    try:
-        res = requests.post(f"{GATEWAY_URL}/game/deck/{game_id}", json={"deck_slot": deck_slot}, headers=headers, verify=False)
-        if res.status_code != 200:
-            print(f"⚠️  [{username}] Deck selection issue: {res.text}")
-        else:
-            print(f"✅ [{username}] Deck selected successfully!")
-    except Exception as e:
-        print(f"⚠️  [{username}] Deck selection exception: {e}")
-
+    
     time.sleep(1)
     
     # Initialize player stats

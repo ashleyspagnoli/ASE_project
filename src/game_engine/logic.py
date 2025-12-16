@@ -99,30 +99,129 @@ def start_new_game(player1_uuid, player1_name, player2_uuid, player2_name, games
 # ------------------------------------------------------------
 # 🔗 Matchmaking REST (Logica Aggiornata)
 # ------------------------------------------------------------
-def process_matchmaking_request(user_uuid, user_name, games_dict):
+def process_matchmaking_request(user_uuid, user_name, deck_slot, games_dict):
+    """
+    Process matchmaking request with pre-selected deck.
+    
+    Args:
+        user_uuid: Player's unique identifier
+        user_name: Player's username
+        deck_slot: The deck slot (1-5) the player wants to use
+        games_dict: Dictionary of active games
+    
+    Returns:
+        Dict with matchmaking status (waiting/matched)
+    """
     global matchmaking_queue, pending_matches
 
     # 1. Controllo match pendente
     if user_uuid in pending_matches:
         return {"status": "matched", "game_id": pending_matches[user_uuid], "message": "Partita trovata!"}
 
-    # 2. Pulizia coda
+    # 2. Valida il deck_slot
+    if not deck_slot or deck_slot not in [1, 2, 3, 4, 5]:
+        raise ValueError("deck_slot must be between 1 and 5")
+
+    # 3. Verifica che il deck selezionato esista
+    try:
+        check_url = f"{COLLECTION_URL}/user-decks"
+        params = {'user': user_uuid, 'slot': deck_slot}
+        response = requests.get(check_url, params=params, timeout=5, verify=COLLECTION_CERT)
+        
+        if response.status_code != 200:
+            raise ValueError(f"Deck slot {deck_slot} not found. Please create a deck in this slot first.")
+        
+        # Valida il deck ricevuto
+        deck_data = response.json()
+        if not deck_data.get('success') or 'data' not in deck_data:
+            raise ValueError("Invalid deck data from collection service")
+        
+        validate_deck(deck_data['data'])
+            
+    except requests.RequestException as e:
+        # Se non riusciamo a contattare il servizio collection
+        if hasattr(e, 'response') and e.response:
+            try:
+                error_msg = e.response.json().get('error', 'Unknown error')
+            except:
+                error_msg = e.response.text
+            raise ValueError(f"Collection Service error: {error_msg}")
+        else:
+            raise ValueError(f"Could not reach collection service: {e}")
+
+    # 4. Pulizia coda
     matchmaking_queue = [p for p in matchmaking_queue if p['uuid'] != user_uuid]
 
-    # 3. Matching
+    # 5. Matching
     if len(matchmaking_queue) > 0:
         opponent = matchmaking_queue.pop(0)
         
-        # IMPORTANTE: start_new_game deve essere importata o definita sopra
-        # Usa la tua funzione start_new_game esistente
+        # Crea la partita
         game_id = start_new_game(opponent['uuid'], opponent['name'], user_uuid, user_name, games_dict)
-
-        pending_matches[opponent['uuid']] = game_id
+        game = games_dict.get(game_id)
         
-        return {"status": "matched", "game_id": game_id, "opponent": opponent['name'], "role": "player2"}
+        if not game:
+            raise ValueError("Failed to create game")
+        
+        # Auto-carica i deck per entrambi i giocatori
+        try:
+            # Carica deck per opponent (player1)
+            _load_deck_for_player(game, game.player1, opponent['deck_slot'], games_dict)
+            # Carica deck per current user (player2)
+            _load_deck_for_player(game, game.player2, deck_slot, games_dict)
+            
+            # Pesca 3 carte per entrambi i giocatori
+            for _ in range(3):
+                game.player1.draw_card()
+                game.player2.draw_card()
+            
+            pending_matches[opponent['uuid']] = game_id
+            
+            return {
+                "status": "matched",
+                "game_id": game_id,
+                "opponent": opponent['name'],
+                "role": "player2",
+                "message": "Match found! Decks loaded and 3 cards drawn. Ready to play!"
+            }
+        except Exception as e:
+            # Se il caricamento del deck fallisce, rimuovi il gioco
+            games_dict.pop(game_id, None)
+            raise ValueError(f"Failed to load decks: {str(e)}")
     else:
-        matchmaking_queue.append({'uuid': user_uuid, 'name': user_name})
-        return {"status": "waiting", "message": "In attesa di avversario..."}
+        # Aggiungi alla coda con il deck_slot
+        matchmaking_queue.append({
+            'uuid': user_uuid,
+            'name': user_name,
+            'deck_slot': deck_slot
+        })
+        return {"status": "waiting", "message": f"Waiting for opponent... (Using deck #{deck_slot})"}
+
+
+def _load_deck_for_player(game, player, deck_slot, games_dict):
+    """
+    Helper function to load a deck for a player.
+    
+    Args:
+        game: The Game object
+        player: The Player object
+        deck_slot: The deck slot to load
+        games_dict: Dictionary of active games
+    """
+    deck_url = f"{COLLECTION_URL}/user-decks"
+    params = {'user': player.uuid, 'slot': deck_slot}
+    response = requests.get(deck_url, params=params, timeout=5, verify=COLLECTION_CERT)
+    response.raise_for_status()
+    
+    deck_data = response.json()
+    if not deck_data.get('success') or 'data' not in deck_data:
+        raise ValueError(f"Invalid deck data for {player.name}")
+    
+    deck_cards = deck_data['data']
+    validate_deck(deck_cards)
+    
+    player.deck.cards = [Card(c["value"], c["suit"]) for c in deck_cards]
+    player.deck.shuffle()
 
 def check_matchmaking_status(user_uuid):
     global pending_matches, matchmaking_queue
