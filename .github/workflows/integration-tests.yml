@@ -1,14 +1,15 @@
 name: Integration Tests
 
 on:
-  push:
-    branches: [ master, main, develop ]
-  pull_request:
-    branches: [ master, main, develop ]
+  workflow_run:
+    workflows: ["Postman Unit Tests"]
+    types:
+      - completed
 
 jobs:
   integration-tests:
     runs-on: ubuntu-latest
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     
     steps:
       - name: Checkout code
