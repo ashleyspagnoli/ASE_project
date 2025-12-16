@@ -112,18 +112,18 @@ services:
  
 
   user-db:
-    image: circleci/mongo:4.0-xenial-ram
+    image: circleci/mongo:4.0-xenial
     container_name: user_auth_db
     volumes:
       - user_mongo_data:/data/db 
 
   db-history:
-    image: circleci/mongo:4.0-xenial-ram
+    image: circleci/mongo:4.0-xenial
     volumes:
       - history-data:/data/db
 
   db-decks:
-    image: circleci/mongo:4.0-xenial-ram
+    image: circleci/mongo:4.0-xenial
     volumes:
       - decks-data:/data/db
 
