@@ -267,6 +267,26 @@ async def api_get_leaderboard(page:int, CURRENT_USER_STATE: UserState):
         except httpx.RequestError:
             return None
         
+# In client_app/apicalls.py
+
+async def api_get_match_history(state: UserState):
+    """Recupera lo storico delle partite dell'utente."""
+    # Assumiamo che l'endpoint sia /history/matches
+    url = f"{API_GATEWAY_URL}/history/matches" 
+    token = state.token
+    headers = {"Authorization": f"Bearer {token}"}
+
+    async with httpx.AsyncClient(verify=SSL_CONTEXT) as client:
+        try:
+            response = await client.get(url, headers=headers)
+            if response.status_code == 200:
+                # Ci aspettiamo una lista di match es:
+                # [{'opponent': 'Pippo', 'result': 'WIN', 'score': '10-2', 'date': '2023-10-10'}, ...]
+                return response.json()
+            return []
+        except Exception:
+            return []
+        
 
 # --- CARD COLLECTION ---
 async def api_get_card_collection(CURRENT_USER_STATE: UserState):
@@ -393,3 +413,100 @@ async def api_get_card_image(card_id, CURRENT_USER_STATE):
             print(f"Errore recupero immagine: {e}")
             return None
         
+
+# In client_app/apicalls.py
+
+async def api_join_matchmaking(deck_slot: int, CURRENT_USER_STATE):
+    """Richiede di unirsi alla coda con un deck specifico."""
+    url = f"{API_GATEWAY_URL}/game/match/join" # Adatta l'endpoint al tuo backend
+    token = CURRENT_USER_STATE.token
+ 
+    
+    headers = {"Authorization": f"Bearer {token}"}
+    body = {"deck_slot": deck_slot}
+
+    async with httpx.AsyncClient(verify=SSL_CONTEXT) as client:
+        try:
+            response = await client.post(url, json=body, headers=headers)
+            
+            if response.status_code == 200 or response.status_code == 201:
+                return {"success": True, "data": response.json()}
+            else:
+                return {"success": False, "detail": response.text}
+        except Exception as e:
+            return {"success": False, "detail": str(e)}
+        
+
+async def api_get_match_status(CURRENT_USER_STATE: UserState):
+    """Controlla lo stato attuale del matchmaking."""
+    url = f"{API_GATEWAY_URL}/game/match/status" # Adatta l'endpoint
+    token = CURRENT_USER_STATE.token
+
+    headers = {"Authorization": f"Bearer {token}"}
+
+    async with httpx.AsyncClient(verify=SSL_CONTEXT) as client:
+        try:
+            response = await client.get(url, headers=headers)
+            if response.status_code == 200:
+                return response.json() # Ci aspettiamo { "status": "searching"|"started", "game_id": ... }
+            return None
+        except:
+            return None
+        
+async def api_get_hand(game_id: str, CURRENT_USER_STATE: UserState):
+    """Recupera le carte in mano al giocatore."""
+    url = f"{API_GATEWAY_URL}/game/hand/{game_id}"
+    token = CURRENT_USER_STATE.token
+    headers = {"Authorization": f"Bearer {token}"}
+
+    async with httpx.AsyncClient(verify=SSL_CONTEXT) as client:
+        try:
+            response = await client.get(url, headers=headers)
+            
+            if response.status_code == 200:
+                # 🟢 CORREZIONE: La risposta è GIÀ la lista, non usare .get()
+                data = response.json()
+                if isinstance(data, list):
+                    return data
+                # Fallback nel caso il formato cambiasse in futuro
+                return data.get('hand', [])
+            
+            return [] # Ritorna lista vuota se status != 200 per evitare crash
+            
+        except Exception as e:
+            print(f"Errore get hand: {e}")
+            return [] # Ritorna lista vuota in caso di eccezione per evitare TypeError
+
+async def api_get_game_state(game_id: str, CURRENT_USER_STATE: UserState):
+    """Recupera lo stato completo della partita."""
+    url = f"{API_GATEWAY_URL}/game/state/{game_id}"
+    token = CURRENT_USER_STATE.token
+    headers = {"Authorization": f"Bearer {token}"}
+
+    async with httpx.AsyncClient(verify=SSL_CONTEXT) as client:
+        try:
+            response = await client.get(url, headers=headers)
+            if response.status_code == 200:
+                return response.json()
+            return None
+        except Exception:
+            return None
+
+async def api_play_card(game_id: str, card_payload: dict, CURRENT_USER_STATE: UserState):
+    """Gioca una carta e ritorna il JSON completo con lo status."""
+    url = f"{API_GATEWAY_URL}/game/play/{game_id}"
+    token = CURRENT_USER_STATE.token
+    headers = {"Authorization": f"Bearer {token}"}
+    
+    body = {"card": card_payload}
+
+    async with httpx.AsyncClient(verify=SSL_CONTEXT) as client:
+        try:
+            response = await client.post(url, json=body, headers=headers)
+            # Ritorniamo il json grezzo se 200, altrimenti gestiamo l'errore
+            if response.status_code == 200:
+                return response.json() 
+            else:
+                return {"status": "error", "message": response.text}
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
