@@ -22,15 +22,17 @@ We've separated the deck building from the game (More information in \hyperref[s
 
 \subsection{Game Phase}
 \begin{itemize}
-    \item \textbf{POST /game/match/join}: Join the matchmaking queue.
-    \item \textbf{GET /game/match/status}: Check the status of the matchmaking process.
-    \item \textbf{POST /game/deck/\{game\_id\}}: Submit the chosen deck for the game.
+    \item \textbf{POST /game/match/join}: Join the matchmaking queue with a pre-selected deck.
     \begin{verbatim}
     Body:
     {
       "deck_slot": 1
     }
     \end{verbatim}
+    \textit{Note: The deck is automatically loaded when a match is found. Both players draw 3 cards to start.}
+    
+    \item \textbf{GET /game/match/status}: Check the status of the matchmaking process (waiting/matched).
+    
     \item \textbf{GET /game/hand/\{game\_id\}}: Retrieve the player's current hand.
     \item \textbf{POST /game/play/\{game\_id\}}: Execute a play (e.g., play a card).
     \begin{verbatim}

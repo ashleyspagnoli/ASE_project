@@ -24,10 +24,10 @@
 
         \item[\colorednum{red}{}] Check/modify my profile SO THAT I can update my information
         \begin{itemize}
-            \item /change-username 
-            \item /change-password
-            \item /change-email
-            \item /view-data
+            \item /usereditor/change-username 
+            \item /usereditor/change-password
+            \item /usereditor/change-email
+            \item /usereditor/view-data
         \end{itemize}
             (Gateway $\rightarrow$ User Editor $\rightarrow$ User Manager $\rightarrow$ MongoDB $\rightarrow$ User Manager $\rightarrow$ User Editor $\rightarrow$ Gateway)\\
         	\textit{Note: Profile checking is handled via token validation or login response.}
@@ -56,7 +56,8 @@
 
         \item[\colorednum{red}{}] Start a new game SO THAT I can play
         \begin{itemize}
-            \item /game/match/join (Gateway $\rightarrow$ Game Engine $\rightarrow$ Gateway)
+            \item /game/match/join (POST with deck\_slot) - Join matchmaking queue with selected deck (Gateway $\rightarrow$ Game Engine $\rightarrow$ Collection $\rightarrow$ Game Engine $\rightarrow$ Gateway)
+            \textit{To check matchmaking status: /game/match/status (GET)} (Gateway $\rightarrow$ Game Engine $\rightarrow$ Gateway)
         \end{itemize}
 
 
@@ -69,7 +70,8 @@
 
         \item[\colorednum{red}{}] Select a card SO THAT I can play my turn
         \begin{itemize}
-            \item /game/play/{game\_id} (Gateway $\rightarrow$ Game Engine $\rightarrow$ Gateway)
+            \item /game/hand/\{game\_id\} (GET) - View current cards in hand (Gateway $\rightarrow$ Game Engine $\rightarrow$ Gateway)
+            \item /game/play/\{game\_id\} (POST) - Play selected card (Gateway $\rightarrow$ Game Engine $\rightarrow$ Gateway)
         \end{itemize}
 
 
@@ -121,7 +123,7 @@
         \begin{itemize}
             \item /history/matches (Gateway $\rightarrow$ Game History $\rightarrow$ History DB $\rightarrow$ Game History $\rightarrow$ Gateway)
         \end{itemize}
-        	extit{Note: The list endpoint returns match details.}
+        \textit{Note: The list endpoint returns match details.}
 
 
         \item[\colorednum{red}{}] View the leaderboards SO THAT I know who are the best players
