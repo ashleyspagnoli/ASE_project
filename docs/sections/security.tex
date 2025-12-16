@@ -243,6 +243,10 @@ Bandit was used to perform static application security testing on the Python cod
 \begin{lstlisting}
 bandit -r src/
 \end{lstlisting}
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.4\textwidth]{bandit.png}
+\end{figure}
 
 % Da aggiungre screenshot del report di Bandit
 % \begin{figure}[h]
@@ -254,16 +258,18 @@ bandit -r src/
 \subsubsection{Dependency Vulnerability Scanning}
 
 \paragraph{Pip Audit:}
-\begin{lstlisting}
-pip-audit
-\end{lstlisting}
-
-\textbf{Result:} One low-severity vulnerability found in pip version 24.0, fixed upgrading it to 25.3.
+Executed as a github action.
+It found vulnerabilities before but not after merging the Dependabot pull request.
 
 \paragraph{Dependabot (GitHub):}
 Enabled on the repository to automatically scan for vulnerable dependencies.
 
-\textbf{Result:} No vulnerabilities detected in production dependencies.
+\begin{itemize}
+    \item Updates python-multipart from 0.0.9 to 0.0.18
+    \item Updates requests from 2.31.0 to 2.32.4
+    \item Updates cryptography from 42.0.7 to 44.0.1
+\end{itemize}
+This also solved issues raised by pip-audit
 
 \subsubsection{Container Image Vulnerability Analysis}
 
@@ -287,6 +293,8 @@ Enabled on the repository to automatically scan for vulnerable dependencies.
         \item This is definitely not a future-proof solution. The best path forward would probably be to build a custom image where we install mongoDB on top of a lightweight alpine or debian image.
     \end{itemize}
     \item \textbf{JWT:} The User Manager microservice used an abandoned library to handle the JWT called python-jose with a high severity vulnerability. Fortunately there was a new and updated library that had the same functions, called PyJWT.
+    \item FastAPI 0.111.0 has critical vulnerabilities caused by a starlette dependency. Solved by upgrading to 0.124.4.
+    \item python:3.12.3-slim has critical vulnerabilities caused by the debian image used. Solved by upgrading to 3.12.12-slim.
 \end{itemize}
 
 % Da aggiungere screenshot del report di Docker Scout
@@ -306,7 +314,7 @@ trivy image --severity HIGH,CRITICAL <image_name>
 \textbf{Findings:}
 \begin{itemize}
     \item \textbf{Exposed Secrets:} Trivy detected hardcoded keys in repository
-    \item \textbf{Academic Context:} As agreed with the Professor, keys are intentionally included since it's a project with educational purposes. In a real context, we wouldn't have published neither keys on the GitHub repository
+    \item \textbf{Academic Context:} As agreed with the Professor, keys are intentionally included since it's a project with educational purposes. In a real context, we wouldn't have published neither keys on the GitHub repository, neither the databases passwords in the docker compose file, but we would've passed passwords as environment variables and used certificates provided by CAs stored locally and added to .gitignore.
     \item \textbf{Production Mitigation:} In a real deployment, keys would be:
     \begin{itemize}
         \item Generated dynamically per environment
@@ -317,3 +325,64 @@ trivy image --severity HIGH,CRITICAL <image_name>
 
 
 \subsection{Security – Threat Model}
+
+\subsubsection{Architecture Overview}
+The application follows a microservices architecture with a centralized API Gateway acting as the single entry point. All inter-service communication is secured via TLS.
+
+\begin{itemize}
+    \item \textbf{External Entry Point:} API Gateway (exposed on port 8443).
+    \item \textbf{Internal Services:} User Manager, User Editor, Game Engine, Game History, Collection.
+    \item \textbf{Data Stores:} Dedicated MongoDB instances for Users, History, and Decks.
+    \item \textbf{Messaging:} RabbitMQ for asynchronous communication, configured to reject non-TLS connections.
+\end{itemize}
+
+\subsubsection{Assets Identification}
+\begin{itemize}
+    \item \textbf{User Credentials:} Passwords (hashed) and Emails (encrypted).
+    \item \textbf{Session Tokens:} JWTs used for authentication.
+    \item \textbf{Game Data:} Match history and player moves.
+    \item \textbf{Infrastructure Secrets:} TLS certificates and private keys managed via Docker Secrets.
+\end{itemize}
+
+\subsubsection{STRIDE Analysis}
+
+\paragraph{Spoofing}
+\begin{itemize}
+    \item \textbf{Threat:} An attacker impersonating a legitimate user.
+    \item \textbf{Mitigation:} Strong authentication via \texttt{user-manager}, JWT validation on every request, and TLS for all connections to prevent credential interception.
+    \item \textbf{Threat:} A rogue service impersonating a legitimate microservice.
+    \item \textbf{Mitigation:} Internal TLS usage with certificates managed via Docker Secrets ensures encrypted communication channels.
+\end{itemize}
+
+\paragraph{Tampering}
+\begin{itemize}
+    \item \textbf{Threat:} Modification of game results or user data in transit.
+    \item \textbf{Mitigation:} End-to-end TLS encryption prevents Man-in-the-Middle (MitM) attacks.
+    \item \textbf{Threat:} Modification of data at rest.
+    \item \textbf{Mitigation:} Critical user data (emails) is encrypted at rest. Database access is restricted to specific microservices.
+\end{itemize}
+
+\paragraph{Repudiation}
+\begin{itemize}
+    \item \textbf{Threat:} A user denying they performed an action (e.g., a game move).
+    \item \textbf{Mitigation:} The \texttt{game\_history} service logs all match outcomes. Actions are authenticated via JWT, linking them irrefutably to a user ID.
+\end{itemize}
+
+\paragraph{Information Disclosure}
+\begin{itemize}
+    \item \textbf{Threat:} Leaking sensitive user information.
+    \item \textbf{Mitigation:} Data minimization (only necessary data returned), encryption of sensitive fields in DB, and strict API Gateway routing preventing direct access to backend services.
+\end{itemize}
+
+\paragraph{Denial of Service (DoS)}
+\begin{itemize}
+    \item \textbf{Threat:} Overwhelming the system with requests.
+    \item \textbf{Mitigation:} The API Gateway acts as a buffer. RabbitMQ decouples heavy processing (like history logging) from the critical path, preventing cascading failures.
+\end{itemize}
+
+\paragraph{Elevation of Privilege}
+\begin{itemize}
+    \item \textbf{Threat:} A regular user accessing administrative functions.
+    \item \textbf{Mitigation:} Centralized authorization logic in \texttt{user-manager}. The API Gateway enforces route restrictions.
+\end{itemize}
+

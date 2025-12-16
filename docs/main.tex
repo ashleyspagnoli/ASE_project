@@ -123,155 +123,131 @@
 
 
 % --- Section 4: Build & Run ---
-\section{Build and Run Instructions}
+% \section{Build and Run Instructions}
 
-This project is a multi-service card game platform designed for two players. It features authentication, deck building, a match-simulation engine, and history tracking. All services are containerized and orchestrated via Docker Compose.
+% This project is a multi-service card game platform designed for two players. It features authentication, deck building, a match-simulation engine, and history tracking. All services are containerized and orchestrated via Docker Compose.
 
-\subsection{Prerequisites}
-Before starting, ensure your environment meets the following requirements:
-\begin{itemize}
-    \item \textbf{Docker \& Docker Compose} (Required for orchestration).
-    \item \textbf{Python 3.10+} (Optional, only required for local non-containerized development).
-\end{itemize}
+% \subsection{Prerequisites}
+% Before starting, ensure your environment meets the following requirements:
+% \begin{itemize}
+%     \item \textbf{Docker \& Docker Compose} (Required for orchestration).
+%     \item \textbf{Python 3.10+} (Optional, only required for local non-containerized development).
+% \end{itemize}
 
-\subsection{Quick Start Guide}
+% \subsection{Quick Start Guide}
 
-\begin{enumerate}
-    \item \textbf{Clone the repository}
-    \begin{verbatim}
-git clone https://github.com/ashleyspagnoli/ASE_project.git
-cd ASE_project/src
-    \end{verbatim}
+% \begin{enumerate}
+%     \item \textbf{Clone the repository}
+%     \begin{verbatim}
+% git clone https://github.com/ashleyspagnoli/ASE_project.git
+% cd ASE_project/src
+%     \end{verbatim}
 
-    \item \textbf{Build and launch services}
-    Run the following command to build the images and start the containers:
-    \begin{verbatim}
-docker compose up --build
-    \end{verbatim}
+% \subsection{Development \& Testing}
 
-    \item \textbf{Verify Service Status}
-    Once the containers are running, the architecture exposes the following endpoints:
+% \subsubsection{Environment Configuration}
+% Each microservice is configured via environment variables. For specific configuration keys, refer to the \texttt{Dockerfile} and \texttt{requirements.txt} located in each service's directory.
 
-    \begin{table}[h!]
-        \centering
-        \begin{tabular}{llc}
-            \toprule
-            \textbf{Service Name} & \textbf{Responsibility} & \textbf{Local URL} \\
-            \midrule
-            User Manager & Authentication \& JWT & \texttt{https://localhost:5004} \\
-            Collection & Deck Management & \texttt{http://localhost:5003} \\
-            Game Engine & Core Logic \& Matchmaking & \texttt{http://localhost:5001} \\
-            Game History & Match Logging & \texttt{http://localhost:5002} \\
-            \bottomrule
-        \end{tabular}
-    \end{table}
-\end{enumerate}
+% \subsubsection{Testing the Workflow}
+% A Postman collection is provided for end-to-end testing. Import \texttt{game\_workflow.postman\_collection.json} into Postman to simulate a full lifecycle:
+% \begin{itemize}
+%     \item User Registration and Login (Token generation).
+%     \item Deck creation and validation.
+%     \item Matchmaking and gameplay simulation.
+% \end{itemize}
 
-\subsection{Development \& Testing}
-
-\subsubsection{Environment Configuration}
-Each microservice is configured via environment variables. For specific configuration keys, refer to the \texttt{Dockerfile} and \texttt{requirements.txt} located in each service's directory.
-
-\subsubsection{Testing the Workflow}
-A Postman collection is provided for end-to-end testing. Import \texttt{game\_workflow.postman\_collection.json} into Postman to simulate a full lifecycle:
-\begin{itemize}
-    \item User Registration and Login (Token generation).
-    \item Deck creation and validation.
-    \item Matchmaking and gameplay simulation.
-\end{itemize}
-
-\subsubsection{Key API Endpoints}
-\begin{description}
-    \item[Authentication] \hfill \\
-    \begin{itemize}
-        \item \texttt{/users/register}: user registration [POST]
-        \item \texttt{/users/login}: user login [POST]
-        \item \texttt{/users/validate-token}: internal JWT token validation [GET]
-    \end{itemize}
+% \subsubsection{Key API Endpoints}
+% \begin{description}
+%     \item[Authentication] \hfill \\
+%     \begin{itemize}
+%         \item \texttt{/users/register}: user registration [POST]
+%         \item \texttt{/users/login}: user login [POST]
+%         \item \texttt{/users/validate-token}: internal JWT token validation [GET]
+%     \end{itemize}
     
-    \item[Deck Management] \hfill \\
-    \begin{itemize}
-        \item \texttt{/collection/cards}: get the collection of cards [GET]
-        \item \texttt{/collection/decks}: create a new deck [POST]
-    \end{itemize}
+%     \item[Deck Management] \hfill \\
+%     \begin{itemize}
+%         \item \texttt{/collection/cards}: get the collection of cards [GET]
+%         \item \texttt{/collection/decks}: create a new deck [POST]
+%     \end{itemize}
     
-    \item[Game Engine] \hfill \\
-    \begin{itemize}
-        \item \texttt{/game/connect}: connect to start playing the game [POST]
-        \item \texttt{/game/matchmake}: manual request to start the match [POST] (TO REMOVE)
-        \item \texttt{/game/play/\{game\_id\}}: play a card [POST]
-        \item \texttt{/game/state/\{game\_id\}}: get the state of the game [GET]
-    \end{itemize}
-    \item[Game History] \hfill \\
-    \begin{itemize}
-        \item \texttt{/leaderboard}: get the whole leaderboard [GET]
-        \item \texttt{/matches}: get the history of your played matches [GET]
-        \item \texttt{/addmatch}: memorize a new match [POST]
-    \end{itemize}
+%     \item[Game Engine] \hfill \\
+%     \begin{itemize}
+%         \item \texttt{/game/connect}: connect to start playing the game [POST]
+%         \item \texttt{/game/matchmake}: manual request to start the match [POST] (TO REMOVE)
+%         \item \texttt{/game/play/\{game\_id\}}: play a card [POST]
+%         \item \texttt{/game/state/\{game\_id\}}: get the state of the game [GET]
+%     \end{itemize}
+%     \item[Game History] \hfill \\
+%     \begin{itemize}
+%         \item \texttt{/leaderboard}: get the whole leaderboard [GET]
+%         \item \texttt{/matches}: get the history of your played matches [GET]
+%         \item \texttt{/addmatch}: memorize a new match [POST]
+%     \end{itemize}
     
-\end{description}
+% \end{description}
 
-\subsection{Maintenance}
-To stop the application and remove containers/networks, run:
-\begin{verbatim}
-docker compose down
-\end{verbatim}
+% \subsection{Maintenance}
+% To stop the application and remove containers/networks, run:
+% \begin{verbatim}
+% docker compose down
+% \end{verbatim}
 
 
-\iffalse
+% \iffalse
 % --- Section 5: Play Instructions (API) ---
-\section{Instructions to Play a Match}
-Below is the precise sequence of API requests required to complete a full match loop.
+% \section{Instructions to Play a Match}
+% Below is the precise sequence of API requests required to complete a full match loop.
 
-\subsection{1. Create a New Game}
-\textbf{Endpoint:} \texttt{POST /api/game/new} \\
-\textbf{Description:} Initializes a new game session.
+% \subsection{1. Create a New Game}
+% \textbf{Endpoint:} \texttt{POST /api/game/new} \\
+% \textbf{Description:} Initializes a new game session.
 
-\begin{lstlisting}
-curl -X POST http://localhost:8080/api/game/new \
-     -H "Content-Type: application/json" \
-     -d '{"player_count": 2}'
-\end{lstlisting}
+% \begin{lstlisting}
+% curl -X POST http://localhost:8080/api/game/new \
+%      -H "Content-Type: application/json" \
+%      -d '{"player_count": 2}'
+% \end{lstlisting}
 
-\subsection{2. Join Game}
-\textbf{Endpoint:} \texttt{POST /api/game/\{gameId\}/join}
+% \subsection{2. Join Game}
+% \textbf{Endpoint:} \texttt{POST /api/game/\{gameId\}/join}
 
-\begin{lstlisting}
-curl -X POST http://localhost:8080/api/game/101/join \
-     -d '{"player_name": "Alice"}'
-\end{lstlisting}
+% \begin{lstlisting}
+% curl -X POST http://localhost:8080/api/game/101/join \
+%      -d '{"player_name": "Alice"}'
+% \end{lstlisting}
 
-\subsection{3. Play a Card}
-\textbf{Endpoint:} \texttt{PUT /api/game/\{gameId\}/play}
+% \subsection{3. Play a Card}
+% \textbf{Endpoint:} \texttt{PUT /api/game/\{gameId\}/play}
 
-\begin{lstlisting}
-curl -X PUT http://localhost:8080/api/game/101/play \
-     -d '{"card": "Ace of Spades"}'
-\end{lstlisting} 
+% \begin{lstlisting}
+% curl -X PUT http://localhost:8080/api/game/101/play \
+%      -d '{"card": "Ace of Spades"}'
+% \end{lstlisting} 
 
 
-% --- Section 6: Testing ---
-\section{Running Tests}
+% % --- Section 6: Testing ---
+% \section{Running Tests}
 
-The project includes a comprehensive test suite located in the project root under the filename \texttt{game\_workflow.postman\_collection.json}. There are two methods to execute these tests.
+% The project includes a comprehensive test suite located in the project root under the filename \texttt{game\_workflow.postman\_collection.json}. There are two methods to execute these tests.
 
-\subsection{Method 1: Using the Postman CLI (Recommended)}
-For automated testing or terminal-based execution, ensure you have the Postman CLI utility installed. Navigate to the project root and execute the following command:
+% \subsection{Method 1: Using the Postman CLI (Recommended)}
+% For automated testing or terminal-based execution, ensure you have the Postman CLI utility installed. Navigate to the project root and execute the following command:
 
-\begin{verbatim}
-postman collection run game_workflow.postman_collection.json
-\end{verbatim}
+% \begin{verbatim}
+% postman collection run game_workflow.postman_collection.json
+% \end{verbatim}
 
-\noindent
-If you are using \texttt{newman} (the open-source runner), the command is:
+% \noindent
+% If you are using \texttt{newman} (the open-source runner), the command is:
 
-\begin{verbatim}
-newman run game_workflow.postman_collection.json
-\end{verbatim}
+% \begin{verbatim}
+% newman run game_workflow.postman_collection.json
+% \end{verbatim}
 
-\subsection{Method 2: Using the Postman Desktop App}
-If you prefer a visual interface or need to debug specific requests, you can run the tests manually by importing them in the Postman Desktop App.
-\fi
+% \subsection{Method 2: Using the Postman Desktop App}
+% If you prefer a visual interface or need to debug specific requests, you can run the tests manually by importing them in the Postman Desktop App.
+% \fi
 
 
 %RabbitMQ

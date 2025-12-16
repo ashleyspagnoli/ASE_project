@@ -3,249 +3,69 @@
 The project implements a testing strategy covering unit tests, integration tests, and performance tests to ensure system reliability, correctness, and scalability across all microservices.
 
 \subsection{Unit Testing}
+All tests are located in \texttt{/docs/tests} as requested.
 
-Unit tests verify individual microservice functionality in isolation using mocked dependencies. Each microservice has its own dedicated test suite executed within Docker containers to ensure consistent testing environments.
-
-\subsubsection{Test Environment Setup}
-
-Unit tests are executed using specialized Docker containers with test-specific configurations:
-
+Unit tests are executed using dedicated Dockerfile\_test files like we've seen in the lectures.\\
+We made the following decisions for mocking.
 \begin{itemize}
-    \item \textbf{Isolated execution}: Each service runs in a dedicated test container
-    \item \textbf{Mocked dependencies}: External service calls are mocked to test in isolation
-    \item \textbf{Consistent environment}: Docker ensures identical test conditions across machines
-    \item \textbf{Postman collections}: API tests are defined in structured JSON collections
+    \item For all microservices the databases are mocked using the mongomock library, installed in the Dockerfile\_test file.
+    \item To mock the RabbitMQ for Game History we disabled the loop pinging the RabbitMQ microservice.
+    This meant that we needed custom endpoints to add matches and users to the DB in the testing environment.
+    \texttt{/addmatches} and \texttt{/addusernames}.
+    \item In Game History we also needed to mock the function to get the usernames by ids of User Manager.
 \end{itemize}
 
-\subsubsection{Collection Service Unit Tests}
-
-The Collection service manages card collections and deck building with validation logic.
-
-\textbf{Test Execution:}
-\begin{lstlisting}[language=bash]
-# Build the test container
-cd src
+\textbf{Unit tests execution:}
+\begin{itemize}
+    \item \textbf{Collection}:\\
+    \begin{lstlisting}[language=bash]
 docker build -f collection/Dockerfile_test -t collection-test .
-
-# Run the test container
-docker run -d -p 5006:5000 --name collection-test collection-test
-
-# Import docs/tests/collection_ut.postman_collection.json in Postman
-# Run the collection
-
-# Cleanup
-docker stop collection-test
-docker rm collection-test
-\end{lstlisting}
-
-\textbf{Test Coverage:}
-\begin{itemize}
-    \item \texttt{GET /collection/cards}: Retrieves all 53 cards and validates response structure
-    \item \texttt{GET /collection/cards/\{card\_id\}}: Fetches individual card details (e.g., \texttt{hA})
-    \item \texttt{GET /collection/cards/\{card\_id\}/image}: Serves card images
-    \item \texttt{GET /collection/decks}: Returns user's deck collection
-    \item \texttt{POST /collection/decks}: Creates decks with validation rules:
-    \begin{itemize}
-        \item Exactly 8 cards required
-        \item 2 cards per suit (hearts, diamonds, clubs, spades)
-        \item Maximum 15 points per suit
-        \item Rejects invalid configurations (e.g., 3 hearts cards, point overflow)
-    \end{itemize}
-    \item \texttt{DELETE /collection/decks/\{deck\_id\}}: Removes decks and validates cleanup
-\end{itemize}
-
-\textbf{Key Validation Tests:}
-\begin{itemize}
-    \item Invalid card IDs return 404 errors
-    \item Deck creation with 16 points in diamonds suit fails with appropriate error
-    \item Deck creation with wrong card count per suit is rejected
-    \item Successfully created decks are retrievable and deletable
-\end{itemize}
-
-\subsubsection{Game History Unit Tests}
-
-The Game History service tracks matches and maintains leaderboards with pagination.
-
-\textbf{Test Execution:}
-\begin{lstlisting}[language=bash]
-# Build and run test container
-cd src
+docker run -p 5000:5000 collection-test
+newman run docs/tests/collection_ut.postman_collection.json --insecure
+    \end{lstlisting}
+    \item \textbf{Game History}:\\
+    \begin{lstlisting}[language=bash]
 docker build -f game_history/Dockerfile_test -t history-test .
-docker run -d -p 5007:5000 --name history-test history-test
-
-# Import docs/tests/game_history_ut.postman_collection.json
-# Set base URL to http://localhost:5007
-# Run the collection
-
-# Cleanup
-docker stop history-test
-docker rm history-test
-\end{lstlisting}
-
-\textbf{Test Coverage:}
-\begin{itemize}
-    \item \textbf{Setup Phase}:
-    \begin{itemize}
-        \item Seeds database with 12+ user mappings (alice, bob, user3-user12)
-        \item Bulk inserts 13 matches with varied outcomes (wins, losses, draws)
-        \item Creates test data for pagination validation
-    \end{itemize}
-    
-    \item \textbf{Match History Endpoint} (\texttt{GET /matches}):
-    \begin{itemize}
-        \item Page 0: Returns up to 10 matches with row numbers 1-10
-        \item Page 1: Returns next batch with row numbers 11+, no overlap with page 0
-        \item Unauthorized access without JWT token returns 401
-    \end{itemize}
-    
-    \item \textbf{Leaderboard Endpoint} (\texttt{GET /leaderboard}):
-    \begin{itemize}
-        \item Page 0: Returns top 10 players ranked by points
-        \item Page 1: Returns next 10 players with no username overlap
-        \item POST request to leaderboard returns 405 (Method Not Allowed)
-    \end{itemize}
-\end{itemize}
-
-\textbf{Pagination Validation:}
-The tests verify that pagination works correctly by checking:
-\begin{itemize}
-    \item Each page contains at most 10 entries
-    \item Row numbers increment correctly across pages
-    \item No duplicate entries between consecutive pages
-    \item Usernames in leaderboard pages are distinct
-\end{itemize}
-
-\subsubsection{User Manager Unit Tests}
-
-The User Manager service handles authentication and user registration.
-
-\textbf{Test Execution:}
-\begin{lstlisting}[language=bash]
-# Build and run test container
-cd src
+docker run -p 5000:5000 history-test
+newman run docs/tests/game_history_ut.postman_collection.json --insecure
+    \end{lstlisting}
+    \item \textbf{User Manager}:\\
+    \begin{lstlisting}[language=bash]
 docker build -f user-manager/Dockerfile_test -t user-manager-test .
-docker run -d -p 5004:5000 --name user-manager-test user-manager-test
-
-# Import docs/tests/user_manager_ut.postman_collection.json
-# Set base URL to http://localhost:5004
-# Run the collection
-
-# Cleanup
-docker stop user-manager-test
-docker rm user-manager-test
-\end{lstlisting}
-
-\textbf{Test Coverage:}
-\begin{itemize}
-    \item \textbf{Registration} (\texttt{POST /users/register}):
-    \begin{itemize}
-        \item Success case: Creates new user with username, password, email
-        \item Returns 201 Created with confirmation message
-        \item Duplicate username: Returns 400 Bad Request
-        \item Duplicate email: Returns 400 Bad Request
-    \end{itemize}
-    
-    \item \textbf{Login} (\texttt{POST /users/login}):
-    \begin{itemize}
-        \item Success case: Returns 200 OK with JWT token (50+ characters)
-        \item Token type is "bearer"
-        \item Invalid password: Returns 401 Unauthorized
-        \item Error detail: "Invalid username or password"
-        \item Saves token for subsequent authenticated requests
-    \end{itemize}
+docker run -p 5004:5000 user-manager-test
+newman run docs/tests/user_manager_ut.postman_collection.json --insecure
+    \end{lstlisting}
 \end{itemize}
 
 \subsection{Integration Testing}
 
-Integration tests verify the complete workflow across all microservices (User Manager, Collection, Game Engine, Game History) through the API Gateway. These tests ensure proper service communication, data consistency, and end-to-end functionality.
+\begin{itemize}
+    \item \textbf{IT-001: Complete Game Workflow - Happy Path}: Tests end-to-end user journey from registration to game completion.
+    \item \textbf{IT-002: Authentication \& Authorization}: Verifies login, token validation, and access control enforcement.
+    \item \textbf{IT-003: Deck Validation}: Ensures deck building rules and constraints are correctly enforced.
+    \item \textbf{IT-004: Game History \& Leaderboard}: Checks match history retrieval and leaderboard accuracy.
+    \item \textbf{IT-005: Cross-Service Data Consistency}: Confirms data isolation and consistency across microservices.
+    \item \textbf{IT-007: Error Handling \& Edge Cases}: Validates error responses and handling of invalid or edge-case inputs.
+\end{itemize}
 
-\subsubsection{Test Environment}
-
-Integration tests require all services running:
-\begin{lstlisting}[language=bash]
+\textbf{Integration tests execution:}
+\begin{itemize}
+    \item \textbf{Docker Compose}:\\
+    \begin{lstlisting}[language=bash]
+# Ensure all services are running
 cd src
 docker compose up --build
-\end{lstlisting}
 
-The tests use the API Gateway endpoint (\texttt{https://localhost:8443}) and are organized into test suites covering different aspects of the system.
-
-\subsubsection{Test Suites}
-
-\textbf{IT-001: Complete Game Workflow - Happy Path}
-
-Validates the entire user journey from registration to game completion:
-\begin{enumerate}
-    \item User registration and JWT token acquisition for Alice and Bob
-    \item Deck creation with valid card configurations
-    \item Deck retrieval verification
-    \item Matchmaking initialization
-    \item Game state progression
-\end{enumerate}
-
-\textbf{IT-002: Authentication \& Authorization}
-
-Tests security and access control:
-\begin{itemize}
-    \item Invalid login credentials return 401 Unauthorized
-    \item Accessing decks without token returns 401/403
-    \item Invalid JWT tokens are rejected
-    \item Duplicate username registration returns 400 with appropriate error
+# Run integration tests (from project root)
+newman run docs/tests/integration.postman_collection.json --insecure
+    \end{lstlisting}
 \end{itemize}
 
-\textbf{IT-003: Deck Validation}
+Those tests can also 
 
-Ensures deck building rules are enforced across services:
-\begin{itemize}
-    \item Decks with wrong number of cards are rejected (must be 8)
-    \item Suit distribution validation (2 cards per suit)
-    \item Point limits per suit (maximum 15 points)
-    \item Invalid card IDs are caught
-\end{itemize}
-
-\textbf{IT-004: Game History \& Leaderboard}
-
-Verifies historical data tracking:
-\begin{itemize}
-    \item Match history retrieval for authenticated users
-    \item Paginated results with consistent ordering
-    \item Leaderboard rankings reflect game outcomes
-    \item Specific match details are accessible
-\end{itemize}
-
-\textbf{IT-005: Cross-Service Data Consistency}
-
-Tests data isolation and integrity:
-\begin{itemize}
-    \item Users can only access their own decks
-    \item Bob's deck list does not include Alice's decks
-    \item User IDs are consistently used across services
-    \item Game results properly reference both players
-\end{itemize}
-
-\textbf{IT-007: Error Handling \& Edge Cases}
-
-Validates robust error handling:
-\begin{itemize}
-    \item Deleting non-existent decks returns 404
-    \item Malformed request bodies return 400/422
-    \item Services gracefully handle invalid inputs
-    \item Appropriate error messages guide users
-\end{itemize}
-
-\subsubsection{Test Execution}
-
-\textbf{Using Postman:}
-\begin{enumerate}
-    \item Import \texttt{docs/tests/integration.postman\_collection.json}
-    \item Configure environment variables:
-    \begin{itemize}
-        \item \texttt{gateway\_url}: \texttt{https://localhost:8443}
-        \item User credentials are auto-generated with timestamps
-    \end{itemize}
-    \item Run entire collection or specific test suites
-    \item Tests must run in order as later tests depend on earlier state
-\end{enumerate}
-
+\begin{center}
+    {\Huge\color{red}\textbf{!}}
+\end{center}
 \textbf{Using Python Script:}
 A complete game simulation can be executed programmatically:
 \begin{lstlisting}[language=bash]
