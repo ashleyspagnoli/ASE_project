@@ -100,6 +100,31 @@ async def api_register(username, password, email,CURRENT_USER_STATE: UserState):
 
 # api_validate_token è ora api_validate_token_internal
 
+async def api_view_data(CURRENT_USER_STATE: UserState):
+    token = CURRENT_USER_STATE.token # Lettura dal globale
+    
+    async with httpx.AsyncClient(verify=SSL_CONTEXT) as client:
+        try:
+            collection_url = f"{API_GATEWAY_URL}/usereditor/view-userdata"
+            headers = {"Authorization": f"Bearer {token}"}
+            
+            response = await client.get(
+                collection_url,
+                headers=headers,
+            )
+            
+            response.raise_for_status() 
+            data = response.json()
+            return data  # Ritorna i dati dell'utente
+    
+        except httpx.HTTPStatusError as e:
+            # Qui rilanciamo gli errori generici del servizio
+            return None
+            
+        except httpx.RequestError:
+            return None
+        
+
 
 async def api_change_password(old_password, new_password,CURRENT_USER_STATE: UserState): #ENDPOINT IMPLEMENTATO FUNZIONANTE
     token = CURRENT_USER_STATE.token # Lettura dal globale
@@ -211,7 +236,7 @@ async def api_change_username(new_username,CURRENT_USER_STATE: UserState):
             
         except httpx.RequestError:
             return ApiResult(success=False, message="Servizio di autenticazione non raggiungibile.")
-
+# --- LEADERBOARD ---
 async def api_get_leaderboard(page:int, CURRENT_USER_STATE: UserState):
     token = CURRENT_USER_STATE.token # Lettura dal globale
     
@@ -237,6 +262,8 @@ async def api_get_leaderboard(page:int, CURRENT_USER_STATE: UserState):
         except httpx.RequestError:
             return None
         
+
+# --- CARD COLLECTION ---
 async def api_get_card_collection(CURRENT_USER_STATE: UserState):
     token = CURRENT_USER_STATE.token # Lettura dal globale
     
@@ -285,26 +312,33 @@ async def api_get_deck_collection(CURRENT_USER_STATE: UserState):
         except httpx.RequestError:
             return None
         
-async def api_view_data(CURRENT_USER_STATE: UserState):
+async def api_create_deck(deck:list,deck_slot:list,deck_name:str,CURRENT_USER_STATE: UserState):
     token = CURRENT_USER_STATE.token # Lettura dal globale
-    
+
     async with httpx.AsyncClient(verify=SSL_CONTEXT) as client:
         try:
-            collection_url = f"{API_GATEWAY_URL}/usereditor/view-userdata"
+            create_url = f"{API_GATEWAY_URL}/collection/decks"
             headers = {"Authorization": f"Bearer {token}"}
+            body = {"cards": deck,
+                    "deckSlot": deck_slot,
+                    "deckName": deck_name}
             
-            response = await client.get(
-                collection_url,
+            response = await client.post(
+                create_url,
                 headers=headers,
+                json=body,
             )
             
             response.raise_for_status() 
             data = response.json()
-            return data  # Ritorna i dati dell'utente
+            return ApiResult(success=True, message="Deck created successfully.")
     
         except httpx.HTTPStatusError as e:
             # Qui rilanciamo gli errori generici del servizio
-            return None
+            detail = e.response.json().get('detail', "Errore sconosciuto.")
+            return ApiResult(success=False, message=f"Errore {e.response.status_code}: {detail}")
             
         except httpx.RequestError:
-            return None
+            return ApiResult(success=False, message="Servizio di gestione collezione non raggiungibile.")
+
+        

@@ -1,7 +1,7 @@
 import questionary
 import asyncio
 import time
-from client_app.apicalls import api_get_card_collection, api_get_deck_collection
+from client_app.apicalls import api_get_card_collection, api_get_deck_collection, api_create_deck
 from rich.console import Console
 import json
 from typing import Dict, Any, List
@@ -38,26 +38,33 @@ def deck_creation_screen(console:Console,CURRENT_USER_STATE: UserState):
     console.clear()
     console.print("[bold blue]--- DECK CREATION PAGE ---[/]")
     # Qui puoi aggiungere ulteriori logiche per la creazione del deck
-    scelta=questionary.text(
+    sceltaslot=questionary.select(
+        "Select the slot to save the new deck:",
+        choices=['1','2','3','4','5','cancel'],
+    ).ask()
+    if sceltaslot == 'cancel':
+        return
+    sceltanome=questionary.text(
         "Enter the name of the new deck (or type 'cancel' to go back):"
     ).ask()
     suites=['hearts ❤️','diamonds ♦️','clubs ♣️','spades ♠️', 'cancel']
     cards=['2','3','4','5','6','7','8','9','10','J','Q','K','A','cancel']
+    deck=[]
     for i in suites:
-        scelta=questionary.select(
+        sceltasuite=questionary.select(
             "Select the suit for the deck:",
             choices=suites,
         ).ask()
 
-        if scelta == 'hearts ❤️':
+        if sceltasuite == 'hearts ❤️':
             selected_suite='h'
-        elif scelta == 'diamonds ♦️':
+        elif sceltasuite == 'diamonds ♦️':
             selected_suite='d'
-        elif scelta == 'clubs ♣️':
+        elif sceltasuite == 'clubs ♣️':
             selected_suite='c'
-        elif scelta == 'spades ♠️':
+        elif sceltasuite == 'spades ♠️':
             selected_suite='s'
-        elif scelta == 'cancel':
+        elif sceltasuite == 'cancel':
             return
         
         scelta=questionary.select(
@@ -94,6 +101,7 @@ def deck_creation_screen(console:Console,CURRENT_USER_STATE: UserState):
             cardid1=selected_suite + selected_card
             cardid2=selected_suite + cards[7]
             console.print(f"Added cards: {fromid_to_card(cardid1)} and {fromid_to_card(cardid2)}")
+            
             time.sleep(1)
         elif scelta == cards[5]:
             selected_card='7'
@@ -150,9 +158,15 @@ def deck_creation_screen(console:Console,CURRENT_USER_STATE: UserState):
 
         elif scelta == 'cancel':
             return
-        
-        suites.remove(scelta)
-        
+        deck.append(cardid1)
+        deck.append(cardid2)
+        print(deck)
+        suites.remove(sceltasuite)
+
+    console.print(f"Deck created with cards: {deck}")
+    response = asyncio.run(api_create_deck(deck=deck,deck_name=sceltanome,deck_slot=sceltaslot,CURRENT_USER_STATE=CURRENT_USER_STATE))
+    console.print(response.message)
+    
 
 
 
