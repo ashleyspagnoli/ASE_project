@@ -341,5 +341,28 @@ async def api_create_deck(deck:list,deck_slot:int,deck_name:str,CURRENT_USER_STA
             
         except httpx.RequestError:
             return ApiResult(success=False, message="Servizio di gestione collezione non raggiungibile.")
+        
+# In client_app/apicalls.py
+
+async def api_delete_deck(deck_id, CURRENT_USER_STATE: UserState):
+    token = CURRENT_USER_STATE.token
+    # Assicurati di usare il contesto SSL corretto come discusso prima
+
+    async with httpx.AsyncClient(verify=SSL_CONTEXT) as client:
+        try:
+            url = f"{API_GATEWAY_URL}/collection/decks/{deck_id}"
+            headers = {"Authorization": f"Bearer {token}"}
+            
+            response = await client.delete(url, headers=headers)
+            
+            # Gestione errori HTTP (es. 404 o 403)
+            if response.status_code == 200 or response.status_code == 204:
+                return {"success": True} # O response.json() se il server ritorna JSON
+            else:
+                return {"success": False, "detail": response.text}
+
+        except Exception as e:
+            print(f"Errore delete: {e}")
+            return {"success": False}
 
         
