@@ -33,19 +33,42 @@ Users will then be able to choose one of their decks when starting a game with t
 
 \subsection{Client}
 The project includes a Python-based Command Line Interface (CLI) client located in the \texttt{/client} directory. This client serves as the frontend for the game, communicating with the backend services via the API Gateway. It uses the \texttt{rich} and \texttt{questionary} libraries to provide an interactive terminal experience.
-
-To run the client using Docker, execute the following command (Linux):
-\begin{lstlisting}
+The client is intended to be run locally on the user's machine (for a complete experience), but it can also be containerized using Docker for ease of deployment.
+The client will handle all interactions with the API Gateway, including sending requests and processing responses, providing a seamless gaming experience.
+\subsubsection{Setup and Execution}
+\begin{lstlisting}[language=bash, caption=Building the Client Docker Image]
 cd client/
 docker build -t ase-client . --no-cache
-docker run -it --rm \
-  --add-host=host.docker.internal:host-gateway \
-  -e API_GATEWAY_URL="https://host.docker.internal:8443/" \
-  -e GATEWAY_CERT_PATH="./gateway_cert.pem" \
-  ase-client
 \end{lstlisting}
-Ensure that the backend services are running before starting the client.
+To run the client using Docker, execute the following command (Mac/Linux):
+\begin{lstlisting}[language=bash, caption=Running the Client Docker Image]
+docker run -it --rm --add-host=host.docker.internal:host-gateway -e API_GATEWAY_URL="https://host.docker.internal:8443/" -e GATEWAY_CERT_PATH="./gateway_cert.pem" ase-client
+\end{lstlisting}
 
+Ensure that the backend services are running before starting the client.
+The client will ensure all functionality exposed by the API Gateway is accessible, including user registration, login, deck management, and gameplay.
+
+\subsubsection{User Authentication}
+Upon starting the client, users will be prompted to either log in or register a new account.
+The authentication process is handled through the API Gateway, which communicates with the Authentication microservice.
+The safe user information (JWT token and username) is stored locally in the client for subsequent requests.
+Every time a request is made to the API Gateway, the client includes the JWT token in the request headers for authentication, every api call can be found in \textbf{$``$apicalls.py$``$}.
+After running will be presented a menu to login or register, and then the main menu to choose what to do.
+To play a match, the user must have at least one deck created in their collection, so you can Navigate to \textbf{$``$Manage Decks$``$} to create one if you haven't already.
+\subsubsection{Card Collection and Deck Management}
+In the Deck section, user can View Cards in Collection, Create New Deck (by selecting cards from the collection), View Existing Decks, and Delete Decks.
+The card collection can be viewed to see all available cards, in the local version after a card is selected its image will be shown in a new window.
+We choose to give the user the maximum value for every suit in deck creation for simplicity.
+Once a deck is created, the user can navigate to \textbf{$``$Play Game$``$} to start a match.
+\subsubsection{Game Engine Interaction}
+To test the match please create two different users and login with both in two different terminal instances.
+In the gameplay section, select \textbf{$``$Start Match$``$} to enter the matchmaking queue and wait for an opponent.
+In every turn, the client will display the current game state, including cards in hand, the score of each player and the username of the opponent, allowing the user to play their cards interactively.
+After the match concludes, the client will display the final results and update the user's game history accordingly.
+\subsubsection{Game History}
+The game history can be viewed from the \textbf{$``$Leaderboard$``$} section in the main menu.
+After selecting it the user will be able to choose between viewing the full leaderboard or their personal match history.
+To navigate the leaderboard is offered a simple pagination system to view all players.
 
 
 \subsection{Endpoint-based Service Interaction Smell - Proof of Concept} %RabbitMQ
