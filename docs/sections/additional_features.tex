@@ -8,21 +8,28 @@ The project implements two green user stories that enhance the player's gameplay
 
 \subsubsection{Viewing Cards in Hand}
 \begin{itemize}
-    \item[\colorednum{green}{1}] See which cards I have and which cards I have to play SO THAT I can prepare my strategy
-    \begin{itemize}
-        \item \texttt{GET /hand/\{game\_id\}} (Gateway $\rightarrow$ Game Engine $\rightarrow$ Gateway)
-        \item Returns: JSON array of card objects (\texttt{value}, \texttt{suit})
-    \end{itemize}
+    \setcounter{usCounter}{21}
     \item[\colorednum{green}{2}] who's turn it is SO THAT I know if i can play or not
     \begin{itemize}
         \item \texttt{GET /state/\{game\_id\}} (Gateway $\rightarrow$ Game Engine $\rightarrow$ Gateway)
         \item Response: current round state (empty, one card played, both cards played)
     \end{itemize}
+    \setcounter{usCounter}{23}
+    \item[\colorednum{green}{1}] To be able to see the cards in my hand	SO THAT	I know that card I can play next
+
+    \begin{itemize}
+        \item \texttt{GET /hand/\{game\_id\}} (Gateway $\rightarrow$ Game Engine $\rightarrow$ Gateway)
+        \item Returns: JSON array of card objects (\texttt{value}, \texttt{suit})
+    \end{itemize}
+
 \end{itemize}
 
 \subsection{Cloud Storage of Decks}
 \label{sec:cloud-decks}
-To allow players to keep their decks stored in the cloud, we added
+To allow players to keep their decks stored in the cloud, we modified the way they handle decks.\\
+Users must first create the decks connecting to the endpoint \texttt{collection/decks}. They have 5 slots (5 possible decks).\\
+Then that deck will be stored on the decks database.\\
+Users will then be able to choose one of their decks when starting a game with the endpoint \texttt{game/match/join}.
 
 \subsection{Client}
 
