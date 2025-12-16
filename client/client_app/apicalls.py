@@ -322,7 +322,7 @@ async def api_create_deck(deck:list,deck_slot:list,deck_name:str,CURRENT_USER_ST
             body = {"cards": deck,
                     "deckSlot": deck_slot,
                     "deckName": deck_name}
-            
+            print(body)
             response = await client.post(
                 create_url,
                 headers=headers,
@@ -331,6 +331,7 @@ async def api_create_deck(deck:list,deck_slot:list,deck_name:str,CURRENT_USER_ST
             
             response.raise_for_status() 
             data = response.json()
+            print(data)
             return ApiResult(success=True, message="Deck created successfully.")
     
         except httpx.HTTPStatusError as e:

@@ -50,7 +50,7 @@ def deck_creation_screen(console:Console,CURRENT_USER_STATE: UserState):
     suites=['hearts ❤️','diamonds ♦️','clubs ♣️','spades ♠️', 'cancel']
     cards=['2','3','4','5','6','7','8','9','10','J','Q','K','A','cancel']
     deck=[]
-    for i in suites:
+    for i in range(0,4):
         sceltasuite=questionary.select(
             "Select the suit for the deck:",
             choices=suites,
@@ -166,6 +166,7 @@ def deck_creation_screen(console:Console,CURRENT_USER_STATE: UserState):
     console.print(f"Deck created with cards: {deck}")
     response = asyncio.run(api_create_deck(deck=deck,deck_name=sceltanome,deck_slot=sceltaslot,CURRENT_USER_STATE=CURRENT_USER_STATE))
     console.print(response.message)
+    time.sleep(5)
     
 
 
