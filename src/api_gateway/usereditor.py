@@ -10,7 +10,6 @@ router = APIRouter()
 # --- Pydantic Models ---
 
 class UserModifyUsername(BaseModel):
-    old_username: str = Field(..., example="user123")
     new_username: str = Field(..., example="updateduser")
 
 class UserModifyPassword(BaseModel):

@@ -34,12 +34,8 @@ def schermata_profilo(console:Console, CURRENT_USER_STATE: UserState): # Rimosso
                 return # Torna al main menu per il logout forzato
         elif scelta == "View Profile":
             risultato = asyncio.run(api_view_data(CURRENT_USER_STATE))
-            if not risultato.success:
-                console.print(f"[bold red]❌ Errore:[/bold red] {risultato.message}")
-                time.sleep(2)
-                continue
             # Supponiamo che risultato.data contenga le informazioni dell'utente
-            email = risultato.data.get("email", "N/A")
+            email = risultato["email"]
             console.clear()
             console.print(f"[bold blue]--- USER PROFILE DETAILS ---[/]")
             console.print(f"[bold green]Username:[/] {username}")
