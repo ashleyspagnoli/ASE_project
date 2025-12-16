@@ -17,7 +17,7 @@ class UserState:
 def fromid_to_card(card_id: int):
     """Converte id della carta in una visualizzazione della carta tramite numero e emoji."""
     #l'id è nella forma tipo: h2 dove h sta per hearts, d per diamons, c per club, s per spades
-    if card_id is "JOKER":
+    if card_id == "JOKER":
         return "JOKER"
     
     tipo = card_id[0]
@@ -506,7 +506,10 @@ def schermata_cardcollection(console:Console,CURRENT_USER_STATE: UserState):
                         # Apre l'immagine in memoria
                         image = Image.open(io.BytesIO(img_bytes))
                         # Apre il visualizzatore predefinito del sistema operativo
-                        image.show() 
+                        try:
+                            image.show()
+                        except:
+                            console.print("[yellow]Impossibile aprire l'immagine in ambiente Docker/Headless.[/]")
                         console.print("[green]Immagine aperta in una finestra separata.[/]")
                     except Exception as e:
                         console.print(f"[red]Impossibile aprire l'immagine: {e}[/]")
@@ -516,7 +519,7 @@ def schermata_cardcollection(console:Console,CURRENT_USER_STATE: UserState):
                 # Pausa breve prima di ridisegnare il menu
                 time.sleep(1)
         
-        elif scelta is "Deck Page":
+        elif scelta == "Deck Page":
             deck_screen(console,CURRENT_USER_STATE)
         
 

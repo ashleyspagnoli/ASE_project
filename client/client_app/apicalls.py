@@ -1,8 +1,13 @@
 import httpx
 from pathlib import Path
 import ssl
+import os
+import time
 
-API_GATEWAY_URL = "https://localhost:8443"
+DEFAULT_URL = "https://localhost:8443"
+API_GATEWAY_URL = os.getenv("API_GATEWAY_URL", DEFAULT_URL)
+
+
 
 class UserState:
     """Contiene lo stato globale dell'utente loggato."""
@@ -41,11 +46,15 @@ current_dir = Path(__file__).resolve().parent # Risultato: /app/client_app
 
 # 2. Risali alla cartella padre (la root del progetto)
 project_root = current_dir.parent # Risultato: /app
+# PERCORSO CERTIFICATO
+# In Docker lo copieremo in una cartella specifica
+DEFAULT_CERT_PATH = project_root / "gateway_cert.pem"
+GATEWAY_CERT_PATH = os.getenv("GATEWAY_CERT_PATH", DEFAULT_CERT_PATH)
 
 # 3. Costruisci il percorso del certificato
-GATEWAY_CERT_PATH = project_root / "gateway_cert.pem"
 
 print(f"Using API Gateway cert at: {GATEWAY_CERT_PATH}")
+time.sleep(1) # Pausa per vedere il messaggio
 
 SSL_CONTEXT = get_ssl_context(GATEWAY_CERT_PATH)
 
