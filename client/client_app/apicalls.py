@@ -312,7 +312,7 @@ async def api_get_deck_collection(CURRENT_USER_STATE: UserState):
         except httpx.RequestError:
             return None
         
-async def api_create_deck(deck:list,deck_slot:list,deck_name:str,CURRENT_USER_STATE: UserState):
+async def api_create_deck(deck:list,deck_slot:int,deck_name:str,CURRENT_USER_STATE: UserState):
     token = CURRENT_USER_STATE.token # Lettura dal globale
 
     async with httpx.AsyncClient(verify=SSL_CONTEXT) as client:
@@ -320,7 +320,7 @@ async def api_create_deck(deck:list,deck_slot:list,deck_name:str,CURRENT_USER_ST
             create_url = f"{API_GATEWAY_URL}/collection/decks"
             headers = {"Authorization": f"Bearer {token}"}
             body = {"cards": deck,
-                    "deckSlot": deck_slot,
+                    "deckSlot": int(deck_slot),
                     "deckName": deck_name}
             print(body)
             response = await client.post(
