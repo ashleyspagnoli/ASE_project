@@ -16,25 +16,12 @@ jobs:
 
       - name: Generate self-signed certificates
         working-directory: ./src
-        run: |
-          mkdir -p secrets/{collection,user-manager}
-          openssl req -x509 -newkey rsa:4096 -keyout secrets/collection/key.pem \
-            -out secrets/collection/cert.pem -days 1 -nodes \
-            -subj "/C=US/ST=Test/L=Test/O=Test/CN=localhost"
-          openssl req -x509 -newkey rsa:4096 -keyout secrets/user-manager/user-manager.key \
-            -out secrets/user-manager/user-manager.crt -days 1 -nodes \
-            -subj "/C=US/ST=Test/L=Test/O=Test/CN=localhost"
-          python3 -c "import secrets; print(secrets.token_urlsafe(32))" > secrets/user-manager/encryption_key.txt
-          python3 -c "import secrets; print(secrets.token_urlsafe(32))" > secrets/user-manager/jwt_secret_key.txt
 
       - name: Build and start collection test service
         working-directory: ./src
         run: |
           docker build -f collection/Dockerfile_test -t collection-test ./collection
-          docker run -d --name collection-test -p 5000:5000 \
-            -v $(pwd)/secrets/collection:/run/secrets/collection:ro \
-            -v $(pwd)/secrets/user-manager:/run/secrets/user-manager:ro \
-            collection-test
+          docker run -d --name collection-test -p 5000:5000 collection-test
           sleep 5
 
       - name: Install Newman
@@ -71,27 +58,11 @@ jobs:
 
       - name: Generate self-signed certificates
         working-directory: ./src
-        run: |
-          mkdir -p secrets/{game_history,user-manager,rabbitmq}
-          openssl req -x509 -newkey rsa:4096 -keyout secrets/game_history/key.pem \
-            -out secrets/game_history/cert.pem -days 1 -nodes \
-            -subj "/C=US/ST=Test/L=Test/O=Test/CN=localhost"
-          openssl req -x509 -newkey rsa:4096 -keyout secrets/user-manager/user-manager.key \
-            -out secrets/user-manager/user-manager.crt -days 1 -nodes \
-            -subj "/C=US/ST=Test/L=Test/O=Test/CN=localhost"
-          openssl req -x509 -newkey rsa:4096 -keyout secrets/rabbitmq/key.pem \
-            -out secrets/rabbitmq/cert.pem -days 1 -nodes \
-            -subj "/C=US/ST=Test/L=Test/O=Test/CN=localhost"
-
       - name: Build and start game history test service
         working-directory: ./src
         run: |
           docker build -f game_history/Dockerfile_test -t game-history-test ./game_history
-          docker run -d --name game-history-test -p 5000:5000 \
-            -v $(pwd)/secrets/game_history:/run/secrets/game_history:ro \
-            -v $(pwd)/secrets/user-manager:/run/secrets/user-manager:ro \
-            -v $(pwd)/secrets/rabbitmq:/run/secrets/rabbitmq:ro \
-            game-history-test
+          docker run -d --name game-history-test -p 5000:5000 game-history-test
           sleep 5
 
       - name: Install Newman
