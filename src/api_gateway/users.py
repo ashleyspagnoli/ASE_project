@@ -31,9 +31,4 @@ async def proxy_register(user_data: UserRegister, request: Request):
     URL = USER_URL + '/users/register' 
     return await forward_request(request, URL, body_data=user_data.model_dump(), is_json=True)
 
-@router.post("/token", tags=["Authentication and Users"])
-async def proxy_token(request: Request):
-    URL = USER_URL + '/users/token' 
-    form_data = await request.form()
-    return await forward_request(request, URL, body_data=dict(form_data), is_json=False)
 
