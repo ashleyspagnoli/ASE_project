@@ -35,14 +35,17 @@ Users will then be able to choose one of their decks when starting a game with t
 The project includes a Python-based Command Line Interface (CLI) client located in the \texttt{/client} directory. This client serves as the frontend for the game, communicating with the backend services via the API Gateway. It uses the \texttt{rich} and \texttt{questionary} libraries to provide an interactive terminal experience.
 
 To run the client using Docker, execute the following command (Linux):
-\begin{verbatim}
+\begin{lstlisting}
+cd client/
+docker build -t ase-client . --no-cache
 docker run -it --rm \
   --add-host=host.docker.internal:host-gateway \
-  -e API_GATEWAY_URL="https://host.docker.internal:8443" \
+  -e API_GATEWAY_URL="https://host.docker.internal:8443/" \
   -e GATEWAY_CERT_PATH="./gateway_cert.pem" \
   ase-client
-\end{verbatim}
+\end{lstlisting}
 Ensure that the backend services are running before starting the client.
+
 
 
 \subsection{Endpoint-based Service Interaction Smell - Proof of Concept} %RabbitMQ
