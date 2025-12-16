@@ -1,12 +1,13 @@
 import questionary
 import asyncio
 import time
-from client_app.apicalls import api_get_card_collection, api_get_deck_collection, api_create_deck, api_delete_deck
+from client_app.apicalls import api_get_card_collection, api_get_deck_collection, api_create_deck, api_delete_deck, api_get_card_image
 from client_app.utils import stampa_deck_visuale
 from rich.console import Console
 import json
 from typing import Dict, Any, List
-
+from PIL import Image
+import io
 class UserState:
     """Contiene lo stato globale dell'utente loggato."""
     def __init__(self):
@@ -411,78 +412,109 @@ def schermata_cardcollection(console:Console,CURRENT_USER_STATE: UserState):
             break
 
         elif scelta == "View Card Collection":
-            console.clear()
+            # --- 1. Recupero Dati (Una volta sola all'ingresso) ---
+            with console.status("[bold green]Loading collection..."):
+                result = asyncio.run(api_get_card_collection(CURRENT_USER_STATE=CURRENT_USER_STATE))
             
-            # --- 1. Recupero Dati ---
-            result = asyncio.run(api_get_card_collection(CURRENT_USER_STATE=CURRENT_USER_STATE))
             cards_list: List[Dict[str, str]] = result.get('data', [])
             
-            console.print("[bold yellow]--- Card Collection ---[/]\n")
+            # Loop per permettere di visualizzare più carte
+            while True:
+                console.clear()
+                console.print("[bold yellow]--- Card Collection ---[/]\n")
 
-            if not cards_list:
-                console.print("[italic red]Nessuna carta nella collezione.[/]")
-            else:
-                # --- 2. Preparazione dei Contenitori ---
-                # Creiamo liste separate per ogni categoria
-                suits_data = {
-                    'h': [], # h = Hearts (Cuori)
-                    'd': [], # d = Diamonds (Quadri)
-                    'c': [], # c = Clubs (Fiori)
-                    's': [], # s = Spades (Picche)
-                    'JOKER': []
-                }
+                if not cards_list:
+                    console.print("[italic red]Nessuna carta nella collezione.[/]")
+                    questionary.text("Premi Invio per uscire...").ask()
+                    break
 
-                # --- 3. Distribuzione delle carte nei contenitori ---
+                # --- 2. Preparazione Contenitori e Lista Piatta per la Selezione ---
+                suits_data = {'h': [], 'd': [], 'c': [], 's': [], 'JOKER': []}
+                
+                # Questa lista conterrà tutte le carte ordinate per il menu di selezione
+                selectable_cards = [] 
+
+                # Distribuzione
                 for item in cards_list:
                     card_id = item.get("id")
-                    
                     if card_id == "JOKER":
                         suits_data['JOKER'].append(card_id)
                     else:
-                        # Il primo carattere è il seme (h, d, c, s)
                         suit_char = card_id[0]
                         if suit_char in suits_data:
                             suits_data[suit_char].append(card_id)
 
-                # --- 4. Logica di Ordinamento (Opzionale ma consigliata) ---
-                # Mappa per ordinare correttamente (altrimenti 10 verrebbe prima di 2)
+                # Sorting Key
                 rank_order = {
                     'A': 1, '2': 2, '3': 3, '4': 4, '5': 5, 
                     '6': 6, '7': 7, '8': 8, '9': 9, '10': 10, 
                     'J': 11, 'Q': 12, 'K': 13
                 }
-                
                 def get_sort_key(cid):
-                    # Rimuove il seme (es. "h10" -> "10") e converte in numero
-                    rank = cid[1:] 
-                    return rank_order.get(rank, 0)
+                    if cid == "JOKER": return 100
+                    return rank_order.get(cid[1:], 0)
 
-                # --- 5. Stampa a schermo ---
-                
-                # Ordine di visualizzazione dei semi
+                # --- 3. Stampa a schermo (Griglia Orizzontale) ---
                 display_order = [('h', 'Hearts'), ('d', 'Diamonds'), ('c', 'Clubs'), ('s', 'Spades')]
 
                 for suit_char, suit_name in display_order:
-                    # Ordina le carte di questo seme
                     cards_in_suit = sorted(suits_data[suit_char], key=get_sort_key)
-                    
                     if cards_in_suit:
-                        # Converte gli ID in emoji/testo usando la tua funzione fromid_to_card
-                        # E li unisce con uno spazio " "
+                        # Stampa visiva
                         row_string = "  ".join([fromid_to_card(cid) for cid in cards_in_suit])
                         console.print(f"{row_string}")
-                    else:
-                        # Opzionale: se non hai carte di quel seme puoi non stampare nulla o stampare vuoto
-                        pass 
+                        # Aggiungiamo alla lista di selezione
+                        selectable_cards.extend(cards_in_suit)
 
-                # Stampa dei Joker alla fine
+                # Joker
                 if suits_data['JOKER']:
                     console.print("\n[bold purple]Jokers:[/]")
                     joker_row = "  ".join([fromid_to_card(cid) for cid in suits_data['JOKER']])
                     console.print(f"{joker_row}")
+                    selectable_cards.extend(suits_data['JOKER'])
 
-            console.print("\n") # Spazio finale
-            questionary.text("Press Enter to continue...").ask()
+                console.print("\n") 
+
+                # --- 4. Menu di Selezione Carta ---
+                # Creiamo le opzioni per questionary: Label visiva -> Valore ID
+                choices = []
+                for cid in selectable_cards:
+                    choices.append(questionary.Choice(
+                        title=fromid_to_card(cid), # Quello che vedi nel menu
+                        value=cid                  # Quello che ritorna la selezione
+                    ))
+                
+                # Aggiungiamo l'opzione di uscita
+                choices.append(questionary.Choice(title="🔙 Torna Indietro", value="BACK"))
+
+                card_to_view = questionary.select(
+                    "Seleziona una carta per vedere l'immagine:",
+                    choices=choices,
+                    use_shortcuts=False # Permette di saltare digitando
+                ).ask()
+
+                if card_to_view == "BACK" or card_to_view is None:
+                    break # Esce dal while e torna al menu principale
+                
+                # --- 5. Recupero e Visualizzazione Immagine ---
+                console.print(f"Recupero immagine per {fromid_to_card(card_to_view)}...")
+                
+                img_bytes = asyncio.run(api_get_card_image(card_to_view, CURRENT_USER_STATE))
+                
+                if img_bytes:
+                    try:
+                        # Apre l'immagine in memoria
+                        image = Image.open(io.BytesIO(img_bytes))
+                        # Apre il visualizzatore predefinito del sistema operativo
+                        image.show() 
+                        console.print("[green]Immagine aperta in una finestra separata.[/]")
+                    except Exception as e:
+                        console.print(f"[red]Impossibile aprire l'immagine: {e}[/]")
+                else:
+                    console.print("[bold red]Errore: Immagine non trovata o API irraggiungibile.[/]")
+                
+                # Pausa breve prima di ridisegnare il menu
+                time.sleep(1)
         
         elif scelta is "Deck Page":
             deck_screen(console,CURRENT_USER_STATE)

@@ -105,7 +105,7 @@ async def api_view_data(CURRENT_USER_STATE: UserState):
     
     async with httpx.AsyncClient(verify=SSL_CONTEXT) as client:
         try:
-            collection_url = f"{API_GATEWAY_URL}/usereditor/view-userdata"
+            collection_url = f"{API_GATEWAY_URL}/usereditor/view-data"
             headers = {"Authorization": f"Bearer {token}"}
             
             response = await client.get(
@@ -115,6 +115,7 @@ async def api_view_data(CURRENT_USER_STATE: UserState):
             
             response.raise_for_status() 
             data = response.json()
+            print(data)
             return data  # Ritorna i dati dell'utente
     
         except httpx.HTTPStatusError as e:
@@ -131,7 +132,7 @@ async def api_change_password(old_password, new_password,CURRENT_USER_STATE: Use
     
     async with httpx.AsyncClient(verify=SSL_CONTEXT) as client:
         try:
-            change_url = f"{API_GATEWAY_URL}/users/modify/change-password"
+            change_url = f"{API_GATEWAY_URL}/usereditor/change-password"
             headers = {"Authorization": f"Bearer {token}"}
             body = {"old_password": old_password, "new_password": new_password}
             
@@ -171,7 +172,7 @@ async def api_change_email(old_email,new_email,CURRENT_USER_STATE: UserState):
     
     async with httpx.AsyncClient(verify=SSL_CONTEXT) as client:
         try:
-            change_url = f"{API_GATEWAY_URL}/users/modify/change-email"
+            change_url = f"{API_GATEWAY_URL}/usereditor/change-email"
             headers = {"Authorization": f"Bearer {token}"}
             body = {"old_email": old_email, "new_email": new_email}
             
@@ -207,7 +208,7 @@ async def api_change_username(new_username,CURRENT_USER_STATE: UserState):
     
     async with httpx.AsyncClient(verify=SSL_CONTEXT) as client:
         try:
-            change_url = f"{API_GATEWAY_URL}/users/modify/change-username"
+            change_url = f"{API_GATEWAY_URL}/usereditor/change-username"
             headers = {"Authorization": f"Bearer {token}"}
             body = {"new_username": new_username}
             
@@ -225,12 +226,16 @@ async def api_change_username(new_username,CURRENT_USER_STATE: UserState):
 
             
         except httpx.HTTPStatusError as e:
+            error_detail = e.response.json().get('detail', "Errore sconosciuto.")
             # Gestione errore 401 (vecchia password sbagliata) o 422 (validazione)
             detail = e.response.json().get('detail', "Errore sconosciuto.")
             if e.response.status_code == 401:
                 return ApiResult(success=False, message="Vecchio username non valido.")
             elif e.response.status_code == 422:
-                return ApiResult(success=False, message="Il nuovo username non soddisfa i requisiti di sicurezza.")
+                # 🟢 MODIFICA QUI: Non stampare un messaggio fisso, ma mostra cosa dice il server
+                print(f"DEBUG VALIDAZIONE: {error_detail}") 
+                # Spesso error_detail è una lista di errori Pydantic
+                return ApiResult(success=False, message=f"Errore validazione dati: {error_detail}")
             else:
                 return ApiResult(success=False, message=f"Errore {e.response.status_code}: {detail}")
             
@@ -365,4 +370,26 @@ async def api_delete_deck(deck_id, CURRENT_USER_STATE: UserState):
             print(f"Errore delete: {e}")
             return {"success": False}
 
+async def api_get_card_image(card_id, CURRENT_USER_STATE):
+    token = CURRENT_USER_STATE.token
+    # Usa il tuo SSL context getter
+
+
+    async with httpx.AsyncClient(verify=SSL_CONTEXT) as client:
+        try:
+            # Assumo che l'endpoint sia questo
+            url = f"{API_GATEWAY_URL}/collection/cards/{card_id}/image"
+            headers = {"Authorization": f"Bearer {token}"}
+            
+            # Nota: Non ci aspettiamo JSON, ma dati binari
+            response = await client.get(url, headers=headers)
+            
+            if response.status_code == 200:
+                # Ritorniamo i bytes grezzi dell'immagine
+                return response.content
+            else:
+                return None
+        except Exception as e:
+            print(f"Errore recupero immagine: {e}")
+            return None
         

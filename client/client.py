@@ -5,6 +5,7 @@ from client_app.profilescreen import schermata_profilo
 from client_app.authentication import flusso_autenticazione
 from client_app.leaderboard import schermata_leaderboard
 from client_app.cardcollection import schermata_cardcollection
+from client_app.matchscreen import schermata_partita
 
 console = Console()
 
@@ -37,7 +38,7 @@ def menu_principale_gioco(): # Rimosso 'user'
         console.print(f"[bold purple]You are logged as : {username}[/]")
         azione = questionary.select(
             "What do you want to do?",
-            choices=["Play a Match","Decks", "Profile", "Leaderboard" , "Logout", "Quit"]
+            choices=["Play a Match", "Decks", "Profile", "Leaderboard" , "Logout", "Quit"]
         ).ask()
         
         if azione == "Logout":
@@ -58,7 +59,7 @@ def menu_principale_gioco(): # Rimosso 'user'
             schermata_cardcollection(console,CURRENT_USER_STATE)
 
         elif azione == "Play a Match":
-            console.print("[bold green]Play feature is under development![/]")
+            schermata_partita(console,CURRENT_USER_STATE)
             time.sleep(2)
 
         elif azione == "Quit":
