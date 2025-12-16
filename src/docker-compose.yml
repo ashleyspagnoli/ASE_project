@@ -115,8 +115,6 @@ services:
     image: circleci/mongo:4.0-xenial-ram
     container_name: user_auth_db
     restart: always 
-    ports:
-      - "27017:27017" 
     volumes:
       - user_mongo_data:/data/db 
 

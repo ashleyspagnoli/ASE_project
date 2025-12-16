@@ -40,6 +40,9 @@
     \item \textbf{Access:} Client sends JWT $\rightarrow$ Microservice $\rightarrow$ Validate with \texttt{user-manager}.
 \end{enumerate}
 
+\subsubsection{Passwords hashing}
+The Argon2 algorithm used for password hashing already implements double hashing with salt.
+
 \subsubsection{JWT Implementation}
 \textbf{Configuration:}
 \begin{itemize}
@@ -155,63 +158,84 @@ trivy image --severity HIGH,CRITICAL <image_name>
 
 \subsection{Security – Threat Model}
 
-\subsubsection{Architecture Overview}
-The application follows a microservices architecture with a centralized API Gateway acting as the single entry point. All inter-service communication is secured via TLS.
-
+\subsubsection{Assets}
 \begin{itemize}
-    \item \textbf{External Entry Point:} API Gateway (exposed on port 8443).
-    \item \textbf{Internal Services:} User Manager, User Editor, Game Engine, Game History, Collection.
-    \item \textbf{Data Stores:} Dedicated MongoDB instances for Users, History, and Decks.
-    \item \textbf{Messaging:} RabbitMQ for asynchronous communication, configured to reject non-TLS connections.
+    \item \textbf{User Credentials}:
+    \begin{itemize}
+        \item Passwords (hashed with Argon2).
+        \item Emails (encrypted with Fernet).
+    \end{itemize}
+    \item \textbf{Session Tokens}: JWTs (HS256) used for stateless authentication.
+    \item \textbf{Game Data}:
+    \begin{itemize}
+        \item Match history (MongoDB \texttt{db-history}).
+        \item Deck collections (MongoDB \texttt{db-decks}).
+    \end{itemize}
+    \item \textbf{Infrastructure Secrets}:
+    \begin{itemize}
+        \item TLS Certificates and Private Keys (mounted via Docker Secrets).
+        \item Database Encryption Keys.
+        \item JWT Secret Key.
+    \end{itemize}
 \end{itemize}
 
-\subsubsection{Assets Identification}
+\subsubsection{Attack Surface}
 \begin{itemize}
-    \item \textbf{User Credentials:} Passwords (hashed) and Emails (encrypted).
-    \item \textbf{Session Tokens:} JWTs used for authentication.
-    \item \textbf{Game Data:} Match history and player moves.
-    \item \textbf{Infrastructure Secrets:} TLS certificates and private keys managed via Docker Secrets.
+    \item \textbf{API Gateway (Port 8443)}: The single external entry point. Exposes REST endpoints for authentication, game logic, and user management.
+    \item \textbf{RabbitMQ Management Interface (Port 15672)}: Exposed only to localhost (127.0.0.1), used for monitoring message queues.
+    \item \textbf{Internal Service Ports (Port 5000)}: Not exposed to the host network, but accessible within the \texttt{guerra-ase} Docker network.
+\end{itemize}
+
+\subsubsection{Trust Boundaries}
+\begin{itemize}
+    \item \textbf{External Client / API Gateway}: The primary boundary. All external traffic must pass through the Gateway, which enforces TLS.
+    \item \textbf{API Gateway / Internal Microservices}: Traffic is forwarded over HTTPS. The Gateway verifies service certificates against the local certificates.
+    \item \textbf{Microservices / Databases}: Services connect to their respective MongoDB instances. Credentials are provided via environment variables.
+    \item \textbf{Microservices / RabbitMQ}: Asynchronous communication is secured via TLS and username/password authentication.
 \end{itemize}
 
 \subsubsection{STRIDE Analysis}
-
-\paragraph{Spoofing}
 \begin{itemize}
-    \item \textbf{Threat:} An attacker impersonating a legitimate user.
-    \item \textbf{Mitigation:} Strong authentication via \texttt{user-manager}, JWT validation on every request, and TLS for all connections to prevent credential interception.
-    \item \textbf{Threat:} A rogue service impersonating a legitimate microservice.
-    \item \textbf{Mitigation:} Internal TLS usage with certificates managed via Docker Secrets ensures encrypted communication channels.
-\end{itemize}
-
-\paragraph{Tampering}
-\begin{itemize}
-    \item \textbf{Threat:} Modification of game results or user data in transit.
-    \item \textbf{Mitigation:} End-to-end TLS encryption prevents Man-in-the-Middle (MitM) attacks.
-    \item \textbf{Threat:} Modification of data at rest.
-    \item \textbf{Mitigation:} Critical user data (emails) is encrypted at rest. Database access is restricted to specific microservices.
-\end{itemize}
-
-\paragraph{Repudiation}
-\begin{itemize}
-    \item \textbf{Threat:} A user denying they performed an action (e.g., a game move).
-    \item \textbf{Mitigation:} The \texttt{game\_history} service logs all match outcomes. Actions are authenticated via JWT, linking them irrefutably to a user ID.
-\end{itemize}
-
-\paragraph{Information Disclosure}
-\begin{itemize}
-    \item \textbf{Threat:} Leaking sensitive user information.
-    \item \textbf{Mitigation:} Data minimization (only necessary data returned), encryption of sensitive fields in DB, and strict API Gateway routing preventing direct access to backend services.
-\end{itemize}
-
-\paragraph{Denial of Service (DoS)}
-\begin{itemize}
-    \item \textbf{Threat:} Overwhelming the system with requests.
-    \item \textbf{Mitigation:} The API Gateway acts as a buffer. RabbitMQ decouples heavy processing (like history logging) from the critical path, preventing cascading failures.
-\end{itemize}
-
-\paragraph{Elevation of Privilege}
-\begin{itemize}
-    \item \textbf{Threat:} A regular user accessing administrative functions.
-    \item \textbf{Mitigation:} Centralized authorization logic in \texttt{user-manager}. The API Gateway enforces route restrictions.
+    \item \textbf{Spoofing}:
+    \begin{itemize}
+        \item \textit{Threat}: Impersonating a user.
+        \item \textit{Mitigation}: JWT authentication required for all protected endpoints. Tokens are signed with a secret key known only to \texttt{user-manager}.
+        \item \textit{Threat}: Impersonating a microservice.
+        \item \textit{Mitigation}: Internal communication uses TLS. Services must present a valid certificate signed by the internal CA.
+    \end{itemize}
+    
+    \item \textbf{Tampering}:
+    \begin{itemize}
+        \item \textit{Threat}: Modifying game moves or history in transit.
+        \item \textit{Mitigation}: End-to-end TLS encryption (Client $\rightarrow$ Gateway $\rightarrow$ Service).
+        \item \textit{Threat}: Modifying user data at rest.
+        \item \textit{Mitigation}: Sensitive fields (emails) are encrypted in the database.
+    \end{itemize}
+    
+    \item \textbf{Repudiation}:
+    \begin{itemize}
+        \item \textit{Threat}: User denying a match result.
+        \item \textit{Mitigation}: The \texttt{game\_history} service logs all match outcomes to a persistent MongoDB database.
+    \end{itemize}
+    
+    \item \textbf{Information Disclosure}:
+    \begin{itemize}
+        \item \textit{Threat}: Leaking user emails.
+        \item \textit{Mitigation}: Emails are stored as Fernet-encrypted strings.
+        \item \textit{Threat}: Leaking internal architecture via error messages.
+        \item \textit{Mitigation}: The API Gateway catches internal exceptions and returns generic HTTP errors to the client.
+    \end{itemize}
+    
+    \item \textbf{Denial of Service}:
+    \begin{itemize}
+        \item \textit{Threat}: Overloading the system with requests.
+        \item \textit{Mitigation}: The API Gateway acts as a reverse proxy. Heavy operations (like history logging) are offloaded to RabbitMQ to prevent blocking the main application flow.
+    \end{itemize}
+    
+    \item \textbf{Elevation of Privilege}:
+    \begin{itemize}
+        \item \textit{Threat}: Accessing administrative or other users' data.
+        \item \textit{Mitigation}: Route segregation in the API Gateway. The \texttt{user-manager} enforces ownership checks (users can only edit their own profile).
+    \end{itemize}
 \end{itemize}
 
