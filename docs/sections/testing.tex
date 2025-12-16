@@ -39,13 +39,20 @@ newman run docs/tests/user_manager_ut.postman_collection.json --insecure
 
 \subsection{Integration Testing}
 
+The integration test suite comprises 11 test categories with 74 total requests and 93 assertions, providing comprehensive coverage of all microservices interactions.
+
 \begin{itemize}
     \item \textbf{IT-001: Complete Game Workflow - Happy Path}: Tests end-to-end user journey from registration to game completion.
     \item \textbf{IT-002: Authentication \& Authorization}: Verifies login, token validation, and access control enforcement.
     \item \textbf{IT-003: Deck Validation}: Ensures deck building rules and constraints are correctly enforced.
     \item \textbf{IT-004: Game History \& Leaderboard}: Checks match history retrieval and leaderboard accuracy.
     \item \textbf{IT-005: Cross-Service Data Consistency}: Confirms data isolation and consistency across microservices.
+    \item \textbf{IT-006: Advanced Game Scenarios}: Tests gameplay edge cases including invalid card plays and game state verification.
     \item \textbf{IT-007: Error Handling \& Edge Cases}: Validates error responses and handling of invalid or edge-case inputs.
+    \item \textbf{IT-008: User Editor Integration}: Verifies user profile management, username changes, and data consistency.
+    \item \textbf{IT-009: Complete Game Playthrough}: Tests all game engine endpoints through a complete match workflow including matchmaking, hand retrieval, card playing, and game state management.
+    \item \textbf{IT-010: Complete Game Until Winner}: Simulates a complete 4-round game from start to finish and verifies match history persistence.
+    \item \textbf{IT-011: Leaderboard and Statistics}: Validates leaderboard functionality, pagination, match history retrieval, and statistics tracking.
 \end{itemize}
 
 \textbf{Integration tests execution:}
