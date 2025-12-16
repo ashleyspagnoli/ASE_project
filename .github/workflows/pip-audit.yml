@@ -2,11 +2,9 @@ name: Security Audit
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ master, main, develop ]
   pull_request:
-    branches: [ "main" ]
-  schedule:
-    - cron: '0 0 * * 0'
+    branches: [ master, main, develop ]
 
 jobs:
   pip-audit:
