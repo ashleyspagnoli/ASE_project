@@ -1,15 +1,13 @@
-FROM python:3.12-slim
+FROM python:3.12.3-slim
 
 WORKDIR /app
 
-COPY collection/requirements.txt .
+COPY requirements.txt .
 
 RUN pip install -r requirements.txt
+RUN pip install mongomock==4.1.2
 
-COPY collection/app.py .
-COPY collection/utilities.py .
-COPY collection/app_test.py .
-COPY collection/cards/ ./cards/
+COPY . .
 
 EXPOSE 5000
 

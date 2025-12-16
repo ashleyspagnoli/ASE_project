@@ -767,14 +767,14 @@
 							}
 						],
 						"url": {
-							"raw": "{{gateway_url}}/collection/decks/NonExistentDeck",
+							"raw": "{{gateway_url}}/collection/decks/000000000000000000000000",
 							"host": [
 								"{{gateway_url}}"
 							],
 							"path": [
 								"collection",
 								"decks",
-								"NonExistentDeck"
+								"000000000000000000000000"
 							]
 						}
 					},

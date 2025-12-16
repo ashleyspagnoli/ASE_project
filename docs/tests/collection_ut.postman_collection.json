@@ -450,6 +450,58 @@
 			"response": []
 		},
 		{
+			"name": "internal_get_deck",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"pm.test(\"Status code is correct\", function () {\r",
+							"    pm.response.to.have.status(200);\r",
+							"});\r",
+							"\r",
+							"pm.test(\"The JSON is valid\", function () {\r",
+							"    const json = pm.response.json();\r",
+							"    pm.expect(json.success).to.eql(true);\r",
+							"    pm.expect(json.data).to.be.an(\"array\").that.has.lengthOf(9);\r",
+							"    pm.expect(json.data[8]).to.have.property(\"value\", \"JOKER\");\r",
+							"});"
+						],
+						"type": "text/javascript",
+						"packages": {},
+						"requests": {}
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:5000/collection/user-decks?user=testUser123&slot=1",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "5000",
+					"path": [
+						"collection",
+						"user-decks"
+					],
+					"query": [
+						{
+							"key": "user",
+							"value": "testUser123"
+						},
+						{
+							"key": "slot",
+							"value": "1"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
 			"name": "delete",
 			"event": [
 				{

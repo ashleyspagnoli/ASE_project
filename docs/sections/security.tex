@@ -284,7 +284,7 @@ Enabled on the repository to automatically scan for vulnerable dependencies.
         \item The only option we had were old legacy images made by those companies in the past.
         Fortunately we found \textit{circleci/mongo:4.0-xenial-ram},
         a 4 years old image that relied on a really light-weight ubuntu version with 0 vulnerabilities.
-        \item This is definitely not a future-proof solution, hence the best path forward might just be to build a local image where we install mongoDB on top of alpine.
+        \item This is definitely not a future-proof solution. The best path forward would probably be to build a custom image where we install mongoDB on top of a lightweight alpine or debian image.
     \end{itemize}
     \item \textbf{JWT:} The User Manager microservice used an abandoned library to handle the JWT called python-jose with a high severity vulnerability. Fortunately there was a new and updated library that had the same functions, called PyJWT.
 \end{itemize}

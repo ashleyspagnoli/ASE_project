@@ -199,25 +199,49 @@ def delete_deck(user_id, username, deck_id):
     Elimina un mazzo dell'utente autenticato.
     """
     try:
+        # Converti deck_id in ObjectId
+        try:
+            oid = ObjectId(deck_id)
+        except:
+            return jsonify({'success': False, 'error': 'Invalid deck ID format'}), 400
+
         # controllo sull'esistenza del deck e appartenenza all'utente
         decks_collection = get_decks_collection()
-        deck = decks_collection.find_one({'_id': deck_id, 'userId': user_id}) 
+        deck = decks_collection.find_one({'_id': oid, 'userId': user_id}) 
         if not deck:
             return jsonify({'success': False, 'error': 'Deck not found or access denied'}), 404
         
         # elimina il deck
-        decks_collection.delete_one({'_id': deck_id})
+        decks_collection.delete_one({'_id': oid})
         return jsonify({'success': True, 'message': 'Deck deleted successfully'}), 200
     
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# GET /collection/decks/user/{user_id}/slot/{slot_number} - INTERNA (per game-engine)
-@app.route('/collection/decks/user/<user_id>/slot/<int:slot_number>', methods=['GET'])
-def get_deck_by_slot(user_id, slot_number):
+# GET /collection/user-decks?user={user_id}&slot={slot_number} - INTERNA (per game-engine)
+@app.route('/collection/user-decks', methods=['GET'])
+def get_deck_by_query():
     """
     Endpoint INTERNO usato dal game-engine per recuperare un mazzo.
     """
+    user_id = request.args.get('user')
+    slot_number = request.args.get('slot')
+
+    # Input Validation (Zero Trust)
+    if not user_id or not slot_number:
+        return jsonify({'success': False, 'error': 'Missing user or slot parameter'}), 400
+
+    try:
+        slot_number = int(slot_number)
+        if slot_number < 1 or slot_number > 5:
+             return jsonify({'success': False, 'error': 'Slot must be between 1 and 5'}), 400
+    except ValueError:
+        return jsonify({'success': False, 'error': 'Slot must be an integer'}), 400
+    
+    # Basic sanitization/validation for user_id
+    if not isinstance(user_id, str) or len(user_id) > 36: # UUID length is 36
+        return jsonify({'success': False, 'error': 'Invalid user ID format'}), 400
+
     try:
         decks_collection = get_decks_collection()
         all_cards = load_cards()
@@ -250,7 +274,7 @@ def get_deck_by_slot(user_id, slot_number):
         return jsonify({'success': True, 'data': populated_cards}), 200
 
     except Exception as e:
-        app.logger.error(f"Error in get_deck_by_slot: {e}")
+        app.logger.error(f"Error in get_deck_by_query: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':

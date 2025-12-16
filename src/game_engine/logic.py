@@ -146,8 +146,9 @@ def select_deck(game_id, player_uuid, deck_slot, games):
 
     try:
         # 1. Contatta il microservizio 'collection' per ottenere il mazzo
-        deck_url = f"{COLLECTION_URL}/decks/user/{player_uuid}/slot/{deck_slot}"
-        response = requests.get(deck_url, timeout=5, verify=COLLECTION_CERT)
+        deck_url = f"{COLLECTION_URL}/user-decks"
+        params = {'user': player_uuid, 'slot': deck_slot}
+        response = requests.get(deck_url, params=params, timeout=5, verify=COLLECTION_CERT)
         
         # Lancia un errore se la richiesta fallisce (es. 404 Deck non trovato)
         response.raise_for_status() 
