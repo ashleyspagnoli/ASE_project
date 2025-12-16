@@ -16,6 +16,10 @@
 							"listen": "test",
 							"script": {
 								"exec": [
+									"var requestBody = JSON.parse(pm.request.body.raw);",
+									"pm.collectionVariables.set(\"alice_username\", requestBody.username);",
+									"pm.collectionVariables.set(\"alice_password\", requestBody.password);",
+									"",
 									"pm.test(\"Status code is 200 or 201\", function () {",
 									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
 									"});",
@@ -39,7 +43,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"username\": \"{{alice_username}}\",\n    \"password\": \"{{alice_password}}\",\n    \"email\": \"alice@test.com\"\n}"
+							"raw": "{\n    \"username\": \"alice_test_{{$randomInt}}\",\n    \"password\": \"password123\",\n    \"email\": \"alice{{$randomInt}}@test.com\"\n}"
 						},
 						"url": {
 							"raw": "{{gateway_url}}/users/register",
@@ -61,6 +65,10 @@
 							"listen": "test",
 							"script": {
 								"exec": [
+									"var requestBody = JSON.parse(pm.request.body.raw);",
+									"pm.collectionVariables.set(\"bob_username\", requestBody.username);",
+									"pm.collectionVariables.set(\"bob_password\", requestBody.password);",
+									"",
 									"pm.test(\"Status code is 200 or 201\", function () {",
 									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
 									"});",
@@ -84,7 +92,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"username\": \"{{bob_username}}\",\n    \"password\": \"{{bob_password}}\",\n    \"email\": \"bob@test.com\"\n}"
+							"raw": "{\n    \"username\": \"bob_test_{{$randomInt}}\",\n    \"password\": \"password123\",\n    \"email\": \"bob{{$randomInt}}@test.com\"\n}"
 						},
 						"url": {
 							"raw": "{{gateway_url}}/users/register",
@@ -371,6 +379,50 @@
 							{
 								"key": "Authorization",
 								"value": "Bearer {{alice_jwt}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/game/match/join",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"game",
+								"match",
+								"join"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-001-09: Bob Joins Matchmaking",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Game started and ID received\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql(\"matched\");",
+									"    pm.expect(jsonData.game_id).to.exist;",
+									"    pm.collectionVariables.set(\"game_id\", jsonData.game_id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{bob_jwt}}"
 							}
 						],
 						"url": {
@@ -825,6 +877,290 @@
 					"response": []
 				}
 			]
+		},
+		{
+			"name": "IT-006: Advanced Game Scenarios",
+			"item": [
+				{
+					"name": "IT-006-01: Play Invalid Card",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 400 or 422\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([400, 422]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{alice_jwt}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"card\": {\n        \"value\": \"99\",\n        \"suit\": \"invalid\"\n    }\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/game/play/{{game_id}}",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"game",
+								"play",
+								"{{game_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-006-02: Get Game State",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"State contains scores\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('scores');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{alice_jwt}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/game/state/{{game_id}}",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"game",
+								"state",
+								"{{game_id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "IT-008: User Editor Integration",
+			"item": [
+				{
+					"name": "IT-008-01: View User Data",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Returns email and username\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('email');",
+									"    pm.expect(jsonData).to.have.property('username');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{alice_jwt}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/usereditor/view-data",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"usereditor",
+								"view-data"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-008-02: Change Username",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"var randomInt = Math.floor(Math.random() * 10000);",
+									"pm.collectionVariables.set(\"new_alice_username\", \"Alice_Renamed_\" + randomInt);"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Username changed message\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.message).to.include(\"Username changed successfully\");",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{alice_jwt}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"old_username\": \"{{alice_username}}\",\n    \"new_username\": \"{{new_alice_username}}\"\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/usereditor/change-username",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"usereditor",
+								"change-username"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-008-02a: Login with New Username",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"JWT token is received\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set(\"alice_jwt\", jsonData.token);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"{{new_alice_username}}\",\n    \"password\": \"{{alice_password}}\"\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/users/login",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"users",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-008-03: Verify New Username",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Username is updated\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.username).to.eql(pm.collectionVariables.get(\"new_alice_username\"));",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{alice_jwt}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/usereditor/view-data",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"usereditor",
+								"view-data"
+							]
+						}
+					},
+					"response": []
+				}
+			]
 		}
 	],
 	"event": [
@@ -855,22 +1191,22 @@
 		},
 		{
 			"key": "alice_username",
-			"value": "alice_test_1765562141",
+			"value": "",
 			"type": "string"
 		},
 		{
 			"key": "alice_password",
-			"value": "SecurePass123!",
+			"value": "",
 			"type": "string"
 		},
 		{
 			"key": "bob_username",
-			"value": "bob_test_1765562141",
+			"value": "",
 			"type": "string"
 		},
 		{
 			"key": "bob_password",
-			"value": "SecurePass456!",
+			"value": "",
 			"type": "string"
 		},
 		{
