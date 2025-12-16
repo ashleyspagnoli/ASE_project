@@ -24,22 +24,22 @@ class UserModifyEmail(BaseModel):
 # Note: We remove "/users" from the path because we will add it as a prefix in main.py
 
 
-@router.patch("/modify/change-username", tags=["User Editing"])
+@router.patch("/change-username", tags=["User Editing"])
 async def proxy_change_username(data:UserModifyUsername,request: Request):
-    URL = USER_URL + '/users/modify/change-username' 
+    URL = USER_URL + '/change-username' 
     return await forward_request(request, URL, body_data=data.model_dump())
 
-@router.patch("/modify/change-password", tags=["User Editing"])
+@router.patch("/change-password", tags=["User Editing"])
 async def proxy_change_password(data:UserModifyPassword,request: Request):
-    URL = USER_URL + '/users/modify/change-password' 
+    URL = USER_URL + '/change-password' 
     return await forward_request(request, URL, body_data=data.model_dump())
 
-@router.patch("/modify/change-email", tags=["User Editing"])
+@router.patch("/change-email", tags=["User Editing"])
 async def proxy_change_email(data:UserModifyEmail,request: Request):
-    URL = USER_URL + '/users/modify/change-email' 
+    URL = USER_URL + '/change-email' 
     return await forward_request(request, URL, body_data=data.model_dump())
 
-@router.get("/view-userdata", tags=["User Editing"])
+@router.get("/view-data", tags=["User Editing"])
 async def proxy_get_username_email(request: Request):
-    URL = USER_URL + '/users/modify/view-userdata' 
+    URL = USER_URL + '/view-data' 
     return await forward_request(request, URL, is_json=False)

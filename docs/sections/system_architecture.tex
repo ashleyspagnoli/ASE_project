@@ -44,17 +44,27 @@ Here is a list of the main microservices of the system:
     \end{itemize}
     \item \textbf{Game History -> User-Manager:} Game History needs to connect to User Manager also to get a list of
     (updated) usernames from a list of user-ids to return the leaderboard to users.\\
-    This is done through the \textit{/users/usernames-by-ids} endpoint of the User Manager.
+    This is done through the \texttt{/users/usernames-by-ids} endpoint of the User Manager.
     \item \textbf{User Editor:}
     We've separated the user profile editing and data viewing endpoints from the user manager to keep the user manager smaller
     and allow horizontal scalability.
     The User Editor then connects to dedicated endpoints of the User Manager that allow it to update user information in the DB User-DB.
     \item \textbf{Separated in-game logic:}
     The Game Engine microservice, as the name suggest, handles the whole game logic,
-    while delegating to Game History and Collection the handling of old games and decks.
+    while delegating to Game History and Collection the handling of old games and decks.\\
+    This is done through the endpoints:
+    
+    \begin{itemize}
+        \item \texttt{/internal/update-password}
+        \item \texttt{/internal/update-email}
+        \item \texttt{/internal/update-username}
+        \item \texttt{/users/my-username-my-email}
+    \end{itemize}
     \item \textbf{Cards and decks:}
     The Collection microservice allows the users to see all the cards, their images and to \hyperref[sec:cloud-decks]{handle their decks}.\\
-    The Game Engine will connect to this microservice to get the deck selected from the user: the user provides the deck's number and the Game Engine asks for the corresponding cards to the Collection.
+    The Game Engine will connect to this microservice to get the deck selected from the user: the user provides the deck's number
+    and the Game Engine asks for the corresponding cards to the Collection. This is done through the endpoint \\
+    \texttt{/collection/user-decks?user=\{user\_id\}\&slot=\{slot\_number\}}.
     \item \textbf{Game History and Leaderboard:} The Game Engine delegates the Game History to store finished games. How this is handled is discussed in detail in the \hyperref[sec:rabbitmq]{Additional Features} section.\\
     This microservices then allow users to see their old matches, and allows everyone to see the leaderboard (think about a website that shows the best players to unauthenticated users).
     

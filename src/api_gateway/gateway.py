@@ -17,4 +17,4 @@ app.include_router(history.router, prefix="/history", tags=["History"])
 # Collection routes
 app.include_router(collection.router, prefix="/collection", tags=["Collection"])
 # User editor routes
-app.include_router(usereditor.router, prefix="/userseditor", tags=["User Editing"])
+app.include_router(usereditor.router, prefix="/usereditor", tags=["User Editing"])

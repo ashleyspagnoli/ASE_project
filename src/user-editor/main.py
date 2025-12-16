@@ -184,7 +184,7 @@ def _call_auth_service_update(payload: UserUpdateInternal, token: str):
 
 ### Modifica Username
 @app.patch(
-    "/users/modify/change-username",
+    "/change-username",
     status_code=status.HTTP_200_OK,
     tags=["User Editor"],
     summary="Change username"
@@ -220,7 +220,7 @@ def change_username(
 
 ### Modifica Password
 @app.patch(
-    "/users/modify/change-password",
+    "/change-password",
     status_code=status.HTTP_200_OK,
     tags=["User Editor"],
     summary="Change user password"
@@ -248,7 +248,7 @@ def change_password(
 
 ### Modifica Email
 @app.patch(
-    "/users/modify/change-email",
+    "/change-email",
     status_code=status.HTTP_200_OK,
     tags=["User Editor"],
     summary="Change user email"
@@ -275,7 +275,7 @@ def change_password(
 
 ### Modifica Email
 @app.get(
-    "/users/modify/view-userdata",
+    "/view-data",
     status_code=status.HTTP_200_OK,
     tags=["User Editor"],
     summary="See user email and username"
