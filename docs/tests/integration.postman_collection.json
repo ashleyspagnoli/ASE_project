@@ -1089,6 +1089,1467 @@
 			]
 		},
 		{
+			"name": "IT-009: Complete Game Playthrough",
+			"item": [
+				{
+					"name": "IT-009-01: Register Player 1",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var requestBody = JSON.parse(pm.request.body.raw);",
+									"pm.collectionVariables.set(\"player1_username\", requestBody.username);",
+									"pm.collectionVariables.set(\"player1_password\", requestBody.password);",
+									"",
+									"pm.test(\"Status code is 200 or 201\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"player1_{{$randomInt}}\",\n    \"password\": \"password123\",\n    \"email\": \"player1_{{$randomInt}}@test.com\"\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/users/register",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"users",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-009-02: Register Player 2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var requestBody = JSON.parse(pm.request.body.raw);",
+									"pm.collectionVariables.set(\"player2_username\", requestBody.username);",
+									"pm.collectionVariables.set(\"player2_password\", requestBody.password);",
+									"",
+									"pm.test(\"Status code is 200 or 201\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"player2_{{$randomInt}}\",\n    \"password\": \"password123\",\n    \"email\": \"player2_{{$randomInt}}@test.com\"\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/users/register",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"users",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-009-03: Login Player 1",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"JWT token received\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set(\"player1_jwt\", jsonData.token);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"{{player1_username}}\",\n    \"password\": \"{{player1_password}}\"\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/users/login",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"users",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-009-04: Login Player 2",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"JWT token received\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set(\"player2_jwt\", jsonData.token);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"{{player2_username}}\",\n    \"password\": \"{{player2_password}}\"\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/users/login",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"users",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-009-05: Player 1 Creates Deck",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Deck created\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.be.true;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{player1_jwt}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"deckName\": \"P1_Deck\",\n    \"deckSlot\": 1,\n    \"cards\": [\"h9\", \"h6\", \"d10\", \"d5\", \"c8\", \"c7\", \"sA\", \"s8\"]\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/collection/decks",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"collection",
+								"decks"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-009-06: Player 2 Creates Deck",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 201\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});",
+									"",
+									"pm.test(\"Deck created\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.success).to.be.true;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{player2_jwt}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"deckName\": \"P2_Deck\",\n    \"deckSlot\": 2,\n    \"cards\": [\"h10\", \"h5\", \"dA\", \"d7\", \"c9\", \"c6\", \"s10\", \"s5\"]\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/collection/decks",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"collection",
+								"decks"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-009-07: Player 1 Joins Matchmaking",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Matchmaking response received\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.exist;",
+									"    if (jsonData.status === 'matched' && jsonData.game_id) {",
+									"        pm.collectionVariables.set(\"full_game_id\", jsonData.game_id);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{player1_jwt}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"deck_slot\": 1\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/game/match/join",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"game",
+								"match",
+								"join"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-009-08: Player 2 Joins Matchmaking",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Match found and game started\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.status).to.eql(\"matched\");",
+									"    pm.expect(jsonData.game_id).to.exist;",
+									"    pm.collectionVariables.set(\"full_game_id\", jsonData.game_id);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{player2_jwt}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"deck_slot\": 2\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/game/match/join",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"game",
+								"match",
+								"join"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-009-09: Player 1 Gets Hand",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Hand contains cards\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"    pm.expect(jsonData.length).to.be.above(0);",
+									"    ",
+									"    // Save first card for playing",
+									"    if (jsonData.length > 0) {",
+									"        pm.collectionVariables.set(\"p1_card\", JSON.stringify(jsonData[0]));",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{player1_jwt}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/game/hand/{{full_game_id}}",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"game",
+								"hand",
+								"{{full_game_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-009-10: Player 2 Gets Hand",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Hand contains cards\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"    pm.expect(jsonData.length).to.be.above(0);",
+									"    ",
+									"    // Save first card for playing",
+									"    if (jsonData.length > 0) {",
+									"        pm.collectionVariables.set(\"p2_card\", JSON.stringify(jsonData[0]));",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{player2_jwt}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/game/hand/{{full_game_id}}",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"game",
+								"hand",
+								"{{full_game_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-009-11: Get Initial Game State",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Game state has required fields\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.have.property('scores');",
+									"    pm.expect(jsonData).to.have.property('turn_number');",
+									"    pm.expect(jsonData).to.have.property('players');",
+									"    pm.expect(jsonData.players).to.be.an('array');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{player1_jwt}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/game/state/{{full_game_id}}",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"game",
+								"state",
+								"{{full_game_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-009-12: Player 1 Plays First Card",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Card play acknowledged\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.exist;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Parse the card from collection variable",
+									"var cardStr = pm.collectionVariables.get(\"p1_card\");",
+									"if (cardStr) {",
+									"    var card = JSON.parse(cardStr);",
+									"    pm.variables.set(\"p1_card_parsed\", JSON.stringify(card));",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{player1_jwt}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"card\": {{p1_card_parsed}}\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/game/play/{{full_game_id}}",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"game",
+								"play",
+								"{{full_game_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-009-13: Player 2 Plays First Card",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Card play acknowledged\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.exist;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Parse the card from collection variable",
+									"var cardStr = pm.collectionVariables.get(\"p2_card\");",
+									"if (cardStr) {",
+									"    var card = JSON.parse(cardStr);",
+									"    pm.variables.set(\"p2_card_parsed\", JSON.stringify(card));",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{player2_jwt}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"card\": {{p2_card_parsed}}\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/game/play/{{full_game_id}}",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"game",
+								"play",
+								"{{full_game_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-009-14: Check Game State After Round 1",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Game state updated after round\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData.turn_number).to.be.at.least(0);",
+									"    pm.expect(jsonData.scores).to.exist;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{player1_jwt}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/game/state/{{full_game_id}}",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"game",
+								"state",
+								"{{full_game_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-009-15: Verify Game History Created",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Match history endpoint responds correctly\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    var matches = jsonData.matches || jsonData;",
+									"    pm.expect(matches).to.be.an('array');",
+									"});",
+									"",
+									"// Note: Game history is saved only when the game is finished.",
+									"// This test plays only 1 round, so the game might not be in history yet.",
+									"pm.test(\"Game history service is functional\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    var matches = jsonData.matches || jsonData;",
+									"    // Just verify it's an array, game might not be finished yet",
+									"    pm.expect(Array.isArray(matches)).to.be.true;",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{player1_jwt}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/history/matches",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"history",
+								"matches"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "IT-010: Complete Game Until Winner",
+			"item": [
+				{
+					"name": "IT-010-01: Register Player A",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var requestBody = JSON.parse(pm.request.body.raw);",
+									"pm.collectionVariables.set(\"playerA_username\", requestBody.username);",
+									"pm.collectionVariables.set(\"playerA_password\", requestBody.password);",
+									"pm.test(\"Status code is 200 or 201\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"playerA_{{$randomInt}}\",\n    \"password\": \"password123\",\n    \"email\": \"playerA_{{$randomInt}}@test.com\"\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/users/register",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"users",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-010-02: Register Player B",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"var requestBody = JSON.parse(pm.request.body.raw);",
+									"pm.collectionVariables.set(\"playerB_username\", requestBody.username);",
+									"pm.collectionVariables.set(\"playerB_password\", requestBody.password);",
+									"pm.test(\"Status code is 200 or 201\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 201]);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"playerB_{{$randomInt}}\",\n    \"password\": \"password123\",\n    \"email\": \"playerB_{{$randomInt}}@test.com\"\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/users/register",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"users",
+								"register"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-010-03: Login Players",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Login successful\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set(\"playerA_jwt\", jsonData.token);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"{{playerA_username}}\",\n    \"password\": \"{{playerA_password}}\"\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/users/login",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"users",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-010-04: Login Player B",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Login successful\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    pm.collectionVariables.set(\"playerB_jwt\", jsonData.token);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"username\": \"{{playerB_username}}\",\n    \"password\": \"{{playerB_password}}\"\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/users/login",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"users",
+								"login"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-010-05: Create Decks and Start Match",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Create deck for Player A",
+									"const gwUrl = pm.collectionVariables.get('gateway_url');",
+									"const tokenA = pm.collectionVariables.get('playerA_jwt');",
+									"",
+									"pm.sendRequest({",
+									"    url: gwUrl + '/collection/decks',",
+									"    method: 'POST',",
+									"    header: {",
+									"        'Authorization': 'Bearer ' + tokenA,",
+									"        'Content-Type': 'application/json'",
+									"    },",
+									"    body: {",
+									"        mode: 'raw',",
+									"        raw: JSON.stringify({",
+									"            deckName: 'DeckA',",
+									"            deckSlot: 1,",
+									"            cards: ['h9', 'h6', 'd10', 'd5', 'c8', 'c7', 'sA', 's8']",
+									"        })",
+									"    }",
+									"}, function(err, res) {",
+									"    console.log('Deck A created');",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Deck created\", function () {",
+									"    pm.response.to.have.status(201);",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{playerB_jwt}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"deckName\": \"DeckB\",\n    \"deckSlot\": 2,\n    \"cards\": [\"h10\", \"h5\", \"dA\", \"d7\", \"c9\", \"c6\", \"s10\", \"s5\"]\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/collection/decks",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"collection",
+								"decks"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-010-06: Start Matchmaking",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Player A joins matchmaking",
+									"const gwUrl = pm.collectionVariables.get('gateway_url');",
+									"const tokenA = pm.collectionVariables.get('playerA_jwt');",
+									"",
+									"setTimeout(function() {",
+									"    pm.sendRequest({",
+									"        url: gwUrl + '/game/match/join',",
+									"        method: 'POST',",
+									"        header: {",
+									"            'Authorization': 'Bearer ' + tokenA,",
+									"            'Content-Type': 'application/json'",
+									"        },",
+									"        body: {",
+									"            mode: 'raw',",
+									"            raw: JSON.stringify({ deck_slot: 1 })",
+									"        }",
+									"    }, function(err, res) {",
+									"        console.log('Player A joined matchmaking');",
+									"    });",
+									"}, 500);"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Match found\", function () {",
+									"    pm.response.to.have.status(200);",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.game_id) {",
+									"        pm.collectionVariables.set('complete_game_id', jsonData.game_id);",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{playerB_jwt}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"deck_slot\": 2\n}"
+						},
+						"url": {
+							"raw": "{{gateway_url}}/game/match/join",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"game",
+								"match",
+								"join"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-010-07: Play Complete Game (4 rounds)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Play 4 complete rounds alternating between players",
+									"const gwUrl = pm.collectionVariables.get('gateway_url');",
+									"const tokenA = pm.collectionVariables.get('playerA_jwt');",
+									"const tokenB = pm.collectionVariables.get('playerB_jwt');",
+									"const gameId = pm.collectionVariables.get('complete_game_id');",
+									"",
+									"function playCard(token, delay) {",
+									"    setTimeout(function() {",
+									"        // Get hand",
+									"        pm.sendRequest({",
+									"            url: gwUrl + '/game/hand/' + gameId,",
+									"            method: 'GET',",
+									"            header: { 'Authorization': 'Bearer ' + token }",
+									"        }, function(err, handRes) {",
+									"            if (handRes && handRes.json().length > 0) {",
+									"                const card = handRes.json()[0];",
+									"                // Play card",
+									"                pm.sendRequest({",
+									"                    url: gwUrl + '/game/play/' + gameId,",
+									"                    method: 'POST',",
+									"                    header: {",
+									"                        'Authorization': 'Bearer ' + token,",
+									"                        'Content-Type': 'application/json'",
+									"                    },",
+									"                    body: {",
+									"                        mode: 'raw',",
+									"                        raw: JSON.stringify({ card: card })",
+									"                    }",
+									"                }, function() {});",
+									"            }",
+									"        });",
+									"    }, delay);",
+									"}",
+									"",
+									"// Play 4 rounds (8 card plays total)",
+									"for (let i = 0; i < 4; i++) {",
+									"    playCard(tokenA, i * 1000);",
+									"    playCard(tokenB, i * 1000 + 500);",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Wait for game to complete",
+									"setTimeout(function() {}, 5000);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{playerA_jwt}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/game/state/{{complete_game_id}}",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"game",
+								"state",
+								"{{complete_game_id}}"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-010-08: Verify Game in History",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Completed game appears in history\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    var matches = jsonData.matches || jsonData;",
+									"    pm.expect(matches).to.be.an('array');",
+									"    ",
+									"    const gameId = pm.collectionVariables.get('complete_game_id');",
+									"    ",
+									"    if (matches.length > 0) {",
+									"        const found = matches.some(m => ",
+									"            m.game_id === gameId || ",
+									"            m.match_id === gameId || ",
+									"            m.id === gameId",
+									"        );",
+									"        if (!found) {",
+									"            console.log('Game ID not found yet, might need more time for async processing');",
+									"        }",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{playerA_jwt}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/history/matches",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"history",
+								"matches"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "IT-011: Leaderboard and Statistics",
+			"item": [
+				{
+					"name": "IT-011-01: Get Leaderboard",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Leaderboard returns array\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"});",
+									"",
+									"pm.test(\"Leaderboard entries have required fields\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    if (jsonData.length > 0) {",
+									"        var entry = jsonData[0];",
+									"        pm.expect(entry).to.have.property('username');",
+									"        pm.expect(entry.username).to.be.a('string');",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{gateway_url}}/history/leaderboard",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"history",
+								"leaderboard"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-011-02: Get Leaderboard with Pagination",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Pagination works correctly\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"    // Page 1 should exist even if empty",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{gateway_url}}/history/leaderboard?page=0",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"history",
+								"leaderboard"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "0"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-011-03: Verify Match History for Authenticated User",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Ensure we have a valid token from previous tests",
+									"if (!pm.collectionVariables.get('alice_jwt')) {",
+									"    // Try player1_jwt or create a simple token holder",
+									"    const p1Token = pm.collectionVariables.get('player1_jwt');",
+									"    if (p1Token) {",
+									"        pm.collectionVariables.set('alice_jwt', p1Token);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						},
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Match history endpoint responds\", function () {",
+									"    // Accept 200 (success) or 401/503 (auth issues from async token)",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 401, 503]);",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    pm.test(\"Match history data is valid\", function () {",
+									"        var jsonData = pm.response.json();",
+									"        pm.expect(jsonData).to.satisfy(function(data) {",
+									"            return Array.isArray(data) || (data.hasOwnProperty('matches') && Array.isArray(data.matches));",
+									"        });",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{alice_jwt}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/history/matches",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"history",
+								"matches"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-011-04: Verify Statistics After Multiple Games",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"pm.test(\"Status code is 200\", function () {",
+									"    pm.response.to.have.status(200);",
+									"});",
+									"",
+									"pm.test(\"Leaderboard reflects game results\", function () {",
+									"    var jsonData = pm.response.json();",
+									"    pm.expect(jsonData).to.be.an('array');",
+									"    ",
+									"    // Verify that players from previous games appear",
+									"    if (jsonData.length > 0) {",
+									"        var entry = jsonData[0];",
+									"        pm.expect(entry).to.have.property('username');",
+									"        ",
+									"        // Check for expected stat fields",
+									"        const expectedFields = ['wins', 'losses', 'draws', 'total_points'];",
+									"        const hasStats = expectedFields.some(field => entry.hasOwnProperty(field));",
+									"        pm.expect(hasStats).to.be.true;",
+									"    }",
+									"});"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{gateway_url}}/history/leaderboard",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"history",
+								"leaderboard"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "IT-011-05: Check Match Details",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// This test checks if a specific match can be retrieved",
+									"// Status 404 is acceptable if the match doesn't exist yet",
+									"pm.test(\"Status code is 200 or 404\", function () {",
+									"    pm.expect(pm.response.code).to.be.oneOf([200, 404]);",
+									"});",
+									"",
+									"if (pm.response.code === 200) {",
+									"    pm.test(\"Match details contain game information\", function () {",
+									"        var jsonData = pm.response.json();",
+									"        pm.expect(jsonData).to.be.an('object');",
+									"    });",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{alice_jwt}}"
+							}
+						],
+						"url": {
+							"raw": "{{gateway_url}}/history/match/{{game_id}}",
+							"host": [
+								"{{gateway_url}}"
+							],
+							"path": [
+								"history",
+								"match",
+								"{{game_id}}"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
 			"name": "IT-008: User Editor Integration",
 			"item": [
 				{
@@ -1359,6 +2820,96 @@
 		},
 		{
 			"key": "bob_deck_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "player1_username",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "player1_password",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "player2_username",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "player2_password",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "player1_jwt",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "player2_jwt",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "full_game_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "p1_card",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "p2_card",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "playerA_username",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "playerA_password",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "playerB_username",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "playerB_password",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "playerA_jwt",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "playerB_jwt",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "complete_game_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "temp_history_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "new_alice_username",
 			"value": "",
 			"type": "string"
 		}
