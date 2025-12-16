@@ -1,0 +1,39 @@
+name: Security Audit
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  schedule:
+    - cron: '0 0 * * 0'
+
+jobs:
+  pip-audit:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - path: client/requirements.txt
+            name: client
+          - path: src/api_gateway/requirements.txt
+            name: api_gateway
+          - path: src/collection/requirements.txt
+            name: collection
+          - path: src/game_engine/requirements.txt
+            name: game_engine
+          - path: src/game_history/requirements.txt
+            name: game_history
+          - path: src/user-editor/requirements.txt
+            name: user-editor
+          - path: src/user-manager/requirements.txt
+            name: user-manager
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Audit ${{ matrix.service.name }}
+        uses: docker://pypa/pip-audit:latest
+        with:
+          args: -r ${{ matrix.service.path }}

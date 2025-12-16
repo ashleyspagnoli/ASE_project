@@ -1,6 +1,7 @@
 \section{Use of Generative AI}
 During the project development we've made extensive use of various AI models, experimenting with them and learning how to use those tools as efficiently as possible.
 We've mainly taken advantage of what was given to us for free as students: GitHub Copilot Pro and Gemini Pro.
+Given the recent advancments in AI, this was actually the first time we found it being reliable enough to use it as a coding assistant.\\
 We've used them in the following two areas.
 \begin{itemize}
     \item Researching informations and tools: this has gotten a lot better in the past years, with models combining their knowledge with informations found on the web, providing extensive explanations and sources, while almost never allucinating. Researching using LLMs has definitely almost replaced our reliance on classical search engines.
@@ -13,6 +14,7 @@ We've used them in the following two areas.
         \item We found the Copilot Gemini 3.0 Agent behaving in a more \textit{human} way, trying to get the best result while doing as least work as possible. E.g. for big changes in a single file that meant almost a whole refactoring, it often tried to delete the whole file and start from scratch.
         \item The inline suggestions were a dividing topic, while some of us found them useful and kept them on, some others found them distracting and fatigue-inducing, where they suggested mostly wrong code while constantly drawing the attention of the user.
         \item Even if ChatGPT models are still the most popular ones, we found them working on par, if not worse, than the others, hence we made less extensive use of them. This resonates with the recent "Code Red" raised by OpenAI after the release of Gemini 3.0.
+        \item We sometimes tried to "vibe-code ourselves out of errors" with variable results. Sometimes we accepted changes that seemed ok / useless to us but that broke the code for others and, anyway, lost their time for reviewing it.
     \end{itemize}
     
 \end{itemize}
@@ -23,5 +25,3 @@ Reasoning models behaved way better,
 showing the robustness of more rigid and iterative workflows, applied to the more efficient and smaller MoE (Mixture of Experts) models, compared to one-shot larger models.
 This resonates with what is shown in the course for cloud services, where decomposing complex tasks (monoliths) into smaller, more easily verifiable tasks (microservices), often yields better results.
 
-
-first time doing this, happened that we accepted meaningless changes (that lost time of the others for reviewing code and sometimes lead to problems or reverting changes), tried vibe-coding out of problems when tired, 
