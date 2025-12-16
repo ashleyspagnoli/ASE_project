@@ -41,5 +41,5 @@ async def proxy_change_email(data:UserModifyEmail,request: Request):
 
 @router.get("/view-userdata", tags=["User Editing"])
 async def proxy_get_username_email(request: Request):
-    URL = USER_URL + '/users/view-userdata' 
+    URL = USER_URL + '/users/modify/view-userdata' 
     return await forward_request(request, URL, is_json=False)
