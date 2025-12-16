@@ -30,7 +30,7 @@ jobs:
       - name: Build and start collection test service
         working-directory: ./src
         run: |
-          docker build -f collection/Dockerfile_test -t collection-test .
+          docker build -f collection/Dockerfile_test -t collection-test ./collection
           docker run -d --name collection-test -p 5000:5000 \
             -v $(pwd)/secrets/collection:/run/secrets/collection:ro \
             -v $(pwd)/secrets/user-manager:/run/secrets/user-manager:ro \
