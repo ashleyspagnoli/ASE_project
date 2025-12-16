@@ -96,8 +96,8 @@ jobs:
         working-directory: ./src
         run: |
           mkdir -p secrets/user-manager
-          python3 -c "import secrets; print(secrets.token_urlsafe(32))" > secrets/user-manager/user_db_encryption_secret_key
-          python3 -c "import secrets; print(secrets.token_urlsafe(32))" > secrets/user-manager/jwt_secret_key
+          python3 -c "import secrets; print(secrets.token_urlsafe(32))" > secrets/user-manager/encryption_key.txt
+          python3 -c "import secrets; print(secrets.token_urlsafe(32))" > secrets/user-manager/jwt_secret_key.txt
 
       - name: Create test network
         run: docker network create test-network
