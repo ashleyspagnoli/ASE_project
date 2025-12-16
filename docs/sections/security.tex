@@ -119,7 +119,7 @@ This also solved issues raised by pip-audit
         \item "latest" images are not an option as a final shipment version, this would mean the images possibly breaking for an update.
         \item All the companies we've found providing mongo linux images moved to a paid model, providing only "latest" versions for free for development environments.
         \item The only option we had were old legacy images made by those companies in the past.
-        Fortunately we found \textit{circleci/mongo:4.0-xenial-ram},
+        Fortunately we found \textit{circleci/mongo:4.0-xenial},
         a 4 years old image that relied on a really light-weight ubuntu version with 0 vulnerabilities.
         \item This is definitely not a future-proof solution. The best path forward would probably be to build a custom image where we install mongoDB on top of a lightweight alpine or debian image.
     \end{itemize}
