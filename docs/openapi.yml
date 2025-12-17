@@ -94,36 +94,6 @@ paths:
         '422':
           $ref: '#/components/responses/ValidationError'
 
-  /users/token:
-    post:
-      summary: OAuth2 token endpoint
-      description: Standard OAuth2 password flow for token generation (form-data).
-      tags:
-        - Authentication
-      requestBody:
-        required: true
-        content:
-          application/x-www-form-urlencoded:
-            schema:
-              type: object
-              required:
-                - username
-                - password
-              properties:
-                username:
-                  type: string
-                password:
-                  type: string
-      responses:
-        '200':
-          description: Token generated successfully
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Token'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-
   # --- USER MODIFICATION ENDPOINTS ---
   /usereditor/change-username:
     patch:
@@ -717,7 +687,7 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
-      description: JWT token obtained from /users/login or /users/token
+      description: JWT token obtained from /users/login
 
   parameters:
     CardId:
@@ -816,16 +786,6 @@ components:
           type: string
           format: email
           example: "aseproject2@unipi.it"
-
-    Token:
-      type: object
-      properties:
-        access_token:
-          type: string
-          description: JWT access token
-        token_type:
-          type: string
-          example: "bearer"
 
     # --- Collection Schemas ---
     Card:
